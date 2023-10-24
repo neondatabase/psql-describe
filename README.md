@@ -1,3 +1,3 @@
 # psql-describe
 
-Implementing psql's `\d` (describe) family of commands in JavaScript.
+psql's `\d` (describe) family of commands ported to JavaScript.
