@@ -3,13 +3,14 @@
 import pg from 'pg';
 import fs from 'fs';
 import { describe, describeToString } from './describe.mjs';
-import { execFileSync } from 'child_process';
+import { spawnSync } from 'child_process';
 
 const [psqlPath, dbUrl] = process.argv.slice(2);
 console.log(`PSQL: ${psqlPath}\nDB:   ${dbUrl.replace(/(?<=^postgres(ql)?:[/][/][^:]+:)[^@]+(?=@)/, '***')}\n`);
 
 function psql(input) {
-  return execFileSync(psqlPath, [dbUrl, '-E'], { input }).toString('utf-8');
+  const { stdout, stderr } = spawnSync(psqlPath, [dbUrl, '-E'], { input });
+  return stdout.toString('utf-8') + stderr.toString('utf-8'); 
 }
 
 const
@@ -24,8 +25,8 @@ for (let test of tests) {
   const tableData = await describe(pg, test, 'main', queryFn, true);
   const localOutput = describeToString(tableData);
 
-  const stdPsqlOutput = psqlOutput.replace(/\n\(\d+ rows\)/g, '').replace(/ +$/gm, '');
-  const stdLocalOutput = localOutput.replace(/ +$/gm, '') + '\n\n';
+  const stdPsqlOutput = psqlOutput.replace(/\n\(\d+ rows\)/g, '').replace(/ +$/gm, '').trim();
+  const stdLocalOutput = localOutput.replace(/ +$/gm, '').trim();
 
   const pass = stdPsqlOutput === stdLocalOutput;
   console.log(pass ? 'PASS:' : 'FAIL:', test);

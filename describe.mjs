@@ -280,10 +280,17 @@ export function describeToString(desc) {
 }
 
 function pad(str, len, align, pre = ' ', post = ' ') {
-	const spaces = len - strlen(str);
+	const spaces = Math.max(0, len - strlen(str));
 	if (align === 'r') return pre + ' '.repeat(spaces) + str + post;
 	if (align === 'c') return pre + ' '.repeat(Math.floor(spaces / 2)) + str + ' '.repeat(Math.ceil(spaces / 2)) + post;
 	return pre + str + ' '.repeat(spaces) + post;  // default left align
+}
+
+function stripnulls(obj) {
+	if (Array.isArray(obj)) for (let i = 0, len = obj.length; i < len; i++) obj[i] = stripnulls(obj[i]);
+	else if (typeof obj === 'object' && obj !== null) for (let i in obj) obj[i] = stripnulls(obj[i]);
+	else if (typeof obj === 'string') return trimTrailingNull(obj);
+	return obj;
 }
 
 function tableToString(td) {
@@ -350,7 +357,7 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
 		const result = await exec_command_d(scan_state, true, dCmd);
 
 		// TODO: implement \?, \h, etc.
-		if (result === PSQL_CMD_UNKNOWN) output.push(`invalid command \\${dCmd}\ntry \\? for help.`);
+		if (result === PSQL_CMD_UNKNOWN) output.push(`invalid command \\${dCmd}`);
 		// if (result === PSQL_CMD_ERROR) output.push('...');  // what goes here?
 
 	} else {
@@ -361,7 +368,7 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
 		pg.types.setTypeParser(pg.types.builtins[b], originalParsers[b]);
 	}
 
-	return output;
+	return stripnulls(output);
 }
 
 function gettext_noop(x) { return x; }
@@ -648,13 +655,21 @@ function sprintf(template, ...values) {
 	let chrIndex = 0;
 	let nextChrIndex;
 	while ((nextChrIndex = template.indexOf('%', chrIndex)) !== -1) {
+		let padTo = 0;
 		result += template.slice(chrIndex, nextChrIndex);
 		chrIndex = nextChrIndex + 1;
 		let pcChr = template[chrIndex++];
-		if (pcChr === '*') pcChr = template[chrIndex++];  // skip a *
 		if (pcChr === '%') result += '%';
-		else if (pcChr === 's' || pcChr === 'c' || pcChr === 'd' || pcChr === 'u') result += trimTrailingNull(String(values[valuesIndex++]));
-		else throw new Error(`Unsupported sprintf placeholder: %${pcChr}`);
+		if (pcChr === '*') {
+			padTo = parseInt(values[valuesIndex++], 10);
+			pcChr = template[chrIndex++];
+		}
+		if (pcChr === 's' || pcChr === 'c' || pcChr === 'd' || pcChr === 'u') {
+			const ins = trimTrailingNull(String(values[valuesIndex++]));
+			const padBy = padTo - ins.length;
+			if (padBy > 0) result += ' '.repeat(padBy);
+			result += ins;
+		}
 	}
 	result += template.slice(chrIndex);
 	result = trimTrailingNull(result) + '\0';
@@ -917,10 +932,6 @@ function pg_tolower(ch) {
 
 function pg_strcasecmp(s1, s2) {
 	return strcmp(s1.toLowerCase(), s2.toLowerCase());
-}
-
-function exit(exitcode) {
-	console.error(`Exited (code: ${exitcode})`);
 }
 
 /*
@@ -1244,15 +1255,13 @@ function printTableAddFooter(content, footer) {
 	content.footer = footer;
 }
 
-function stripnulls(obj) {
-	if (Array.isArray(obj)) for (let i = 0, len = obj.length; i < len; i++) obj[i] = stripnulls(obj[i]);
-	else if (typeof obj === 'object' && obj !== null) for (let i in obj) obj[i] = stripnulls(obj[i]);
-	else if (typeof obj === 'string') return trimTrailingNull(obj);
-	return obj;
+function printTableSetFooter(content, footer) {
+	if (content.footers) content.footers.pop();
+	printTableAddFooter(content, footer);
 }
 
 function printTable(cont, fout, is_pager, flog) {
-	output.push(stripnulls(cont));
+	output.push(cont);
 }
 
 
@@ -4126,7 +4135,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 						/* Everything after "CREATE RULE" is echoed verbatim */
 						ruledef = PQgetvalue(result, i, 1);
-						ruledef += 12;
+						ruledef = ruledef.slice(12);
 						printfPQExpBuffer(buf, "    %s", ruledef);
 						printTableAddFooter(cont, buf.data);
 					}
@@ -4297,7 +4306,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 					/* Everything after "CREATE RULE" is echoed verbatim */
 					ruledef = PQgetvalue(result, i, 1);
-					ruledef += 12;
+					ruledef = ruledef.slice(12);
 
 					printfPQExpBuffer(buf, " %s", ruledef);
 					printTableAddFooter(cont, buf.data);
@@ -4735,7 +4744,7 @@ async function add_tablespace_footer(cont, relkind, tablespace, newline) {
 				}
 				else {
 					/* Append the tablespace to the latest footer */
-					printfPQExpBuffer(buf, "%s", cont.footer.data);
+					printfPQExpBuffer(buf, "%s", cont.footer);
 
 					/*-------
 						 translator: before this string there's an index description like

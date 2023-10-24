@@ -1,3 +1,4 @@
+
 \d
 \d+
 \d actor
@@ -6,3 +7,19 @@
 \dS
 \dS+
 \dS+ p*
+\da
+\daS
+\daS p*
+\dA
+\dA+
+\dA+ g*
+\dAc
+\dAc+
+\dAc bri* *id
+\dAf
+\dAf+
+\dAf+ gist ts*
+
+\dzz
+\dA+ public.g*
+
