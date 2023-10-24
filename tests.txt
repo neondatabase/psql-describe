@@ -1,0 +1,8 @@
+\d
+\d+
+\d actor
+\d act*
+\d+ act*
+\dS
+\dS+
+\dS+ p*

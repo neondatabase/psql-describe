@@ -1,0 +1,14 @@
+{
+  "name": "psql-describe",
+  "version": "1.0.0",
+  "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pg": "^8.11.3"
+  }
+}

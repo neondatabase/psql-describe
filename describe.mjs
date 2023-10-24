@@ -273,36 +273,95 @@ const
 	INT8MULTIRANGEARRAYOID = 6157,
 	CSTRINGARRAYOID = 1263;
 
-const pset = {};
-let PSQLexec;
+let PSQLexec, pset, output;
 
-export async function describe(cmd, dbName, runQuery, sversion = 140000, std_strings = 1) {  // cmd should be: `\dxxx xxxxx xxxxx`
-	PSQLexec = sql => runQuery(trimTrailingNull(sql));
-	pset.sversion = sversion;
-	pset.db = {
-		dbName,
-		sversion,
-		std_strings,
-		status: CONNECTION_OK,
-		encoding: PG_UTF8
-	};  // PGconn struct
-	pset.popt = {  // print options
-		topt: {},
-		nullPrint: '',
-	};
-	const match = cmd.match(/^\\(d\S*)(.*)/);
-	if (!match) {
-		console.log(`unsupported describe command: ${cmd}`);
-		return null;
+export function describeToString(desc) {
+	return desc.map(item => typeof item === 'string' ? item : tableToString(item)).join('\n\n');
+}
+
+function pad(str, len, align, pre = ' ', post = ' ') {
+	const spaces = len - strlen(str);
+	if (align === 'r') return pre + ' '.repeat(spaces) + str + post;
+	if (align === 'c') return pre + ' '.repeat(Math.floor(spaces / 2)) + str + ' '.repeat(Math.ceil(spaces / 2)) + post;
+	return pre + str + ' '.repeat(spaces) + post;  // default left align
+}
+
+function tableToString(td) {
+	const
+		{ ncolumns, nrows, aligns, footers } = td,
+		colWidths = [...td.headers, ...td.cells].reduce((memo, cell, i) => {
+			const col = i % td.ncolumns;
+			const len = strlen(cell);
+			if (len > memo[col]) memo[col] = len;
+			return memo;
+		}, new Array(ncolumns).fill(0)),
+		totalWidth = colWidths.reduce((memo, width) => memo + width, 0) + ncolumns * 2 + (ncolumns - 1),
+		title = pad(td.title, totalWidth, 'c', '', ''),
+		headers = td.headers.map((header, i) => pad(header, colWidths[i % ncolumns], 'c')).join('|'),
+		hline = td.headers.map((header, i) => '-'.repeat(colWidths[i % ncolumns] + 2)).join('+'),
+		lastColIndex = ncolumns - 1,
+		lastCellIndex = ncolumns * nrows - 1,
+		cells = td.cells.reduce((memo, cell, i) => memo +
+			pad(cell, colWidths[i % ncolumns], aligns[i % ncolumns]) +
+			(i === lastCellIndex ? '' : (i % ncolumns === lastColIndex ? '\n' : '|')),
+			'');
+			
+	return `${title}\n${headers}\n${hline}\n${cells}${footers ? '\n' + footers.join('\n') : ''}`;
+}
+
+export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = 140000, std_strings = 1) {
+	const raw = x => x;
+	const originalParsers = {};
+	for (let b in pg.types.builtins) {
+		originalParsers[b] = pg.types.getTypeParser(pg.types.builtins[b]);
+		pg.types.setTypeParser(pg.types.builtins[b], raw);
 	}
-	let [, dCmd, remaining] = match;
-	dCmd += '\0';
-	remaining += '\0';
 
-	const scan_state = [remaining, 0];
-	const result = await exec_command_d(scan_state, true, dCmd);
-	// TODO: implement \?, \h, etc.
-	if (result === PSQL_CMD_UNKNOWN) console.log(`invalid command \\${dCmd}\ntry \\? for help.`);
+	output = [];
+	pset = {
+		sversion,
+		db: {  // PGconn struct
+			dbName,
+			sversion,
+			std_strings,
+			status: CONNECTION_OK,
+			encoding: PG_UTF8
+		},
+		popt: {  // print options
+			topt: {
+				default_footer: false,
+			},
+			nullPrint: '',
+		}
+	};
+	PSQLexec = sql => {
+		const trimmed = trimTrailingNull(sql);
+		if (echoHidden) output.push(`/******** QUERY *********/\n${trimmed}\n/************************/`);
+		return runQuery(trimmed);
+	}
+
+	const match = cmd.match(/^\\(d\S*)(.*)/);
+	if (match) {
+		let [, dCmd, remaining] = match;
+		dCmd += '\0';
+		remaining += '\0';
+
+		const scan_state = [remaining, 0];
+		const result = await exec_command_d(scan_state, true, dCmd);
+
+		// TODO: implement \?, \h, etc.
+		if (result === PSQL_CMD_UNKNOWN) output.push(`invalid command \\${dCmd}\ntry \\? for help.`);
+		// if (result === PSQL_CMD_ERROR) output.push('...');  // what goes here?
+
+	} else {
+		output.push(`unsupported describe command: ${cmd}`);
+	}
+
+	for (let b in pg.types.builtins) {
+		pg.types.setTypeParser(pg.types.builtins[b], originalParsers[b]);
+	}
+
+	return output;
 }
 
 function gettext_noop(x) { return x; }
@@ -613,7 +672,7 @@ function appendPQExpBuffer(buf, template, ...values) {
 }
 
 function pg_log_error(template, ...args) {
-	console.error(sprintf(template, ...args));
+	output.push(sprintf(template, ...args));
 }
 
 /*
@@ -792,9 +851,6 @@ function processSQLNamePattern(conn, buf, pattern,
 		}
 	}
 
-
-
-	console.log(buf.data)
 	return added_clause;
 }
 
@@ -1145,7 +1201,6 @@ function printQuery(result, opt, fout, is_pager, flog) {
 	}
 
 	printTable(cont, fout, is_pager, flog);
-	printTableCleanup(cont);
 }
 
 /*
@@ -1170,39 +1225,23 @@ function printTableInit(content, opt, title, ncolumns, nrows) {
 }
 
 function printTableAddHeader(content, header, translate, align) {
-	// if (content.headerIndex >= content.ncolumns) {
-	// 	fprintf(stderr, _("Cannot add header to table content: column count of %d exceeded.\n"), content.ncolumns);
-	// 	exit(EXIT_FAILURE);
-	// }
-
 	if (translate) header = _(header);
-	//content.header = content.headers[content.headerIndex] = header;
-	//content.headerIndex++;
 	content.headers.push(header);
-
-	//content.align = content.aligns[content.alignsIndex] = align;
-	//content.alignsIndex++;
+	content.header = header;
 	content.aligns.push(align);
+	content.align = align;
 }
 
 function printTableAddCell(content, cell, translate, mustfree) {
-	// if (content.cellsadded >= content.ncolumns * content.nrows) {
-	// 	fprintf(stderr, _("Cannot add cell to table content: total cell count of %d exceeded.\n"), content.ncolumns * content.nrows);
-	// 	exit(EXIT_FAILURE);
-	// }
-
-	// if (translate) cell = _(cell);
-	// content.cell = content.cells[content.cellsIndex] = cell;
-
-	// content.cellsIndex++;
-	// content.cellsadded++;
 	if (translate) cell = _(cell);
 	content.cells.push(cell);
+	content.cell = cell;
 }
 
 function printTableAddFooter(content, footer) {
 	if (content.footers == NULL) content.footers = [];
 	content.footers.push(footer);
+	content.footer = footer;
 }
 
 function stripnulls(obj) {
@@ -1213,27 +1252,8 @@ function stripnulls(obj) {
 }
 
 function printTable(cont, fout, is_pager, flog) {
-	console.log(JSON.stringify(stripnulls(cont), null, 2));
+	output.push(stripnulls(cont));
 }
-
-function printTableCleanup(content) { }
-
-import pg from 'pg';
-const raw = x => x;
-for (let b in pg.types.builtins) pg.types.setTypeParser(pg.types.builtins[b], raw);
-
-const
-	pool = new pg.Pool({ connectionString: 'postgres://localhost:5435/main' }),
-	queryFn = async sql => {
-		console.log(`********* QUERY **********\n${sql}\n**************************`);
-		const result = await pool.query({ text: sql, rowMode: 'array' });
-		// console.log(`********* RESULT **********\n${JSON.stringify(result, null, 2)}\n**************************`);
-		return result;
-	};
-
-await describe(process.argv[2], 'main', queryFn);
-
-await pool.end();
 
 
 /* from command.c */
@@ -2915,13 +2935,13 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 	res = await PSQLexec(buf.data);
 	if (!res)
-		return false;
+		return retval;
 
 	/* Did we get anything? */
 	if (PQntuples(res) == 0) {
 		if (!pset.quiet)
 			pg_log_error("Did not find any relation with OID %s.", oid);
-		return false;
+		return retval;
 	}
 
 	tableinfo.checks = atoi(PQgetvalue(res, 0, 0));
@@ -3003,7 +3023,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 		res = await PSQLexec(buf.data);
 		if (!res)
-			return false;
+			return retval;
 
 		/* Get the column that owns this sequence */
 		printfPQExpBuffer(buf, "SELECT pg_catalog.quote_ident(nspname) || '.' ||" +
@@ -3030,7 +3050,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 		 * don't print anything.
 		 */
 		if (!result)
-			return false;
+			return retval;
 		else if (PQntuples(result) == 1) {
 			switch (PQgetvalue(result, 0, 1)[0]) {
 				case 'a':
@@ -3058,9 +3078,8 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 		printQuery(res, myopt, pset.queryFout, false, pset.logfile);
 
-
 		retval = true;
-		return false;		/* not an error, just return early */
+		return retval;		/* not an error, just return early */
 	}
 
 	/* Identify whether we should print collation, nullable, default vals */
@@ -3174,7 +3193,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 	res = await PSQLexec(buf.data);
 	if (!res)
-		return false;
+		return retval;
 	numrows = PQntuples(res);
 
 	/* Make title */
@@ -3384,7 +3403,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 			"\nWHERE c.oid = '%s';", oid);
 		result = await PSQLexec(buf.data);
 		if (!result)
-			return false;
+			return retval;
 
 		if (PQntuples(result) > 0) {
 			let parent_name = PQgetvalue(result, 0, 0);
@@ -3421,7 +3440,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 			oid);
 		result = await PSQLexec(buf.data);
 		if (!result)
-			return false;
+			return retval;
 
 		if (PQntuples(result) == 1) {
 			let partkeydef = PQgetvalue(result, 0, 0);
@@ -3443,7 +3462,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 			"WHERE reltoastrelid = '%s';", oid);
 		result = await PSQLexec(buf.data);
 		if (!result)
-			return false;
+			return retval;
 
 		if (PQntuples(result) == 1) {
 			let schemaname = PQgetvalue(result, 0, 0);
@@ -3495,9 +3514,9 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 		result = await PSQLexec(buf.data);
 		if (!result)
-			return false;
+			return retval;
 		else if (PQntuples(result) != 1) {
-			return false;
+			return retval;
 		}
 		else {
 			let indisunique = PQgetvalue(result, 0, 0);
@@ -3589,7 +3608,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 				oid);
 			result = await PSQLexec(buf.data);
 			if (!result)
-				return false;
+				return retval;
 			else
 				tuples = PQntuples(result);
 
@@ -3665,7 +3684,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 				oid);
 			result = await PSQLexec(buf.data);
 			if (!result)
-				return false;
+				return retval;
 			else
 				tuples = PQntuples(result);
 
@@ -3722,7 +3741,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 			result = await PSQLexec(buf.data);
 			if (!result)
-				return false;
+				return retval;
 			else
 				tuples = PQntuples(result);
 
@@ -3780,7 +3799,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 			result = await PSQLexec(buf.data);
 			if (!result)
-				return false;
+				return retval;
 			else
 				tuples = PQntuples(result);
 
@@ -3826,7 +3845,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 			result = await PSQLexec(buf.data);
 			if (!result)
-				return false;
+				return retval;
 			else
 				tuples = PQntuples(result);
 
@@ -3898,7 +3917,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 			result = await PSQLexec(buf.data);
 			if (!result)
-				return false;
+				return retval;
 			else
 				tuples = PQntuples(result);
 
@@ -3994,7 +4013,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 			result = await PSQLexec(buf.data);
 			if (!result)
-				return false;
+				return retval;
 			else
 				tuples = PQntuples(result);
 
@@ -4050,7 +4069,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 				oid);
 			result = await PSQLexec(buf.data);
 			if (!result)
-				return false;
+				return retval;
 			else
 				tuples = PQntuples(result);
 
@@ -4168,7 +4187,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 			result = await PSQLexec(buf.data);
 			if (!result)
-				return false;
+				return retval;
 			else
 				tuples = PQntuples(result);
 
@@ -4211,7 +4230,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 			result = await PSQLexec(buf.data);
 			if (!result)
-				return false;
+				return retval;
 			else
 				tuples = PQntuples(result);
 
@@ -4246,7 +4265,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 			oid);
 		result = await PSQLexec(buf.data);
 		if (!result)
-			return false;
+			return retval;
 
 		if (PQntuples(result) > 0)
 			view_def = pg_strdup(PQgetvalue(result, 0, 0));
@@ -4269,7 +4288,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 				oid);
 			result = await PSQLexec(buf.data);
 			if (!result)
-				return false;
+				return retval;
 
 			if (PQntuples(result) > 0) {
 				printTableAddFooter(cont, _("Rules:"));
@@ -4350,7 +4369,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 		result = await PSQLexec(buf.data);
 		if (!result)
-			return false;
+			return retval;
 		else
 			tuples = PQntuples(result);
 
@@ -4481,9 +4500,9 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 				oid);
 			result = await PSQLexec(buf.data);
 			if (!result)
-				return false;
+				return retval;
 			else if (PQntuples(result) != 1) {
-				return false;
+				return retval;
 			}
 
 			/* Print server name */
@@ -4513,7 +4532,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 		result = await PSQLexec(buf.data);
 		if (!result)
-			return false;
+			return retval;
 		else {
 			let s = _("Inherits");
 			let sw = pg_wcswidth(s, strlen(s), pset.encoding);
@@ -4567,7 +4586,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
 		result = await PSQLexec(buf.data);
 		if (!result)
-			return false;
+			return retval;
 		tuples = PQntuples(result);
 
 		/*
@@ -4675,16 +4694,6 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 	printTable(cont, pset.queryFout, false, pset.logfile);
 
 	retval = true;
-
-	error_return:
-
-	/* clean up */
-	if (printTableInitialized)
-		printTableCleanup(cont);
-
-
-
-
 	return retval;
 }
 
@@ -4714,7 +4723,6 @@ async function add_tablespace_footer(cont, relkind, tablespace, newline) {
 				"WHERE oid = '%u';", tablespace);
 			result = await PSQLexec(buf.data);
 			if (!result) {
-
 				return;
 			}
 			/* Should always be the case, but.... */
@@ -4863,8 +4871,6 @@ async function describeRoles(pattern, verbose, showSystem) {
 	}
 
 	printTable(cont, pset.queryFout, false, pset.logfile);
-	printTableCleanup(cont);
-
 	return true;
 }
 
@@ -7410,17 +7416,9 @@ async function describePublications(pattern) {
 		}
 
 		printTable(cont, pset.queryFout, false, pset.logfile);
-		printTableCleanup(cont);
-
 	}
 
-
 	return true;
-
-	error_return:
-	printTableCleanup(cont);
-
-	return false;
 }
 
 /*
