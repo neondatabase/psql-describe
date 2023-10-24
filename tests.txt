@@ -19,6 +19,36 @@
 \dAf
 \dAf+
 \dAf+ gist ts*
+\dAo
+\dAo+
+\dAo btree
+\dAo btree bytea_*
+\dAo+ btree bytea_*
+\dAp
+\dAp+
+\dAp brin
+\dAp+ brin *_bloom_*
+\db
+\db+
+\db *_default
+\db+ *_global
+\dc
+\dc+
+\dcS
+\dcS+
+\dc *_utf8
+\dc+ big5*
+\dconfig
+\dconfig+
+\dconfig data_directory
+\dconfig+ wal_buffers
+\dC
+\dC+
+\dC xml
+\dC+ text
+\dd
+\ddS
+\dd char*
 
 \dzz
 \dA+ public.g*

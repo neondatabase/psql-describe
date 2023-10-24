@@ -13,3 +13,14 @@ To test on my machine, I run:
 ```
 
 In case of failure, the tests halt and a `psql.txt` and `local.txt` are written, for you to diff.
+
+Test DB:
+
+```
+https://github.com/devrimgunduz/pagila
++
+CREATE EXTENSION citext;
+CREATE EXTENSION postgis;
+COMMENT ON OPERATOR CLASS char_bloom_ops USING brin IS 'example op class comment';
+COMMENT ON TRIGGER last_updated ON staff IS 'example trigger comment';
+```
