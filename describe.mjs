@@ -292,7 +292,7 @@ function trimTrailingNulls(obj) {
 	return obj;
 }
 
-function pad(str, len, align, pre = ' ', post = ' ') {
+function pad(str, len, align, pre = '', post = '') {
 	const spaces = Math.max(0, len - strlen(str));
 	if (align === 'r') return pre + ' '.repeat(spaces) + str + post;
 	if (align === 'c') return pre + ' '.repeat(Math.floor(spaces / 2)) + str + ' '.repeat(Math.ceil(spaces / 2)) + post;
@@ -331,22 +331,28 @@ function tableToString(td) {
 			return memo;
 		}, {
 			colWidths: new Array(ncolumns).fill(0),
-			rowHeights: new Array(nrows + 1).fill(1)
+			rowHeights: new Array(nrows + 1 /* -> header row */).fill(1)
 		}),
 		totalWidth = colWidths.reduce((memo, width) => memo + width, 0) + ncolumns * 2 + (ncolumns - 1),
-		title = pad(td.title, totalWidth, 'c', '', ''),
-		rows = [td.headers, null /* header line */, ...byN(td.cells, ncolumns)],
-		cells = rows.map((row, rowIndex) => {  // here be dragons
-			if (rowIndex === 1) return td.headers.map((header, i) => '-'.repeat(colWidths[i % ncolumns] + 2)).join('+');
-			if (rowIndex > 1) rowIndex--;
+		title = pad(td.title, totalWidth, 'c'),
+		rows = [td.headers, null /* line under headers */, ...byN(td.cells, ncolumns)],
+		table = rows.map((row, rowIndex) => {  // here be dragons
+			if (rowIndex === 1) {  // line under headers
+				return td.headers.map((header, i) => '-'.repeat(colWidths[i % ncolumns] + 2)).join('+');
+			}
+			if (rowIndex > 1) rowIndex--;  // ignore line under headers when indexing
 			const rowLines = row.map(cell => cell.split('\n'));
 			return new Array(rowHeights[rowIndex]).fill('').map((empty, rowLineIndex) =>
-				rowLines.map((cellLine, colIndex) =>
-					pad(cellLine[rowLineIndex] ?? '', colWidths[colIndex], rowIndex === 0 ? 'c' : aligns[colIndex], ' ', cellLine[rowLineIndex + 1] ? '+' : ' ')
-				).join('|')).join('\n')
+				rowLines.map((cellLine, colIndex) => pad(
+					cellLine[rowLineIndex] ?? '',
+					colWidths[colIndex],
+					rowIndex === 0 ? 'c' : aligns[colIndex],
+					' ',
+					cellLine[rowLineIndex + 1] === undefined ? ' ' : '+'
+				)).join('|')).join('\n')
 		}).join('\n');
 
-	return `${title}\n${cells}${footers ? '\n' + footers.join('\n') : ''}`;
+	return `${title}\n${table}${footers ? '\n' + footers.join('\n') : ''}`;
 }
 
 export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = 140000, std_strings = 1) {
@@ -1294,7 +1300,7 @@ function printTableSetFooter(content, footer) {
 }
 
 function printTable(cont, fout, is_pager, flog) {
-	output.push(cont);
+	output.push({...cont});  // must clone in case same content object is reused (and thus mutated) later
 }
 
 
@@ -1434,7 +1440,7 @@ async function exec_command_d(scan_state, active_branch, cmd) {
 						case 't':
 						case 'i':
 						case 'n':
-							success = await listPartitionedTables(cmd[2], pattern, show_verbose);
+							success = await listPartitionedTables(cmd.slice(2), pattern, show_verbose);
 							break;
 						default:
 							status = PSQL_CMD_UNKNOWN;
@@ -7354,7 +7360,6 @@ async function describePublications(pattern) {
 
 	res = await PSQLexec(buf.data);
 	if (!res) {
-
 		return false;
 	}
 
@@ -7366,7 +7371,6 @@ async function describePublications(pattern) {
 			else
 				pg_log_error("Did not find any publications.");
 		}
-
 		return false;
 	}
 

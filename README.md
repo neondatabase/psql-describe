@@ -58,12 +58,35 @@ AS $$
   SELECT a + b;  -- NB. this is silly because procs don't return anything
 $$;
 
--- \dl
+-- large objects with \dl
 SELECT lo_create(0);
 SELECT lo_create(0);
 SELECT lo_create(0);
 
+-- partitioned indices with \dPi
+CREATE INDEX payments_customer_id_idx ON payment(customer_id);
+CREATE INDEX payments_payment_id_idx ON payment(payment_id);
 
+-- role or DB settings with \drds
+ALTER DATABASE main SET statement_timeout TO 60000;
+ALTER ROLE myuser SET statement_timeout TO 30000;
+
+-- publications with \dRp
+CREATE PUBLICATION mypub FOR TABLE actor, film;
+CREATE PUBLICATION myotherpub FOR TABLE city, customer;
+
+-- extended stats with \dX
+CREATE STATISTICS estats1 (ndistinct) ON release_year, language_id FROM film;
+CREATE STATISTICS estats2 (ndistinct) ON release_year, rating FROM film;
+
+-- event triggers with \dy
+CREATE OR REPLACE FUNCTION do_nothing_on_command() RETURNS event_trigger
+  LANGUAGE plpgsql AS $$
+BEGIN
+  -- do nothing
+END;
+$$;
+CREATE EVENT TRIGGER do_nothing_ddl ON ddl_command_start EXECUTE FUNCTION do_nothing_on_command();
 ```
 
 ## TODO

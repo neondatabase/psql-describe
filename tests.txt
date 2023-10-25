@@ -7,6 +7,7 @@
 \d public."Film"
 \d public.'Film'
 \d main.public.film
+\d other.public.film
 \dS
 \dS+
 \dS+ p*
@@ -16,6 +17,7 @@
 \dA
 \dA+
 \dA+ g*
+\dA+ public.g*
 \dAc
 \dAc+
 \dAc bri* *id
@@ -131,9 +133,39 @@
 \do+
 \do ||
 \do+ || text text
-
-
+\dO
+\dOS
+\dOS+
+\dOS+ POSIX
+\dOS+ "POSIX"
+\dp
+\dpS
+\dp act*
+\dP
+\dPn
+\dPtn
+\dPin
+\dPn+ *cust*
+\drds
+\drds * main
+\drg
+\drgS
+\dRp
+\dRp+
+\dRs
+\dRs+
+\dT
+\dT+
+\dTS
+\dT+ mpaa*
+\du
+\duS
+\duS+
+\du p?stgres
+\dx
+\dx+
+\dx+ ??text
+\dX
+\dy
+\dy+
 \dzz
-\dA+ public.g*
-\d other.public.film
-
