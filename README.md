@@ -6,6 +6,12 @@ psql's `\d` (describe) family of commands ported to JavaScript.
 * We use RegExp search-and-replace to turn the C code into valid JS syntax.
 * Then we fix a variety of problems, mostly related to pointer arithmetic, pointer dereferencing, and pointer output parameters.
 
+## Usage
+
+TODO
+
+## Tests
+
 To test on my machine, I run:
 
 ```
@@ -14,7 +20,7 @@ To test on my machine, I run:
 
 In case of failure, the tests halt and a `psql.txt` and `local.txt` are written, for you to diff.
 
-## Tests DB
+### Database
 
 Tests should be run against the [Pagila](https://github.com/devrimgunduz/pagila) data set, with these additions:
 
@@ -53,10 +59,9 @@ CREATE USER MAPPING FOR george SERVER foreign_server OPTIONS (user 'bob', passwo
 
 -- procedures with \dfp
 CREATE PROCEDURE myproc(a integer, b integer)
-LANGUAGE SQL
-AS $$
-  SELECT a + b;  -- NB. this is silly because procs don't return anything
-$$;
+  LANGUAGE SQL AS $$
+    SELECT a + b;  -- NB. this is silly because procs don't return anything
+  $$;
 
 -- large objects with \dl
 SELECT lo_create(0);
@@ -82,13 +87,13 @@ CREATE STATISTICS estats2 (ndistinct) ON release_year, rating FROM film;
 -- event triggers with \dy
 CREATE OR REPLACE FUNCTION do_nothing_on_command() RETURNS event_trigger
   LANGUAGE plpgsql AS $$
-BEGIN
-  -- do nothing
-END;
-$$;
+  BEGIN
+    -- do nothing
+  END;
+  $$;
 CREATE EVENT TRIGGER do_nothing_ddl ON ddl_command_start EXECUTE FUNCTION do_nothing_on_command();
 ```
 
 ## TODO
 
-* Support for `\sf`, `\sv`, `\?`.
+* Support for `\lo_list`, `\z`, `\sf`, `\sv`, `\?`.

@@ -1,0 +1,28 @@
+
+<style>
+  body {
+    font-family: sans-serif;
+    padding: 3ex 5ex;
+  }
+  pre {
+    background: #f0f0f4;
+    padding: 1em;
+    border-radius: .5em;
+    overflow-x: scroll;
+  }
+</style>
+<p>
+  Database URL<br>
+  <input type="text" size="80" placeholder="postgres://user:pass@host/db" id="dburl" />
+</p>
+<p>
+  Describe command<br>
+  <input type="text" size="20" placeholder="\d" id="sql" />
+</p>
+<p>
+  <label><input type="checkbox" id="echohidden" /> echo hidden (-E)</label>
+</p>
+<input type="button" value="Submit" id="gobtn" />
+<pre id="output"></pre>
+
+<script src="demo.js"></script>
