@@ -5756,8 +5756,8 @@ var NUMERICOID = 1700;
 var PSQLexec;
 var pset;
 var output;
-function describeDataToString(desc) {
-  return desc.map((item) => typeof item === "string" ? item : tableToString(item)).join("\n\n");
+function describeDataToHtml(desc) {
+  return desc.map((item) => typeof item === "string" ? `<p>${htmlEscape(item)}</p>` : tableToHtml(item)).join("\n\n");
 }
 function trimTrailingNull(str) {
   const nullIndex = str.indexOf("\0");
@@ -5776,14 +5776,6 @@ function trimTrailingNulls(obj) {
     return trimTrailingNull(obj);
   return obj;
 }
-function pad(str, len, align, pre = "", post = "") {
-  const spaces = Math.max(0, len - strlen(str));
-  if (align === "r")
-    return pre + " ".repeat(spaces) + str + post;
-  if (align === "c")
-    return pre + " ".repeat(Math.floor(spaces / 2)) + str + " ".repeat(Math.ceil(spaces / 2)) + post;
-  return pre + str + " ".repeat(spaces) + post;
-}
 function byN(arr, n) {
   let i = 0;
   const len = arr.length;
@@ -5792,51 +5784,19 @@ function byN(arr, n) {
     result.push(arr.slice(i, i += n));
   return result;
 }
-function linesInfo(str) {
-  let pos = -1, prevPos = 0, count = 1, longest = 0;
-  while ((pos = str.indexOf("\n", pos + 1)) !== -1) {
-    if (pos - prevPos > longest)
-      longest = pos - prevPos;
-    prevPos = pos + 1;
-    count++;
-  }
-  if (str.length - prevPos > longest)
-    longest = str.length - prevPos;
-  return { count, longest };
+function htmlEscape(str) {
+  return str.replace(/[<>&'"]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" })[m]);
 }
-function tableToString(td) {
-  const { ncolumns, nrows, aligns } = td, allCellsLinesInfo = [...td.headers, ...td.cells].map(linesInfo), { colWidths, rowHeights } = allCellsLinesInfo.reduce((memo, cellInfo, i) => {
-    const row = Math.floor(i / td.ncolumns);
-    const col = i % td.ncolumns;
-    if (cellInfo.longest > memo.colWidths[col])
-      memo.colWidths[col] = cellInfo.longest;
-    if (cellInfo.count > memo.rowHeights[row])
-      memo.rowHeights[row] = cellInfo.count;
-    return memo;
-  }, {
-    colWidths: new Array(ncolumns).fill(0),
-    rowHeights: new Array(
-      nrows + 1
-      /* -> header row */
-    ).fill(1)
-  }), totalWidth = colWidths.reduce((memo, width) => memo + width, 0) + ncolumns * 2 + (ncolumns - 1), title = pad(td.title, totalWidth, "c"), rows = [td.headers, null, ...byN(td.cells, ncolumns)], table = rows.map((row, rowIndex) => {
-    if (rowIndex === 1) {
-      return td.headers.map((header, i) => "-".repeat(colWidths[i % ncolumns] + 2)).join("+");
-    }
-    if (rowIndex > 1)
-      rowIndex--;
-    const rowLines = row.map((cell) => cell.split("\n"));
-    return new Array(rowHeights[rowIndex]).fill("").map((empty, rowLineIndex) => rowLines.map((cellLine, colIndex) => pad(
-      cellLine[rowLineIndex] ?? "",
-      colWidths[colIndex],
-      rowIndex === 0 ? "c" : aligns[colIndex],
-      " ",
-      cellLine[rowLineIndex + 1] === void 0 ? " " : "+"
-    )).join("|")).join("\n");
-  }).join("\n"), footers = td.footers ? "\n" + td.footers.join("\n") : td.opt.default_footer ? `
-(${nrows} row${nrows === 1 ? "" : "s"})` : "";
-  return `${title}
-${table}${footers}`;
+function tableToHtml(td) {
+  let result = "<table><tr>";
+  for (let h of td.headers)
+    result += `<th valign="top" style="text-align: center;">${htmlEscape(h)}</th>`;
+  result += "</tr>";
+  for (let row of byN(td.cells, td.ncolumns)) {
+    result += `<tr>` + row.map((cell, i) => `<td valign="top" style="text-align: ${td.aligns[i] === "c" ? "center" : td.aligns[i] === "r" ? "right" : "left"}">${htmlEscape(cell).replace(/\n/g, "<br>")}</td>`).join("\n") + "</tr>";
+  }
+  result += "</table>";
+  return result;
 }
 async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = 14e4, std_strings = 1) {
   const raw = (x) => x;
@@ -12402,16 +12362,22 @@ ORDER BY oid`,
 }
 
 // demo-src/demo.js
-document.querySelector("#gobtn").addEventListener("click", async () => {
+var goBtn = document.querySelector("#gobtn");
+var goBtnUsualTitle = goBtn.value;
+goBtn.addEventListener("click", async () => {
   const connectionString = document.querySelector("#dburl").value;
   const dbName = connectionString.match(/[/]\w+(?=\?|$)/)[0];
   const cmd = document.querySelector("#sql").value;
   const echoHidden = document.querySelector("#echohidden").checked;
   const pool = new Pool({ connectionString });
   const queryFn = (sql) => pool.query({ text: sql, rowMode: "array" });
+  goBtn.disabled = true;
+  goBtn.value = "Working ...";
   const tableData = await describe(serverless_default, cmd, dbName, queryFn, echoHidden);
-  const output2 = describeDataToString(tableData);
-  document.querySelector("#output").innerText = output2;
+  goBtn.disabled = false;
+  goBtn.value = goBtnUsualTitle;
+  const output2 = describeDataToHtml(tableData);
+  document.querySelector("#output").innerHTML = output2;
 });
 /*! Bundled license information:
 

@@ -73,6 +73,10 @@ export function describeDataToString(desc) {
 	return desc.map(item => typeof item === 'string' ? item : tableToString(item)).join('\n\n');
 }
 
+export function describeDataToHtml(desc) {
+	return desc.map(item => typeof item === 'string' ? `<p>${htmlEscape(item)}</p>` : tableToHtml(item)).join('\n\n');
+}
+
 function trimTrailingNull(str) {
 	const nullIndex = str.indexOf('\0');
 	if (nullIndex !== -1) return str.slice(0, nullIndex);
@@ -149,8 +153,25 @@ function tableToString(td) {
 			td.opt.default_footer ? `\n(${nrows} row${nrows === 1 ? '' : 's'})` :
 				'';
 
-	// console.log(td.opt);
 	return `${title}\n${table}${footers}`;
+}
+
+function htmlEscape(str) {
+	return str.replace(/[<>&'"]/g, m => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[m]));
+}
+
+function tableToHtml(td) {
+	let result = '<table><tr>';
+	for (let h of td.headers) result += `<th valign="top" style="text-align: center;">${htmlEscape(h)}</th>`;
+	result += '</tr>'
+	for (let row of byN(td.cells, td.ncolumns)) {
+		result +=
+			`<tr>` +
+			row.map((cell, i) => `<td valign="top" style="text-align: ${td.aligns[i] === 'c' ? 'center' : td.aligns[i] === 'r' ? 'right' : 'left'}">${htmlEscape(cell).replace(/\n/g, '<br>')}</td>`).join('\n') +
+			'</tr>';
+	}
+	result += '</table>';
+	return result;
 }
 
 export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = 140000, std_strings = 1) {
