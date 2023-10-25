@@ -279,18 +279,24 @@ export function describeToString(desc) {
 	return desc.map(item => typeof item === 'string' ? item : tableToString(item)).join('\n\n');
 }
 
+function trimTrailingNull(str) {
+	const nullIndex = str.indexOf('\0');
+	if (nullIndex !== -1) return str.slice(0, nullIndex);
+	return str;
+}
+
+function trimTrailingNulls(obj) {
+	if (Array.isArray(obj)) for (let i = 0, len = obj.length; i < len; i++) obj[i] = trimTrailingNulls(obj[i]);
+	else if (typeof obj === 'object' && obj !== null) for (let i in obj) obj[i] = trimTrailingNulls(obj[i]);
+	else if (typeof obj === 'string') return trimTrailingNull(obj);
+	return obj;
+}
+
 function pad(str, len, align, pre = ' ', post = ' ') {
 	const spaces = Math.max(0, len - strlen(str));
 	if (align === 'r') return pre + ' '.repeat(spaces) + str + post;
 	if (align === 'c') return pre + ' '.repeat(Math.floor(spaces / 2)) + str + ' '.repeat(Math.ceil(spaces / 2)) + post;
 	return pre + str + ' '.repeat(spaces) + post;  // default left align
-}
-
-function stripnulls(obj) {
-	if (Array.isArray(obj)) for (let i = 0, len = obj.length; i < len; i++) obj[i] = stripnulls(obj[i]);
-	else if (typeof obj === 'object' && obj !== null) for (let i in obj) obj[i] = stripnulls(obj[i]);
-	else if (typeof obj === 'string') return trimTrailingNull(obj);
-	return obj;
 }
 
 function tableToString(td) {
@@ -360,15 +366,17 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
 		if (result === PSQL_CMD_UNKNOWN) output.push(`invalid command \\${dCmd}`);
 		// if (result === PSQL_CMD_ERROR) output.push('...');  // what goes here?
 
+		let arg, warnings = [];
+		while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(trimTrailingNull(sprintf("\\%s: extra argument \"%s\" ignored", dCmd, arg)));
+		if (warnings.length > 0) output.push(warnings.join('\n'));
+
 	} else {
 		output.push(`unsupported describe command: ${cmd}`);
 	}
 
-	for (let b in pg.types.builtins) {
-		pg.types.setTypeParser(pg.types.builtins[b], originalParsers[b]);
-	}
+	for (let b in pg.types.builtins) pg.types.setTypeParser(pg.types.builtins[b], originalParsers[b]);
 
-	return stripnulls(output);
+	return trimTrailingNulls(output);
 }
 
 function gettext_noop(x) { return x; }
@@ -638,12 +646,6 @@ function resetPQExpBuffer(buf) {
 	initPQExpBuffer(buf);
 }
 
-function trimTrailingNull(str) {
-	const nullIndex = str.indexOf('\0');
-	if (nullIndex !== -1) return str.slice(0, nullIndex);
-	return str;
-}
-
 function appendPQExpBufferStr(buf, str) {
 	buf.data = trimTrailingNull(buf.data) + trimTrailingNull(str) + '\0';
 	buf.len = buf.data.length - 1; // assume (and omit counting) trailing null
@@ -687,6 +689,10 @@ function appendPQExpBuffer(buf, template, ...values) {
 }
 
 function pg_log_error(template, ...args) {
+	output.push(sprintf(template, ...args));
+}
+
+function pg_log_warning(template, ...args) {
 	output.push(sprintf(template, ...args));
 }
 

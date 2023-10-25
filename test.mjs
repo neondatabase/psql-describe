@@ -9,18 +9,21 @@ const [psqlPath, dbUrl] = process.argv.slice(2);
 console.log(`PSQL: ${psqlPath}\nDB:   ${dbUrl.replace(/(?<=^postgres(ql)?:[/][/][^:]+:)[^@]+(?=@)/, '***')}\n`);
 
 function psql(input) {
-  const { stdout, stderr } = spawnSync(psqlPath, [dbUrl, '-E'], { 
+  const { stdout, stderr } = spawnSync(psqlPath, [dbUrl, '-E'], {
     input,
-    env: { 
-      ...process.env,
-      PGCLIENTENCODING: 'UTF8',  // to match node-postgres for /dconfig
-    }
+    env: { ...process.env, PGCLIENTENCODING: 'UTF8' },  // to match node-postgres for /dconfig
   });
-  return stdout.toString('utf-8') + stderr.toString('utf-8'); 
+  return stdout.toString('utf-8') + stderr.toString('utf-8');
+}
+
+function countLines(str) {
+  let pos = -1, lineCount = 1;
+  while ((pos = str.indexOf('\n', pos + 1)) !== -1) lineCount++;
+  return lineCount;
 }
 
 const
-  pool = new pg.Pool({ 
+  pool = new pg.Pool({
     connectionString: dbUrl,
     application_name: 'psql',  // to match psql for /dconfig
   }),
@@ -38,7 +41,8 @@ for (let test of tests) {
   const stdLocalOutput = localOutput.replace(/ +$/gm, '').trim();
 
   const pass = stdPsqlOutput === stdLocalOutput;
-  console.log(pass ? 'PASS:' : 'FAIL:', test);
+  const lineCount = countLines(stdLocalOutput);
+  console.log(pass ? 'Pass' + ' '.repeat(6 - String(lineCount).length) : '*** FAIL ***', lineCount, ' ' + test);
 
   if (!pass) {
     fs.writeFileSync('psql.txt', stdPsqlOutput);

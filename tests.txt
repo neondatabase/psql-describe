@@ -4,6 +4,10 @@
 \d actor
 \d act*
 \d+ act*
+\d public.Film
+\d public."Film"
+\d public.'Film'
+\d main.public.film
 \dS
 \dS+
 \dS+ p*
@@ -49,7 +53,17 @@
 \dd
 \ddS
 \dd char*
+\dD
+\dDS
+\dD+
+\dDS+ b*
+\dDS+ b* hjhj opop
+\ddp
+\ddp x
+\ddp my*
+
 
 \dzz
 \dA+ public.g*
+\d other.public.film
 

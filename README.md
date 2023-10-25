@@ -19,8 +19,14 @@ Test DB:
 ```
 https://github.com/devrimgunduz/pagila
 +
+-- extensions with \dx
 CREATE EXTENSION citext;
 CREATE EXTENSION postgis;
+-- descriptions with \dd
 COMMENT ON OPERATOR CLASS char_bloom_ops USING brin IS 'example op class comment';
 COMMENT ON TRIGGER last_updated ON staff IS 'example trigger comment';
+-- default privileges with \ddp
+CREATE SCHEMA myschema;
+ALTER DEFAULT PRIVILEGES IN SCHEMA myschema GRANT SELECT ON TABLES TO PUBLIC;
+ALTER DEFAULT PRIVILEGES IN SCHEMA myschema GRANT INSERT ON TABLES TO PUBLIC;
 ```
