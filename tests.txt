@@ -1,4 +1,3 @@
-
 \d
 \d+
 \d actor
@@ -61,6 +60,77 @@
 \ddp
 \ddp x
 \ddp my*
+\dE
+\dE birthdays
+\dE+
+\dE x
+\di
+\diS
+\diS+
+\di
+\di rental_*
+\dm
+\dm+
+\dm *_by_*
+\ds
+\dsS+
+\dt
+\dtS
+\dt+
+\dt c*
+\dv
+\dvS
+\dvS+
+\dv+ *or*
+\dv+ *or* plpl
+\des
+\des+
+\des csvfile
+\det
+\det+
+\det+ Birthdays
+\deu
+\deu+
+\dew
+\dew+
+\dew+ file_*
+\df
+\dfa+
+\dfat
+\dfn * boolean text
+\dfn * boolean -
+\dfn * boolean text x
+\dfwS+
+\dfp
+\dfp+
+\dfp myproc integer
+\dF
+\dF+
+\dF+ norwegian
+\dFd
+\dFd+
+\dFd+ italian_*
+\dFp
+\dFp+
+\dFt
+\dFt+
+\dFt+ snow*
+\dg
+\dgS
+\dgS+
+\dg p?stgres
+\dl
+\dl+
+\dL
+\dL+
+\dn
+\dn+
+\dn+ my*
+\do
+\doS
+\do+
+\do ||
+\do+ || text text
 
 
 \dzz

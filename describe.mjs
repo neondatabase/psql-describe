@@ -299,27 +299,54 @@ function pad(str, len, align, pre = ' ', post = ' ') {
 	return pre + str + ' '.repeat(spaces) + post;  // default left align
 }
 
+function byN(arr, n) {
+	let i = 0;
+	const len = arr.length;
+	const result = [];
+	while (i < len) result.push(arr.slice(i, (i += n)));
+	return result;
+}
+
+function linesInfo(str) {
+	let pos = -1, prevPos = 0, count = 1, longest = 0;
+	// str = trimTrailingNull(str);
+	while ((pos = str.indexOf('\n', pos + 1)) !== -1) {
+		if (pos - prevPos > longest) longest = pos - prevPos;
+		prevPos = pos + 1;
+		count++;
+	}
+	if (str.length - prevPos > longest) longest = str.length - prevPos;
+	return { count, longest };
+}
+
 function tableToString(td) {
 	const
 		{ ncolumns, nrows, aligns, footers } = td,
-		colWidths = [...td.headers, ...td.cells].reduce((memo, cell, i) => {
+		allCellsLinesInfo = [...td.headers, ...td.cells].map(linesInfo),
+		{ colWidths, rowHeights } = allCellsLinesInfo.reduce((memo, cellInfo, i) => {
+			const row = Math.floor(i / td.ncolumns);
 			const col = i % td.ncolumns;
-			const len = strlen(cell);
-			if (len > memo[col]) memo[col] = len;
+			if (cellInfo.longest > memo.colWidths[col]) memo.colWidths[col] = cellInfo.longest;
+			if (cellInfo.count > memo.rowHeights[row]) memo.rowHeights[row] = cellInfo.count;
 			return memo;
-		}, new Array(ncolumns).fill(0)),
+		}, {
+			colWidths: new Array(ncolumns).fill(0),
+			rowHeights: new Array(nrows + 1).fill(1)
+		}),
 		totalWidth = colWidths.reduce((memo, width) => memo + width, 0) + ncolumns * 2 + (ncolumns - 1),
 		title = pad(td.title, totalWidth, 'c', '', ''),
-		headers = td.headers.map((header, i) => pad(header, colWidths[i % ncolumns], 'c')).join('|'),
-		hline = td.headers.map((header, i) => '-'.repeat(colWidths[i % ncolumns] + 2)).join('+'),
-		lastColIndex = ncolumns - 1,
-		lastCellIndex = ncolumns * nrows - 1,
-		cells = td.cells.reduce((memo, cell, i) => memo +
-			pad(cell, colWidths[i % ncolumns], aligns[i % ncolumns]) +
-			(i === lastCellIndex ? '' : (i % ncolumns === lastColIndex ? '\n' : '|')),
-			'');
-			
-	return `${title}\n${headers}\n${hline}\n${cells}${footers ? '\n' + footers.join('\n') : ''}`;
+		rows = [td.headers, null /* header line */, ...byN(td.cells, ncolumns)],
+		cells = rows.map((row, rowIndex) => {  // here be dragons
+			if (rowIndex === 1) return td.headers.map((header, i) => '-'.repeat(colWidths[i % ncolumns] + 2)).join('+');
+			if (rowIndex > 1) rowIndex--;
+			const rowLines = row.map(cell => cell.split('\n'));
+			return new Array(rowHeights[rowIndex]).fill('').map((empty, rowLineIndex) =>
+				rowLines.map((cellLine, colIndex) =>
+					pad(cellLine[rowLineIndex] ?? '', colWidths[colIndex], rowIndex === 0 ? 'c' : aligns[colIndex], ' ', cellLine[rowLineIndex + 1] ? '+' : ' ')
+				).join('|')).join('\n')
+		}).join('\n');
+
+	return `${title}\n${cells}${footers ? '\n' + footers.join('\n') : ''}`;
 }
 
 export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = 140000, std_strings = 1) {
@@ -1107,7 +1134,7 @@ function patternToSQLRegex(encoding, dbnamebuf /* PQExpBuffer output param */, s
 			 * than it is to be the start of a regexp bracket expression.
 			 */
 			if ((inquotes || force_escape) &&
-				strchr("|*+?()[]{}.^$\\", ch))
+				strchr("|*+?()[]{}.^$\\", ch) != NULL)
 				appendPQExpBufferChar(curbuf, '\\');
 			else if (ch == '[' && cp[cpIndex + 1] == ']')
 				appendPQExpBufferChar(curbuf, '\\');
@@ -1286,8 +1313,8 @@ async function exec_command_d(scan_state, active_branch, cmd) {
 		pattern = psql_scan_slash_option(scan_state,
 			OT_NORMAL, NULL, true);
 
-		show_verbose = strchr(cmd, '+') ? true : false;
-		show_system = strchr(cmd, 'S') ? true : false;
+		show_verbose = strchr(cmd, '+') != NULL ? true : false;
+		show_system = strchr(cmd, 'S') != NULL ? true : false;
 
 		switch (cmd[1]) {
 			case '\0':
@@ -1526,7 +1553,7 @@ async function exec_command_d(scan_state, active_branch, cmd) {
 /* \df and \do; messy enough to split out of exec_command_d */
 async function exec_command_dfo(scan_state, cmd, pattern, show_verbose, show_system) {
 	let success;
-	let arg_patterns;
+	let arg_patterns = [];
 	let num_arg_patterns = 0;
 
 	/* Collect argument-type patterns too */
@@ -1542,7 +1569,7 @@ async function exec_command_dfo(scan_state, cmd, pattern, show_verbose, show_sys
 	}
 
 	if (cmd[1] == 'f')
-		success = await describeFunctions(cmd[2], pattern,
+		success = await describeFunctions(cmd.slice(2), pattern,
 			arg_patterns, num_arg_patterns,
 			show_verbose, show_system);
 	else
@@ -2005,12 +2032,10 @@ async function describeFunctions(functypes, func_pattern, arg_patterns, num_arg_
 			let ft;
 			let tiv;
 
-			snprintf(nspname, sizeof(nspname), "nt%d.nspname", i);
-			snprintf(typname, sizeof(typname), "t%d.typname", i);
-			snprintf(ft, sizeof(ft),
-				"pg_catalog.format_type(t%d.oid, NULL)", i);
-			snprintf(tiv, sizeof(tiv),
-				"pg_catalog.pg_type_is_visible(t%d.oid)", i);
+			nspname = sprintf("nt%d.nspname", i);
+			typname = sprintf("t%d.typname", i);
+			ft = sprintf("pg_catalog.format_type(t%d.oid, NULL)", i);
+			tiv = sprintf("pg_catalog.pg_type_is_visible(t%d.oid)", i);
 			if (!validateSQLNamePattern(buf,
 				map_typename_pattern(arg_patterns[i]),
 				true, false,
@@ -2292,12 +2317,10 @@ async function describeOperators(oper_pattern, arg_patterns, num_arg_patterns, v
 			let ft;
 			let tiv;
 
-			snprintf(nspname, sizeof(nspname), "nt%d.nspname", i);
-			snprintf(typname, sizeof(typname), "t%d.typname", i);
-			snprintf(ft, sizeof(ft),
-				"pg_catalog.format_type(t%d.oid, NULL)", i);
-			snprintf(tiv, sizeof(tiv),
-				"pg_catalog.pg_type_is_visible(t%d.oid)", i);
+			nspname = sprintf("nt%d.nspname", i);
+			typname = sprintf("t%d.typname", i);
+			ft = sprintf("pg_catalog.format_type(t%d.oid, NULL)", i);
+			tiv = sprintf("pg_catalog.pg_type_is_visible(t%d.oid)", i);
 			if (!validateSQLNamePattern(buf,
 				map_typename_pattern(arg_patterns[i]),
 				true, false,
@@ -3656,7 +3679,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 						/* Everything after "USING" is echoed verbatim */
 						indexdef = PQgetvalue(result, i, 5);
 						usingpos = strstr(indexdef, " USING ");
-						if (usingpos)
+						if (usingpos != NULL)
 							indexdef = indexdef.slice(usingpos + 7);
 						appendPQExpBuffer(buf, " %s", indexdef);
 
@@ -4465,7 +4488,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 					/* Everything after "TRIGGER" is echoed verbatim */
 					tgdef = PQgetvalue(result, i, 1);
 					usingpos = strstr(tgdef, " TRIGGER ");
-					if (usingpos)
+					if (usingpos != NULL)
 						tgdef = tgdef.slice(usingpos + 9);
 
 					printfPQExpBuffer(buf, "    %s", tgdef);

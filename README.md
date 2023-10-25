@@ -2,9 +2,9 @@
 
 psql's `\d` (describe) family of commands ported to JavaScript.
 
-* From the master branch (17devel), we took `exec_command_d` from `command.c` and all of `describe.c` from `src/bin/psql`.
-* We used RegExp search-and-replace to turn the C code into valid JS syntax.
-* Then we fixed a variety of problems, mostly related to pointer arithmetic, pointer dereferencing, and pointer output parameters.
+* From the master branch (17devel), we take `exec_command_d` from `command.c` and all of `describe.c` from `src/bin/psql`.
+* We use RegExp search-and-replace to turn the C code into valid JS syntax.
+* Then we fix a variety of problems, mostly related to pointer arithmetic, pointer dereferencing, and pointer output parameters.
 
 To test on my machine, I run:
 
@@ -14,19 +14,58 @@ To test on my machine, I run:
 
 In case of failure, the tests halt and a `psql.txt` and `local.txt` are written, for you to diff.
 
-Test DB:
+## Tests DB
+
+Tests should be run against the [Pagila](https://github.com/devrimgunduz/pagila) data set, with these additions:
 
 ```
-https://github.com/devrimgunduz/pagila
-+
 -- extensions with \dx
 CREATE EXTENSION citext;
 CREATE EXTENSION postgis;
+
 -- descriptions with \dd
 COMMENT ON OPERATOR CLASS char_bloom_ops USING brin IS 'example op class comment';
 COMMENT ON TRIGGER last_updated ON staff IS 'example trigger comment';
+
 -- default privileges with \ddp
 CREATE SCHEMA myschema;
 ALTER DEFAULT PRIVILEGES IN SCHEMA myschema GRANT SELECT ON TABLES TO PUBLIC;
 ALTER DEFAULT PRIVILEGES IN SCHEMA myschema GRANT INSERT ON TABLES TO PUBLIC;
+
+-- foreign data with \dE, \det
+-- echo "1,Bob,1987-12-23T12:01:02.123\n2,Anne,1987-12-23T12:01:02.124" > datadir/test.csv
+CREATE EXTENSION file_fdw;
+CREATE SERVER csvfile FOREIGN DATA WRAPPER file_fdw;
+CREATE FOREIGN TABLE birthdays (
+    id int,
+    name text,
+    birthdate timestamptz
+  ) 
+  SERVER csvfile
+  OPTIONS ( filename 'test.csv', format 'csv' );
+
+-- foreign data with \deu
+CREATE EXTENSION postgres_fdw;
+CREATE SERVER foreign_server
+  FOREIGN DATA WRAPPER postgres_fdw
+  OPTIONS (host 'localhost', port '5435', dbname 'main');
+CREATE USER MAPPING FOR george SERVER foreign_server OPTIONS (user 'bob', password 'secret');
+
+-- procedures with \dfp
+CREATE PROCEDURE myproc(a integer, b integer)
+LANGUAGE SQL
+AS $$
+  SELECT a + b;  -- NB. this is silly because procs don't return anything
+$$;
+
+-- \dl
+SELECT lo_create(0);
+SELECT lo_create(0);
+SELECT lo_create(0);
+
+
 ```
+
+## TODO
+
+* Support for `\sf`, `\sv`, `\?`.
