@@ -5,6 +5,16 @@
 \lo_list+
 \z
 \z act*
+\sf
+\sf citext
+\sf citext(boolean)
+\sf+ citext(boolean)
+\sf last_day
+\sf+ last_day(timestamptz)
+\sv
+\sv actor_info
+\sv+ actor_info
+\sz
 \d
 \d+
 \d actor

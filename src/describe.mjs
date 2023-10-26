@@ -1,8 +1,14 @@
+let cancel_pressed = false;
+let quote_all_identifiers = 0;
 
 const NULL = null;
 const FUNC_MAX_ARGS = 100;
 const ESCAPE_STRING_SYNTAX = 'E';
-const cancel_pressed = false;
+const InvalidOid = 0;
+
+const
+	EditableFunction = 0,
+	EditableView = 1;
 
 const
 	PSQL_CMD_UNKNOWN = 0,		/* not done parsing yet (internal only) */
@@ -12,7 +18,9 @@ const
 	PSQL_CMD_NEWEDIT = 4,			/* query buffer was changed (e.g., via \e) */
 	PSQL_CMD_ERROR = 5;				/* the execution of the backslash command */
 
-const OT_NORMAL = 0;				/* just snarf the rest of the line */
+const
+	OT_NORMAL = 0,
+	OT_WHOLE_LINE = 4;				/* just snarf the rest of the line */
 
 const PG_UTF8 = 6;
 
@@ -107,7 +115,6 @@ function byN(arr, n) {
 
 function linesInfo(str) {
 	let pos = -1, prevPos = 0, count = 1, longest = 0;
-	// str = trimTrailingNull(str);
 	while ((pos = str.indexOf('\n', pos + 1)) !== -1) {
 		if (pos - prevPos > longest) longest = pos - prevPos;
 		prevPos = pos + 1;
@@ -214,7 +221,7 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
 		return runQuery(trimmed);
 	}
 
-	const match = cmd.match(/^\\([dlz]\S*)(.*)/);
+	const match = cmd.match(/^\\([dzsl]\S*)(.*)/);
 	if (match) {
 		let [, matchedCommand, remaining] = match;
 
@@ -228,7 +235,11 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
 		const scan_state = [remaining, 0];
 		const result = await (
 			matchedCommand[0] === 'd' ? exec_command_d(scan_state, true, matchedCommand) :
-			exec_command_list(scan_state, true, matchedCommand)
+				matchedCommand[0] === 's' ?
+					(matchedCommand[1] === 'f' || matchedCommand[1] === 'v' ?
+						exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === 'f') :
+						PSQL_CMD_UNKNOWN) :
+					exec_command_list(scan_state, true, matchedCommand)
 		);
 
 		// TODO: implement \?, \h, etc.
@@ -240,7 +251,7 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
 		if (warnings.length > 0) output.push(warnings.join('\n'));
 
 	} else {
-		output.push(`unsupported describe command: ${cmd}`);
+		output.push(`unsupported command: ${cmd}`);
 	}
 
 	for (let b in pg.types.builtins) pg.types.setTypeParser(pg.types.builtins[b], originalParsers[b]);
@@ -468,7 +479,7 @@ function formatPGVersionNumber(version_number, include_minor, buf, buflen) {
  * need to worry about flushing remaining input.
  */
 function psql_scan_slash_option(scan_state, type, quote, semicolon) {
-	if (type !== OT_NORMAL) throw new Error(`scan type ${type} not yet implemented`);
+	if (type !== OT_NORMAL && type !== OT_WHOLE_LINE) throw new Error(`scan type ${type} not yet implemented`);
 	if (quote !== NULL) throw new Error('cannot return quote type');
 
 	const quoteStack = [];
@@ -481,6 +492,10 @@ function psql_scan_slash_option(scan_state, type, quote, semicolon) {
 		if (chr === '\0') return NULL;
 		if (!isWhitespace(chr)) break;
 		scan_state[1]++;
+	}
+
+	if (type === OT_WHOLE_LINE) {
+		return scan_state[0].slice(scan_state[1], scan_state[1] = scan_state[0].length);
 	}
 
 	// parse for \0 or next unquoted whitespace or \0
@@ -527,6 +542,7 @@ function sprintf(template, ...values) {
 	let nextChrIndex;
 	while ((nextChrIndex = template.indexOf('%', chrIndex)) !== -1) {
 		let padTo = 0;
+		let padLeft = false;
 		result += template.slice(chrIndex, nextChrIndex);
 		chrIndex = nextChrIndex + 1;
 		let pcChr = template[chrIndex++];
@@ -535,11 +551,20 @@ function sprintf(template, ...values) {
 			padTo = parseInt(values[valuesIndex++], 10);
 			pcChr = template[chrIndex++];
 		}
+		if (pcChr === '-') {
+			padLeft = true;
+			pcChr = template[chrIndex++];
+		}
+		if (pcChr >= '0' && pcChr <= '9') {  // don't support multidigit widths!
+			padTo = parseInt(pcChr, 10);
+			pcChr = template[chrIndex++];
+		}
 		if (pcChr === 's' || pcChr === 'c' || pcChr === 'd' || pcChr === 'u') {
 			const ins = trimTrailingNull(String(values[valuesIndex++]));
 			const padBy = padTo - ins.length;
-			if (padBy > 0) result += ' '.repeat(padBy);
+			if (padLeft === false && padBy > 0) result += ' '.repeat(padBy);
 			result += ins;
+			if (padLeft === true && padBy > 0) result += ' '.repeat(padBy);
 		}
 	}
 	result += template.slice(chrIndex);
@@ -1141,6 +1166,457 @@ function printTable(cont, fout, is_pager, flog) {
 
 
 /* from command.c */
+
+/*
+ * \sf/\sv -- show a function/view's source code
+ */
+async function exec_command_sf_sv(scan_state, active_branch, cmd, is_func) {
+	let status = PSQL_CMD_SKIP_LINE;
+	let show_linenumbers = (strchr(cmd, '+') != NULL);
+	let buf = { /* struct */ };
+	let obj_desc;
+	let obj_oid = { value: InvalidOid };
+	let eot = is_func ? EditableFunction : EditableView;
+
+	initPQExpBuffer(buf);
+	obj_desc = psql_scan_slash_option(scan_state,
+		OT_WHOLE_LINE, NULL, true);
+
+	if (!obj_desc) {
+		if (is_func)
+			pg_log_error("function name is required");
+		else
+			pg_log_error("view name is required");
+		status = PSQL_CMD_ERROR;
+	}
+	else if (!await lookup_object_oid(eot, obj_desc, obj_oid)) {
+		/* error already reported */
+		status = PSQL_CMD_ERROR;
+	}
+	else if (!await get_create_object_cmd(eot, obj_oid.value, buf)) {
+		/* error already reported */
+		status = PSQL_CMD_ERROR;
+	}
+	else {
+		if (show_linenumbers) {
+			/* add line numbers */
+			print_with_linenumbers(buf.data, is_func);
+		}
+		else {
+			/* just send the definition to output */
+			// fputs(buf.data, output);
+			output.push(buf.data);
+		}
+	}
+
+	return status;
+}
+
+/*
+ * Write text at *lines to output with line numbers.
+ *
+ * For functions, lineno "1" should correspond to the first line of the
+ * function body; lines before that are unnumbered.  We expect that
+ * pg_get_functiondef() will emit that on a line beginning with "AS ",
+ * "BEGIN ", or "RETURN ", and that there can be no such line before
+ * the real start of the function body.
+ *
+ * Caution: this scribbles on *lines.
+ */
+function print_with_linenumbers(lines, is_func) {
+	let in_header = is_func;
+	let lineno = 0;
+	let result = '';
+
+	lines = trimTrailingNull(lines.split('\n'));
+	for (let line of lines) {
+		if (in_header &&
+			(strncmp(line, "AS ", 3) == 0 ||
+				strncmp(line, "BEGIN ", 6) == 0 ||
+				strncmp(line, "RETURN ", 7) == 0))
+			in_header = false;
+
+		/* increment lineno only for body's lines */
+		if (!in_header)
+			lineno++;
+
+		/* show current line as appropriate */
+		if (in_header)
+			result += trimTrailingNull(sprintf("        %s\n", line));
+		else
+			result += trimTrailingNull(sprintf("%-7d %s\n", lineno, line));
+	}
+
+	output.push(result);
+}
+
+/*
+ * Look up the object identified by obj_type and desc.  If successful,
+ * store its OID in *obj_oid and return true, else return false.
+ *
+ * Note that we'll fail if the object doesn't exist OR if there are multiple
+ * matching candidates OR if there's something syntactically wrong with the
+ * object description; unfortunately it can be hard to tell the difference.
+ */
+async function lookup_object_oid(obj_type, desc, obj_oid) {
+	let result = true;
+	let query = { /* struct */ };
+	initPQExpBuffer(query);
+	let res;
+
+	switch (obj_type) {
+		case EditableFunction:
+			/*
+			 * We have a function description, e.g. "x" or "x(int)".  Issue a
+			 * query to retrieve the function's OID using a cast to regproc or
+			 * regprocedure (as appropriate).
+			 */
+			appendPQExpBufferStr(query, "SELECT ");
+			appendStringLiteralConn(query, desc, pset.db);
+			appendPQExpBuffer(query, "::pg_catalog.%s::pg_catalog.oid",
+				strchr(desc, '(') !== NULL ? "regprocedure" : "regproc");
+			break;
+
+		case EditableView:
+			/*
+			 * Convert view name (possibly schema-qualified) to OID.  Note:
+			 * this code doesn't check if the relation is actually a view.
+			 * We'll detect that in get_create_object_cmd().
+			 */
+			appendPQExpBufferStr(query, "SELECT ");
+			appendStringLiteralConn(query, desc, pset.db);
+			appendPQExpBufferStr(query, "::pg_catalog.regclass::pg_catalog.oid");
+			break;
+	}
+
+	try {
+		res = await PSQLexec(query.data);
+		if (res && PQntuples(res) == 1)
+			obj_oid.value = atooid(PQgetvalue(res, 0, 0));
+		else {
+			pg_log_error("Error when querying");
+			result = false;
+		}
+	} catch (err) {
+		pg_log_error('ERROR:  ' + err.message);
+		result = false;
+	}
+
+	return result;
+}
+
+/*
+ * Construct a "CREATE OR REPLACE ..." command that describes the specified
+ * database object.  If successful, the result is stored in buf.
+ */
+async function get_create_object_cmd(obj_type, oid, buf) {
+	let result = true;
+	let query = { /* struct */ };
+	initPQExpBuffer(query);
+	let res;
+
+	switch (obj_type) {
+		case EditableFunction:
+			printfPQExpBuffer(query,
+				"SELECT pg_catalog.pg_get_functiondef(%u)",
+				oid);
+			break;
+
+		case EditableView:
+			/*
+			 * pg_get_viewdef() just prints the query, so we must prepend
+			 * CREATE for ourselves.  We must fully qualify the view name to
+			 * ensure the right view gets replaced.  Also, check relation kind
+			 * to be sure it's a view.
+			 *
+			 * Starting with PG 9.4, views may have WITH [LOCAL|CASCADED]
+			 * CHECK OPTION.  These are not part of the view definition
+			 * returned by pg_get_viewdef() and so need to be retrieved
+			 * separately.  Materialized views (introduced in 9.3) may have
+			 * arbitrary storage parameter reloptions.
+			 */
+			if (pset.sversion >= 90400) {
+				printfPQExpBuffer(query,
+					"SELECT nspname, relname, relkind, " +
+					"pg_catalog.pg_get_viewdef(c.oid, true), " +
+					"pg_catalog.array_remove(pg_catalog.array_remove(c.reloptions,'check_option=local'),'check_option=cascaded') AS reloptions, " +
+					"CASE WHEN 'check_option=local' = ANY (c.reloptions) THEN 'LOCAL'::text " +
+					"WHEN 'check_option=cascaded' = ANY (c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption " +
+					"FROM pg_catalog.pg_class c " +
+					"LEFT JOIN pg_catalog.pg_namespace n " +
+					"ON c.relnamespace = n.oid WHERE c.oid = %u",
+					oid);
+			}
+			else {
+				printfPQExpBuffer(query,
+					"SELECT nspname, relname, relkind, " +
+					"pg_catalog.pg_get_viewdef(c.oid, true), " +
+					"c.reloptions AS reloptions, " +
+					"NULL AS checkoption " +
+					"FROM pg_catalog.pg_class c " +
+					"LEFT JOIN pg_catalog.pg_namespace n " +
+					"ON c.relnamespace = n.oid WHERE c.oid = %u",
+					oid);
+			}
+			break;
+	}
+
+	res = await PSQLexec(query.data);
+	if (res && PQntuples(res) == 1) {
+		resetPQExpBuffer(buf);
+		switch (obj_type) {
+			case EditableFunction:
+				appendPQExpBufferStr(buf, PQgetvalue(res, 0, 0));
+				break;
+
+			case EditableView: {
+				let nspname = PQgetvalue(res, 0, 0);
+				let relname = PQgetvalue(res, 0, 1);
+				let relkind = PQgetvalue(res, 0, 2);
+				let viewdef = PQgetvalue(res, 0, 3);
+				let reloptions = PQgetvalue(res, 0, 4);
+				let checkoption = PQgetvalue(res, 0, 5);
+
+				/*
+				 * If the backend ever supports CREATE OR REPLACE
+				 * MATERIALIZED VIEW, allow that here; but as of today it
+				 * does not, so editing a matview definition in this way
+				 * is impossible.
+				 */
+				switch (relkind[0]) {
+					/*
+								case RELKIND_MATVIEW:
+									appendPQExpBufferStr(buf, "CREATE OR REPLACE MATERIALIZED VIEW ");
+									break;
+					*/
+					case RELKIND_VIEW:
+						appendPQExpBufferStr(buf, "CREATE OR REPLACE VIEW ");
+						break;
+					default:
+						pg_log_error("\"%s.%s\" is not a view",
+							nspname, relname);
+						result = false;
+						break;
+				}
+				appendPQExpBuffer(buf, "%s.", fmtId(nspname));
+				appendPQExpBufferStr(buf, fmtId(relname));
+
+				/* reloptions, if not an empty array "{}" */
+				if (reloptions != NULL && strlen(reloptions) > 2) {
+					appendPQExpBufferStr(buf, "\n WITH (");
+					if (!appendReloptionsArray(buf, reloptions, "",
+						pset.encoding,
+						standard_strings())) {
+						pg_log_error("could not parse reloptions array");
+						result = false;
+					}
+					appendPQExpBufferChar(buf, ')');
+				}
+
+				/* View definition from pg_get_viewdef (a SELECT query) */
+				appendPQExpBuffer(buf, " AS\n%s", viewdef);
+
+				/* Get rid of the semicolon that pg_get_viewdef appends */
+				if (buf.len > 0 && buf.data[buf.len - 1] == ';')
+					buf.data = buf.data.slice(0, buf.len - 1);
+
+				/* WITH [LOCAL|CASCADED] CHECK OPTION */
+				if (checkoption && checkoption[0] != '\0')
+					appendPQExpBuffer(buf, "\n WITH %s CHECK OPTION",
+						checkoption);
+			}
+				break;
+		}
+		/* Make sure result ends with a newline */
+		if (buf.len > 0 && buf.data[buf.len - 1] != '\n')
+			appendPQExpBufferChar(buf, '\n');
+	}
+	else {
+		pg_log_error("Error when querying");
+		result = false;
+	}
+
+	return result;
+}
+
+/*
+ * Format a reloptions array and append it to the given buffer.
+ *
+ * "prefix" is prepended to the option names; typically it's "" or "toast.".
+ *
+ * Returns false if the reloptions array could not be parsed (in which case
+ * nothing will have been appended to the buffer), or true on success.
+ *
+ * Note: this logic should generally match the backend's flatten_reloptions()
+ * (in adt/ruleutils.c).
+ */
+function appendReloptionsArray(buffer, reloptions, prefix, encoding, std_strings) {
+	let options = [];
+	let noptions = {};
+	let i;
+
+	if (!parsePGArray(reloptions, options, noptions)) {
+		return false;
+	}
+
+	noptions = noptions.value;
+	for (i = 0; i < noptions; i++) {
+		let option = options[i];
+
+		/*
+		 * Each array element should have the form name=value.  If the "=" is
+		 * missing for some reason, treat it like an empty value.
+		 */
+		let [name, value] = option.split('=');
+		value ??= "";
+
+		if (i > 0)
+			appendPQExpBufferStr(buffer, ", ");
+		appendPQExpBuffer(buffer, "%s%s=", prefix, fmtId(name));
+
+		/*
+		 * In general we need to quote the value; but to avoid unnecessary
+		 * clutter, do not quote if it is an identifier that would not need
+		 * quoting.  (We could also allow numbers, but that is a bit trickier
+		 * than it looks --- for example, are leading zeroes significant?  We
+		 * don't want to assume very much here about what custom reloptions
+		 * might mean.)
+		 */
+		if (strcmp(fmtId(value), value) == 0)
+			appendPQExpBufferStr(buffer, value);
+		else
+			appendStringLiteral(buffer, value, encoding, std_strings);
+	}
+
+	return true;
+}
+
+/*
+ * Deconstruct the text representation of a 1-dimensional Postgres array
+ * into individual items.
+ *
+ * On success, returns true and sets *itemarray and *nitems to describe
+ * an array of individual strings.  On parse failure, returns false;
+ * *itemarray may exist or be NULL.
+ *
+ * NOTE: free'ing itemarray is sufficient to deallocate the working storage.
+ */
+function parsePGArray(atext, items, nitems) {
+	let inputlen;
+	let strings;
+	let curitem;
+
+	/*
+	 * We expect input in the form of "{item,item,item}" where any item is
+	 * either raw data, or surrounded by double quotes (in which case embedded
+	 * characters including backslashes and quotes are backslashed).
+	 *
+	 * We build the result as an array of pointers followed by the actual
+	 * string data, all in one malloc block for convenience of deallocation.
+	 * The worst-case storage need is not more than one pointer and one
+	 * character for each input character (consider "{,,,,,,,,,,}").
+	 */
+	itemarray = NULL;
+	inputlen = strlen(atext);
+	nitems.value = 0;
+
+	if (inputlen < 2 || atext[0] != '{' || atext[inputlen - 1] != '}')
+		return false;			/* bad input */
+
+	let at = 0;
+	at++;					/* advance over initial '{' */
+
+	curitem = 0;
+	while (atext[at] != '}') {
+		if (atext[at] == '\0')
+			return false;		/* premature end of string */
+
+		// *** items[curitem] = strings;
+		strings = "";
+		while (atext[at] != '}' && atext[at] != ',') {
+			if (atext[at] == '\0')
+				return false;	/* premature end of string */
+			if (atext[at] != '"')
+				strings += atext[at++];  /* copy unquoted data */
+			else {
+				/* process quoted substring */
+				at++;
+				while (atext[at] != '"') {
+					if (atext[at] == '\0')
+						return false;	/* premature end of string */
+					if (atext[at] == '\\') {
+						at++;
+						if (atext[at] == '\0')
+							return false;	/* premature end of string */
+					}
+					strings += atext[at++];	/* copy quoted data */
+				}
+				at++;
+			}
+		}
+		items[curitem] = strings;
+
+		if (atext[at] == ',')
+			at++;
+		curitem++;
+	}
+	if (atext[at + 1] && atext[at + 1] != '\0')
+		return false;			/* bogus syntax (embedded '}') */
+	nitems.value = curitem;
+	return true;
+}
+
+/*
+ *	Quotes input string if it's not a legitimate SQL identifier as-is.
+ *
+ *	Note that the returned string must be used before calling fmtId again,
+ *	since we re-use the same return buffer each time.
+ */
+function fmtId(rawid) {
+	let id_return = { /* struct */ };
+	initPQExpBuffer(id_return);
+	let need_quotes = false;
+
+	/*
+	 * These checks need to match the identifier production in scan.l. Don't
+	 * use islower() etc.
+	 */
+	if (quote_all_identifiers)
+		need_quotes = true;
+	/* slightly different rules for first character */
+	else if (!((rawid[0] >= 'a' && rawid[0] <= 'z') || rawid[0] == '_'))
+		need_quotes = true;
+	else {
+		/* otherwise check the entire string */
+		if (/[^a-z0-9_]/.test(rawid)) need_quotes = true;
+	}
+
+	if (!need_quotes) {
+		/*
+		 * Check for keyword.  We quote keywords except for unreserved ones.
+		 * (In some cases we could avoid quoting a col_name or type_func_name
+		 * keyword, but it seems much harder than it's worth to tell that.)
+		 *
+		 * Note: ScanKeywordLookup() does case-insensitive comparison, but
+		 * that's fine, since we already know we have all-lower-case.
+		 */
+		let kw = new Set(["all", "analyse", "analyze", "and", "any", "array", "as", "asc", "asymmetric", "authorization", "between", "bigint", "binary", "bit", "boolean", "both", "case", "cast", "char", "character", "check", "coalesce", "collate", "collation", "column", "concurrently", "constraint", "create", "cross", "current_catalog", "current_date", "current_role", "current_schema", "current_time", "current_timestamp", "current_user", "dec", "decimal", "default", "deferrable", "desc", "distinct", "do", "else", "end", "except", "exists", "extract", "false", "fetch", "float", "for", "foreign", "freeze", "from", "full", "grant", "greatest", "group", "grouping", "having", "ilike", "in", "initially", "inner", "inout", "int", "integer", "intersect", "interval", "into", "is", "isnull", "join", "json", "json_array", "json_arrayagg", "json_object", "json_objectagg", "json_scalar", "json_serialize", "lateral", "leading", "least", "left", "like", "limit", "localtime", "localtimestamp", "national", "natural", "nchar", "none", "normalize", "not", "notnull", "null", "nullif", "numeric", "offset", "on", "only", "or", "order", "out", "outer", "overlaps", "overlay", "placing", "position", "precision", "primary", "real", "references", "returning", "right", "row", "select", "session_user", "setof", "similar", "smallint", "some", "substring", "symmetric", "system_user", "table", "tablesample", "then", "time", "timestamp", "to", "trailing", "treat", "trim", "true", "union", "unique", "user", "using", "values", "varchar", "variadic", "verbose", "when", "where", "window", "with", "xmlattributes", "xmlconcat", "xmlelement", "xmlexists", "xmlforest", "xmlnamespaces", "xmlparse", "xmlpi", "xmlroot", "xmlserialize", "xmltable"]).has(rawid);
+
+		if (kw) need_quotes = true;
+	}
+
+	if (!need_quotes) {
+		/* no quoting needed */
+		appendPQExpBufferStr(id_return, rawid);
+	}
+	else {
+		appendPQExpBufferChar(id_return, '"');
+		appendPQExpBufferChar(id_return, rawid.replace(/"/g, '""'));
+		appendPQExpBufferChar(id_return, '"');
+	}
+
+	return id_return.data;
+}
 
 async function exec_command_list(scan_state, active_branch, cmd) {
 	let success;
