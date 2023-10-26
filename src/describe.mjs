@@ -75,6 +75,22 @@ const
   MONEYOID = 790,
   NUMERICOID = 1700;
 
+/*
+WITH 
+types AS (
+  SELECT * FROM pg_type PT
+  WHERE typnamespace = (SELECT pgn.oid FROM pg_namespace pgn WHERE nspname = 'pg_catalog') -- only built-in Postgres types with stable OID 
+  AND typtype = 'b' -- only basic types
+  AND typelem = 0 -- ignore aliases
+  AND typisdefined -- ignore undefined types
+),
+oids AS (
+  SELECT oid::int4 AS oid FROM types UNION SELECT typarray::int4 AS oid FROM types
+)
+SELECT json_agg(DISTINCT oid ORDER BY oid) FROM oids WHERE oid != 0;
+*/
+const typeOIDs = [16, 17, 18, 20, 21, 23, 24, 25, 26, 27, 28, 29, 114, 142, 143, 194, 199, 271, 602, 604, 650, 651, 700, 701, 718, 719, 774, 775, 790, 791, 829, 869, 1000, 1001, 1002, 1005, 1007, 1008, 1009, 1010, 1011, 1012, 1014, 1015, 1016, 1019, 1021, 1022, 1027, 1028, 1033, 1034, 1040, 1041, 1042, 1043, 1082, 1083, 1114, 1115, 1182, 1183, 1184, 1185, 1186, 1187, 1231, 1266, 1270, 1560, 1561, 1562, 1563, 1700, 1790, 2201, 2202, 2203, 2204, 2205, 2206, 2207, 2208, 2209, 2210, 2211, 2949, 2950, 2951, 2970, 3220, 3221, 3361, 3402, 3614, 3615, 3642, 3643, 3644, 3645, 3734, 3735, 3769, 3770, 3802, 3807, 4072, 4073, 4089, 4090, 4096, 4097, 4191, 4192, 4600, 4601, 5017, 5038, 5039, 5069];
+
 let PSQLexec, pset, output;
 
 const helpText = `Help
@@ -261,9 +277,9 @@ function tableToHtml(td) {
 export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = 140000, std_strings = 1) {
   const raw = x => x;
   const originalParsers = {};
-  for (let b in pg.types.builtins) {
-    originalParsers[b] = pg.types.getTypeParser(pg.types.builtins[b]);
-    pg.types.setTypeParser(pg.types.builtins[b], raw);
+  for (let oid of typeOIDs) {
+    originalParsers[oid] = pg.types.getTypeParser(oid);
+    pg.types.setTypeParser(oid, raw);
   }
 
   output = [];
@@ -327,7 +343,7 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
     output.push(`unsupported command: ${cmd}`);
   }
 
-  for (let b in pg.types.builtins) pg.types.setTypeParser(pg.types.builtins[b], originalParsers[b]);
+  for (let oid of typeOIDs) pg.types.setTypeParser(oid, originalParsers[oid]);
   return trimTrailingNulls(output);
 }
 
@@ -1441,7 +1457,7 @@ async function get_create_object_cmd(obj_type, oid, buf) {
         appendPQExpBufferStr(buf, PQgetvalue(res, 0, 0));
         break;
 
-      case EditableView: {
+      case EditableView:
         let nspname = PQgetvalue(res, 0, 0);
         let relname = PQgetvalue(res, 0, 1);
         let relkind = PQgetvalue(res, 0, 2);
@@ -1478,7 +1494,7 @@ async function get_create_object_cmd(obj_type, oid, buf) {
           appendPQExpBufferStr(buf, "\n WITH (");
           if (!appendReloptionsArray(buf, reloptions, "",
             pset.encoding,
-            standard_strings())) {
+            pset.db.standard_strings)) {
             pg_log_error("could not parse reloptions array");
             result = false;
           }
@@ -1496,7 +1512,7 @@ async function get_create_object_cmd(obj_type, oid, buf) {
         if (checkoption && checkoption[0] != '\0')
           appendPQExpBuffer(buf, "\n WITH %s CHECK OPTION",
             checkoption);
-      }
+
         break;
     }
     /* Make sure result ends with a newline */
@@ -1588,7 +1604,6 @@ function parsePGArray(atext, items, nitems) {
    * The worst-case storage need is not more than one pointer and one
    * character for each input character (consider "{,,,,,,,,,,}").
    */
-  itemarray = NULL;
   inputlen = strlen(atext);
   nitems.value = 0;
 
