@@ -145,7 +145,10 @@ export function describeDataToString(desc) {
 }
 
 export function describeDataToHtml(desc) {
-  return desc.map(item => typeof item === 'string' ? `<p>${htmlEscape(item)}</p>` : tableToHtml(item)).join('\n\n');
+  return desc.map(item =>
+    typeof item === 'string' ?
+      `<p>${htmlEscape(item).replace(/ /g, '&nbsp;').replace(/\n/g, '<br />')}</p>` :
+      tableToHtml(item)).join('\n\n');
 }
 
 function trimTrailingNull(str) {
@@ -187,7 +190,13 @@ function linesInfo(str) {
   return { count, longest };
 }
 
-function tableToString(td) {
+function htmlEscape(str, convertWhitespace) {
+  str = str.replace(/[<>&'"]/g, m => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[m]));
+  if (convertWhitespace) str = str.replace(/ /g, '&nbsp;').replace(/\n/g, '<br />');
+  return str;
+}
+
+function tableToString(td, escape) {
   const
     { ncolumns, nrows, aligns } = td,
     allCellsLinesInfo = [...td.headers, ...td.cells].map(linesInfo),
@@ -223,11 +232,9 @@ function tableToString(td) {
       td.opt.default_footer ? `\n(${nrows} row${nrows === 1 ? '' : 's'})` :
         '';
 
-  return `${title}\n${table}${footers}`;
-}
-
-function htmlEscape(str) {
-  return str.replace(/[<>&'"]/g, m => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[m]));
+  let result = `${title}\n${table}${footers}`;
+  if (escape) result = htmlEscape(result);
+  return result;
 }
 
 function tableToHtml(td) {
@@ -243,9 +250,9 @@ function tableToHtml(td) {
   result += '</table>';
   if (td.footers) {
     if (td.footers.length > 1 && td.footers.some(footer => /^\s/.test(footer))) {
-      result += `<dl>` + td.footers.map(footer => /^\s/.test(footer) ? `<dd>${htmlEscape(footer.trim())}</dd>` : `<dt>${htmlEscape(footer)}</dt>`).join('') + '</dl>';
+      result += `<dl>` + td.footers.map(footer => /^\s/.test(footer) ? `<dd>${htmlEscape(footer.trim(), true)}</dd>` : `<dt>${htmlEscape(footer, true)}</dt>`).join('') + '</dl>';
     } else {
-      result += td.footers.map(footer => `<p>${htmlEscape(footer.trim())}</p>`).join('');
+      result += td.footers.map(footer => `<p>${htmlEscape(footer, true)}</p>`).join('');
     }
   } else if (td.opt.default_footer) {
     result += `<p>(${td.nrows} row${td.nrows === 1 ? '' : 's'})</p>`;

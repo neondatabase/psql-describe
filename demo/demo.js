@@ -5823,8 +5823,11 @@ Informational
 Large Objects
   \\lo_list[+]            list large objects
 `;
+function describeDataToString(desc) {
+  return desc.map((item) => typeof item === "string" ? item : tableToString(item)).join("\n\n");
+}
 function describeDataToHtml(desc) {
-  return desc.map((item) => typeof item === "string" ? `<p>${htmlEscape(item)}</p>` : tableToHtml(item)).join("\n\n");
+  return desc.map((item) => typeof item === "string" ? `<p>${htmlEscape(item).replace(/ /g, "&nbsp;").replace(/\n/g, "<br />")}</p>` : tableToHtml(item)).join("\n\n");
 }
 function trimTrailingNull(str) {
   const nullIndex = str.indexOf("\0");
@@ -5843,6 +5846,14 @@ function trimTrailingNulls(obj) {
     return trimTrailingNull(obj);
   return obj;
 }
+function pad(str, len, align, pre = "", post = "") {
+  const spaces = Math.max(0, len - strlen(str));
+  if (align === "r")
+    return pre + " ".repeat(spaces) + str + post;
+  if (align === "c")
+    return pre + " ".repeat(Math.floor(spaces / 2)) + str + " ".repeat(Math.ceil(spaces / 2)) + post;
+  return pre + str + " ".repeat(spaces) + post;
+}
 function byN(arr, n) {
   let i = 0;
   const len = arr.length;
@@ -5851,8 +5862,60 @@ function byN(arr, n) {
     result.push(arr.slice(i, i += n));
   return result;
 }
-function htmlEscape(str) {
-  return str.replace(/[<>&'"]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" })[m]);
+function linesInfo(str) {
+  let pos = -1, prevPos = 0, count = 1, longest = 0;
+  while ((pos = str.indexOf("\n", pos + 1)) !== -1) {
+    if (pos - prevPos > longest)
+      longest = pos - prevPos;
+    prevPos = pos + 1;
+    count++;
+  }
+  if (str.length - prevPos > longest)
+    longest = str.length - prevPos;
+  return { count, longest };
+}
+function htmlEscape(str, convertWhitespace) {
+  str = str.replace(/[<>&'"]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" })[m]);
+  if (convertWhitespace)
+    str = str.replace(/ /g, "&nbsp;").replace(/\n/g, "<br />");
+  return str;
+}
+function tableToString(td, escape) {
+  const { ncolumns, nrows, aligns } = td, allCellsLinesInfo = [...td.headers, ...td.cells].map(linesInfo), { colWidths, rowHeights } = allCellsLinesInfo.reduce((memo, cellInfo, i) => {
+    const row = Math.floor(i / td.ncolumns);
+    const col = i % td.ncolumns;
+    if (cellInfo.longest > memo.colWidths[col])
+      memo.colWidths[col] = cellInfo.longest;
+    if (cellInfo.count > memo.rowHeights[row])
+      memo.rowHeights[row] = cellInfo.count;
+    return memo;
+  }, {
+    colWidths: new Array(ncolumns).fill(0),
+    rowHeights: new Array(
+      nrows + 1
+      /* -> header row */
+    ).fill(1)
+  }), totalWidth = colWidths.reduce((memo, width) => memo + width, 0) + ncolumns * 2 + (ncolumns - 1), title = pad(td.title, totalWidth, "c"), rows = [td.headers, null, ...byN(td.cells, ncolumns)], table = rows.map((row, rowIndex) => {
+    if (rowIndex === 1) {
+      return td.headers.map((header, i) => "-".repeat(colWidths[i % ncolumns] + 2)).join("+");
+    }
+    if (rowIndex > 1)
+      rowIndex--;
+    const rowLines = row.map((cell) => cell.split("\n"));
+    return new Array(rowHeights[rowIndex]).fill("").map((empty, rowLineIndex) => rowLines.map((cellLine, colIndex) => pad(
+      cellLine[rowLineIndex] ?? "",
+      colWidths[colIndex],
+      rowIndex === 0 ? "c" : aligns[colIndex],
+      " ",
+      cellLine[rowLineIndex + 1] === void 0 ? " " : "+"
+    )).join("|")).join("\n");
+  }).join("\n"), footers = td.footers ? "\n" + td.footers.join("\n") : td.opt.default_footer ? `
+(${nrows} row${nrows === 1 ? "" : "s"})` : "";
+  let result = `${title}
+${table}${footers}`;
+  if (escape)
+    result = htmlEscape(result);
+  return result;
 }
 function tableToHtml(td) {
   let result = `<table><tr><th valign="top" style="text-align: center;" colspan="${td.ncolumns}">${htmlEscape(td.title)}</th></tr><tr>`;
@@ -5865,9 +5928,9 @@ function tableToHtml(td) {
   result += "</table>";
   if (td.footers) {
     if (td.footers.length > 1 && td.footers.some((footer) => /^\s/.test(footer))) {
-      result += `<dl>` + td.footers.map((footer) => /^\s/.test(footer) ? `<dd>${htmlEscape(footer.trim())}</dd>` : `<dt>${htmlEscape(footer)}</dt>`).join("") + "</dl>";
+      result += `<dl>` + td.footers.map((footer) => /^\s/.test(footer) ? `<dd>${htmlEscape(footer.trim(), true)}</dd>` : `<dt>${htmlEscape(footer, true)}</dt>`).join("") + "</dl>";
     } else {
-      result += td.footers.map((footer) => `<p>${htmlEscape(footer.trim())}</p>`).join("");
+      result += td.footers.map((footer) => `<p>${htmlEscape(footer, true)}</p>`).join("");
     }
   } else if (td.opt.default_footer) {
     result += `<p>(${td.nrows} row${td.nrows === 1 ? "" : "s"})</p>`;
@@ -12858,13 +12921,40 @@ ORDER BY oid`,
 }
 
 // demo-src/demo.js
+function parse(url, parseQueryString) {
+  const { protocol } = new URL(url);
+  const httpUrl = "http:" + url.substring(protocol.length);
+  let { username, password, host, hostname, port, pathname, search, searchParams, hash } = new URL(httpUrl);
+  password = decodeURIComponent(password);
+  const auth = username + ":" + password;
+  const query = parseQueryString ? Object.fromEntries(searchParams.entries()) : search;
+  return { href: url, protocol, auth, username, password, host, hostname, port, pathname, search, query, hash };
+}
+window.addEventListener("load", () => {
+  const saveData = sessionStorage.getItem("form");
+  if (!saveData)
+    return;
+  const { connectionString, cmd, echoHidden, htmlOutput } = JSON.parse(saveData);
+  document.querySelector("#dburl").value = connectionString;
+  document.querySelector("#sql").value = cmd;
+  document.querySelector("#echohidden").checked = echoHidden;
+  document.querySelector("#html").checked = htmlOutput;
+});
 var goBtn = document.querySelector("#gobtn");
 var goBtnUsualTitle = goBtn.value;
 goBtn.addEventListener("click", async () => {
   const connectionString = document.querySelector("#dburl").value;
-  const dbName = connectionString.match(/[/]\w+(?=\?|$)/)[0];
+  let dbName;
+  try {
+    dbName = parse(connectionString).pathname.slice(1);
+  } catch (err) {
+    alert("Invalid connection string");
+    return;
+  }
   const cmd = document.querySelector("#sql").value;
   const echoHidden = document.querySelector("#echohidden").checked;
+  const htmlOutput = document.querySelector("#html").checked;
+  sessionStorage.setItem("form", JSON.stringify({ connectionString, cmd, echoHidden, htmlOutput }));
   const pool = new Pool({ connectionString });
   const queryFn = (sql) => pool.query({ text: sql, rowMode: "array" });
   goBtn.disabled = true;
@@ -12872,7 +12962,7 @@ goBtn.addEventListener("click", async () => {
   const tableData = await describe(serverless_default, cmd, dbName, queryFn, echoHidden);
   goBtn.disabled = false;
   goBtn.value = goBtnUsualTitle;
-  const output2 = describeDataToHtml(tableData);
+  const output2 = htmlOutput ? describeDataToHtml(tableData) : "<pre>" + describeDataToString(tableData, true) + "</pre>";
   document.querySelector("#output").innerHTML = output2;
 });
 /*! Bundled license information:

@@ -6,11 +6,16 @@
     color: #333;
     line-height: 1.35;
   }
-  pre {
+  #output {
+    font-family: monospace;
     background: #f0f0f4;
-    padding: 1em;
-    border-radius: .5em;
+    padding: 1ex 2ex;
+    border-radius: 1ex;
     overflow-x: scroll;
+    margin-top: 2ex;
+  }
+  pre {
+    padding: 0;
   }
   table {
     border-collapse: collapse;
@@ -51,9 +56,12 @@
   <input type="text" size="20" placeholder="\d" id="sql" />
 </p>
 <p>
-  <label><input type="checkbox" id="echohidden" /> echo hidden (-E)</label>
+  <label><input type="checkbox" id="echohidden" /> show queries (psql -E)</label>
+</p>
+<p>
+  <label><input type="checkbox" id="html" /> HTML output</label>
 </p>
 <input type="button" value="Submit" id="gobtn" />
-<pre id="output"></pre>
+<div id="output"></div>
 
 <script src="demo.js"></script>
