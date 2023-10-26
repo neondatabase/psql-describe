@@ -14,6 +14,11 @@ For now, please see `demo-src/demo.js` and `test/test.mjs` for examples.
 
 This is a very direct port of C code. We use `async/await` where C would block. So it's important not to call `describe` again while awaiting an earlier call: this will mess with global state, and also leave your DB driver in an unhappy place (because we disable all type parsing on entry, and restore it on exit).
 
+## Possible future improvements
+
+* Allow cancel/abort
+* Show results as they come in (especially for long and complex stuff like `\d+ *`)
+
 ## Tests
 
 To test on my machine, I run:
