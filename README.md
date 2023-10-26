@@ -8,7 +8,11 @@ psql's `\d` (describe) family of commands ported to JavaScript.
 
 ## Usage
 
-TODO
+For now, please see `demo-src/demo.js` and `test/test.mjs` for examples.
+
+## Re-entrancy
+
+This is a very direct port of C code. We use `async/await` where C would block. So it's important not to call `describe` again while awaiting an earlier call: this will mess with global state, and also leave your DB driver in an unhappy state (we disable all type parsing on entry, and restore it on exit).
 
 ## Tests
 
@@ -93,7 +97,3 @@ CREATE OR REPLACE FUNCTION do_nothing_on_command() RETURNS event_trigger
   $$;
 CREATE EVENT TRIGGER do_nothing_ddl ON ddl_command_start EXECUTE FUNCTION do_nothing_on_command();
 ```
-
-## TODO
-
-* Support for `\?`.
