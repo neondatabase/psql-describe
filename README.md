@@ -96,4 +96,4 @@ CREATE EVENT TRIGGER do_nothing_ddl ON ddl_command_start EXECUTE FUNCTION do_not
 
 ## TODO
 
-* Support for `\lo_list`, `\z`, `\sf`, `\sv`, `\?`.
+* Support for `\sf`, `\sv`, `\?`.

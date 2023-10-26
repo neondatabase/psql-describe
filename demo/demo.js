@@ -5788,7 +5788,7 @@ function htmlEscape(str) {
   return str.replace(/[<>&'"]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" })[m]);
 }
 function tableToHtml(td) {
-  let result = "<table><tr>";
+  let result = `<table><tr><th valign="top" style="text-align: center;" colspan="${td.ncolumns}">${htmlEscape(td.title)}</th></tr><tr>`;
   for (let h of td.headers)
     result += `<th valign="top" style="text-align: center;">${htmlEscape(h)}</th>`;
   result += "</tr>";
@@ -5796,6 +5796,13 @@ function tableToHtml(td) {
     result += `<tr>` + row.map((cell, i) => `<td valign="top" style="text-align: ${td.aligns[i] === "c" ? "center" : td.aligns[i] === "r" ? "right" : "left"}">${htmlEscape(cell).replace(/\n/g, "<br>")}</td>`).join("\n") + "</tr>";
   }
   result += "</table>";
+  if (td.footers) {
+    if (td.footers.length > 1 && td.footers.some((footer) => /^\s/.test(footer))) {
+      result += `<dl>` + td.footers.map((footer) => /^\s/.test(footer) ? `<dd>${htmlEscape(footer.trim())}</dd>` : `<dt>${htmlEscape(footer)}</dt>`).join("") + "</dl>";
+    } else {
+    }
+  } else if (td.opt.default_footer) {
+  }
   return result;
 }
 async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = 14e4, std_strings = 1) {

@@ -161,7 +161,7 @@ function htmlEscape(str) {
 }
 
 function tableToHtml(td) {
-	let result = '<table><tr>';
+	let result = `<table><tr><th valign="top" style="text-align: center;" colspan="${td.ncolumns}">${htmlEscape(td.title)}</th></tr><tr>`;
 	for (let h of td.headers) result += `<th valign="top" style="text-align: center;">${htmlEscape(h)}</th>`;
 	result += '</tr>'
 	for (let row of byN(td.cells, td.ncolumns)) {
@@ -171,6 +171,15 @@ function tableToHtml(td) {
 			'</tr>';
 	}
 	result += '</table>';
+	if (td.footers) {
+		if (td.footers.length > 1 && td.footers.some(footer => /^\s/.test(footer))) {
+			result += `<dl>` + td.footers.map(footer => /^\s/.test(footer) ? `<dd>${htmlEscape(footer.trim())}</dd>` : `<dt>${htmlEscape(footer)}</dt>`).join('') + '</dl>';
+		} else {
+
+		}
+	} else if (td.opt.default_footer) {
+
+	}
 	return result;
 }
 
@@ -205,21 +214,29 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
 		return runQuery(trimmed);
 	}
 
-	const match = cmd.match(/^\\(d\S*)(.*)/);
+	const match = cmd.match(/^\\([dlz]\S*)(.*)/);
 	if (match) {
-		let [, dCmd, remaining] = match;
-		dCmd += '\0';
+		let [, matchedCommand, remaining] = match;
+
+		// synonyms
+		matchedCommand = matchedCommand.replace(/^lo_list/, 'dl');
+		matchedCommand = matchedCommand.replace(/^z/, 'dp');
+
+		matchedCommand += '\0';
 		remaining += '\0';
 
 		const scan_state = [remaining, 0];
-		const result = await exec_command_d(scan_state, true, dCmd);
+		const result = await (
+			matchedCommand[0] === 'd' ? exec_command_d(scan_state, true, matchedCommand) :
+			exec_command_list(scan_state, true, matchedCommand)
+		);
 
 		// TODO: implement \?, \h, etc.
-		if (result === PSQL_CMD_UNKNOWN) output.push(`invalid command \\${dCmd}`);
+		if (result === PSQL_CMD_UNKNOWN) output.push(`invalid command \\${matchedCommand}`);
 		// if (result === PSQL_CMD_ERROR) output.push('...');  // what goes here?
 
 		let arg, warnings = [];
-		while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(trimTrailingNull(sprintf("\\%s: extra argument \"%s\" ignored", dCmd, arg)));
+		while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(trimTrailingNull(sprintf("\\%s: extra argument \"%s\" ignored", matchedCommand, arg)));
 		if (warnings.length > 0) output.push(warnings.join('\n'));
 
 	} else {
@@ -1125,249 +1142,257 @@ function printTable(cont, fout, is_pager, flog) {
 
 /* from command.c */
 
+async function exec_command_list(scan_state, active_branch, cmd) {
+	let success;
+	let pattern;
+	let show_verbose;
+
+	pattern = psql_scan_slash_option(scan_state,
+		OT_NORMAL, NULL, true);
+
+	show_verbose = strchr(cmd, '+') != NULL;
+	success = await listAllDbs(pattern, show_verbose);
+
+	return success ? PSQL_CMD_SKIP_LINE : PSQL_CMD_ERROR;
+}
+
 async function exec_command_d(scan_state, active_branch, cmd) {
 	let status = PSQL_CMD_SKIP_LINE;
 	let success = true;
+	let pattern;
+	let show_verbose,
+		show_system;
 
-	if (active_branch) {
-		let pattern;
-		let show_verbose,
-			show_system;
+	/* We don't do SQLID reduction on the pattern yet */
+	pattern = psql_scan_slash_option(scan_state,
+		OT_NORMAL, NULL, true);
 
-		/* We don't do SQLID reduction on the pattern yet */
-		pattern = psql_scan_slash_option(scan_state,
-			OT_NORMAL, NULL, true);
+	show_verbose = strchr(cmd, '+') != NULL;
+	show_system = strchr(cmd, 'S') != NULL;
 
-		show_verbose = strchr(cmd, '+') != NULL ? true : false;
-		show_system = strchr(cmd, 'S') != NULL ? true : false;
+	switch (cmd[1]) {
+		case '\0':
+		case '+':
+		case 'S':
+			if (pattern)
+				success = await describeTableDetails(pattern, show_verbose, show_system);
+			else
+				/* standard listing of interesting things */
+				success = await listTables("tvmsE", NULL, show_verbose, show_system);
+			break;
+		case 'A':
+			{
+				let pattern2 = NULL;
 
-		switch (cmd[1]) {
-			case '\0':
-			case '+':
-			case 'S':
-				if (pattern)
-					success = await describeTableDetails(pattern, show_verbose, show_system);
-				else
-					/* standard listing of interesting things */
-					success = await listTables("tvmsE", NULL, show_verbose, show_system);
-				break;
-			case 'A':
-				{
-					let pattern2 = NULL;
+				if (pattern && cmd[2] != '\0' && cmd[2] != '+')
+					pattern2 = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true);
 
-					if (pattern && cmd[2] != '\0' && cmd[2] != '+')
-						pattern2 = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true);
-
-					switch (cmd[2]) {
-						case '\0':
-						case '+':
-							success = await describeAccessMethods(pattern, show_verbose);
-							break;
-						case 'c':
-							success = await listOperatorClasses(pattern, pattern2, show_verbose);
-							break;
-						case 'f':
-							success = await listOperatorFamilies(pattern, pattern2, show_verbose);
-							break;
-						case 'o':
-							success = await listOpFamilyOperators(pattern, pattern2, show_verbose);
-							break;
-						case 'p':
-							success = await listOpFamilyFunctions(pattern, pattern2, show_verbose);
-							break;
-						default:
-							status = PSQL_CMD_UNKNOWN;
-							break;
-					}
-
-				}
-				break;
-			case 'a':
-				success = await describeAggregates(pattern, show_verbose, show_system);
-				break;
-			case 'b':
-				success = await describeTablespaces(pattern, show_verbose);
-				break;
-			case 'c':
-				if (strncmp(cmd, "dconfig", 7) == 0)
-					success = await describeConfigurationParameters(pattern,
-						show_verbose,
-						show_system);
-				else
-					success = await listConversions(pattern,
-						show_verbose,
-						show_system);
-				break;
-			case 'C':
-				success = await listCasts(pattern, show_verbose);
-				break;
-			case 'd':
-				if (strncmp(cmd, "ddp", 3) == 0)
-					success = await listDefaultACLs(pattern);
-				else
-					success = await objectDescription(pattern, show_system);
-				break;
-			case 'D':
-				success = await listDomains(pattern, show_verbose, show_system);
-				break;
-			case 'f':			/* function subsystem */
 				switch (cmd[2]) {
 					case '\0':
 					case '+':
-					case 'S':
-					case 'a':
-					case 'n':
+						success = await describeAccessMethods(pattern, show_verbose);
+						break;
+					case 'c':
+						success = await listOperatorClasses(pattern, pattern2, show_verbose);
+						break;
+					case 'f':
+						success = await listOperatorFamilies(pattern, pattern2, show_verbose);
+						break;
+					case 'o':
+						success = await listOpFamilyOperators(pattern, pattern2, show_verbose);
+						break;
 					case 'p':
-					case 't':
-					case 'w':
-						success = await exec_command_dfo(scan_state, cmd, pattern,
-							show_verbose, show_system);
+						success = await listOpFamilyFunctions(pattern, pattern2, show_verbose);
 						break;
 					default:
 						status = PSQL_CMD_UNKNOWN;
 						break;
 				}
-				break;
-			case 'g':
-				/* no longer distinct from \du */
-				success = await describeRoles(pattern, show_verbose, show_system);
-				break;
-			case 'l':
-				success = await listLargeObjects(show_verbose);
-				break;
-			case 'L':
-				success = await listLanguages(pattern, show_verbose, show_system);
-				break;
-			case 'n':
-				success = await listSchemas(pattern, show_verbose, show_system);
-				break;
-			case 'o':
-				success = await exec_command_dfo(scan_state, cmd, pattern,
-					show_verbose, show_system);
-				break;
-			case 'O':
-				success = await listCollations(pattern, show_verbose, show_system);
-				break;
-			case 'p':
-				success = await permissionsList(pattern, show_system);
-				break;
-			case 'P':
-				{
-					switch (cmd[2]) {
-						case '\0':
-						case '+':
-						case 't':
-						case 'i':
-						case 'n':
-							success = await listPartitionedTables(cmd.slice(2), pattern, show_verbose);
-							break;
-						default:
-							status = PSQL_CMD_UNKNOWN;
-							break;
-					}
-				}
-				break;
-			case 'T':
-				success = await describeTypes(pattern, show_verbose, show_system);
-				break;
-			case 't':
-			case 'v':
-			case 'm':
-			case 'i':
-			case 's':
-			case 'E':
-				success = await listTables(cmd[1], pattern, show_verbose, show_system);
-				break;
-			case 'r':
-				if (cmd[2] == 'd' && cmd[3] == 's') {
-					let pattern2 = NULL;
 
-					if (pattern)
-						pattern2 = psql_scan_slash_option(scan_state,
-							OT_NORMAL, NULL, true);
-					success = await listDbRoleSettings(pattern, pattern2);
-				}
-				else if (cmd[2] == 'g')
-					success = await describeRoleGrants(pattern, show_system);
-				else
+			}
+			break;
+		case 'a':
+			success = await describeAggregates(pattern, show_verbose, show_system);
+			break;
+		case 'b':
+			success = await describeTablespaces(pattern, show_verbose);
+			break;
+		case 'c':
+			if (strncmp(cmd, "dconfig", 7) == 0)
+				success = await describeConfigurationParameters(pattern,
+					show_verbose,
+					show_system);
+			else
+				success = await listConversions(pattern,
+					show_verbose,
+					show_system);
+			break;
+		case 'C':
+			success = await listCasts(pattern, show_verbose);
+			break;
+		case 'd':
+			if (strncmp(cmd, "ddp", 3) == 0)
+				success = await listDefaultACLs(pattern);
+			else
+				success = await objectDescription(pattern, show_system);
+			break;
+		case 'D':
+			success = await listDomains(pattern, show_verbose, show_system);
+			break;
+		case 'f':			/* function subsystem */
+			switch (cmd[2]) {
+				case '\0':
+				case '+':
+				case 'S':
+				case 'a':
+				case 'n':
+				case 'p':
+				case 't':
+				case 'w':
+					success = await exec_command_dfo(scan_state, cmd, pattern,
+						show_verbose, show_system);
+					break;
+				default:
 					status = PSQL_CMD_UNKNOWN;
-				break;
-			case 'R':
-				switch (cmd[2]) {
-					case 'p':
-						if (show_verbose)
-							success = await describePublications(pattern);
-						else
-							success = await listPublications(pattern);
-						break;
-					case 's':
-						success = await describeSubscriptions(pattern, show_verbose);
-						break;
-					default:
-						status = PSQL_CMD_UNKNOWN;
-				}
-				break;
-			case 'u':
-				success = await describeRoles(pattern, show_verbose, show_system);
-				break;
-			case 'F':			/* text search subsystem */
+					break;
+			}
+			break;
+		case 'g':
+			/* no longer distinct from \du */
+			success = await describeRoles(pattern, show_verbose, show_system);
+			break;
+		case 'l':
+			success = await listLargeObjects(show_verbose);
+			break;
+		case 'L':
+			success = await listLanguages(pattern, show_verbose, show_system);
+			break;
+		case 'n':
+			success = await listSchemas(pattern, show_verbose, show_system);
+			break;
+		case 'o':
+			success = await exec_command_dfo(scan_state, cmd, pattern,
+				show_verbose, show_system);
+			break;
+		case 'O':
+			success = await listCollations(pattern, show_verbose, show_system);
+			break;
+		case 'p':
+			success = await permissionsList(pattern, show_system);
+			break;
+		case 'P':
+			{
 				switch (cmd[2]) {
 					case '\0':
 					case '+':
-						success = await listTSConfigs(pattern, show_verbose);
-						break;
-					case 'p':
-						success = await listTSParsers(pattern, show_verbose);
-						break;
-					case 'd':
-						success = await listTSDictionaries(pattern, show_verbose);
-						break;
 					case 't':
-						success = await listTSTemplates(pattern, show_verbose);
+					case 'i':
+					case 'n':
+						success = await listPartitionedTables(cmd.slice(2), pattern, show_verbose);
 						break;
 					default:
 						status = PSQL_CMD_UNKNOWN;
 						break;
 				}
-				break;
-			case 'e':			/* SQL/MED subsystem */
-				switch (cmd[2]) {
-					case 's':
-						success = await listForeignServers(pattern, show_verbose);
-						break;
-					case 'u':
-						success = await listUserMappings(pattern, show_verbose);
-						break;
-					case 'w':
-						success = await listForeignDataWrappers(pattern, show_verbose);
-						break;
-					case 't':
-						success = await listForeignTables(pattern, show_verbose);
-						break;
-					default:
-						status = PSQL_CMD_UNKNOWN;
-						break;
-				}
-				break;
-			case 'x':			/* Extensions */
-				if (show_verbose)
-					success = await listExtensionContents(pattern);
-				else
-					success = await listExtensions(pattern);
-				break;
-			case 'X':			/* Extended Statistics */
-				success = await listExtendedStats(pattern);
-				break;
-			case 'y':			/* Event Triggers */
-				success = await listEventTriggers(pattern, show_verbose);
-				break;
-			default:
-				status = PSQL_CMD_UNKNOWN;
-		}
+			}
+			break;
+		case 'T':
+			success = await describeTypes(pattern, show_verbose, show_system);
+			break;
+		case 't':
+		case 'v':
+		case 'm':
+		case 'i':
+		case 's':
+		case 'E':
+			success = await listTables(cmd[1], pattern, show_verbose, show_system);
+			break;
+		case 'r':
+			if (cmd[2] == 'd' && cmd[3] == 's') {
+				let pattern2 = NULL;
 
+				if (pattern)
+					pattern2 = psql_scan_slash_option(scan_state,
+						OT_NORMAL, NULL, true);
+				success = await listDbRoleSettings(pattern, pattern2);
+			}
+			else if (cmd[2] == 'g')
+				success = await describeRoleGrants(pattern, show_system);
+			else
+				status = PSQL_CMD_UNKNOWN;
+			break;
+		case 'R':
+			switch (cmd[2]) {
+				case 'p':
+					if (show_verbose)
+						success = await describePublications(pattern);
+					else
+						success = await listPublications(pattern);
+					break;
+				case 's':
+					success = await describeSubscriptions(pattern, show_verbose);
+					break;
+				default:
+					status = PSQL_CMD_UNKNOWN;
+			}
+			break;
+		case 'u':
+			success = await describeRoles(pattern, show_verbose, show_system);
+			break;
+		case 'F':			/* text search subsystem */
+			switch (cmd[2]) {
+				case '\0':
+				case '+':
+					success = await listTSConfigs(pattern, show_verbose);
+					break;
+				case 'p':
+					success = await listTSParsers(pattern, show_verbose);
+					break;
+				case 'd':
+					success = await listTSDictionaries(pattern, show_verbose);
+					break;
+				case 't':
+					success = await listTSTemplates(pattern, show_verbose);
+					break;
+				default:
+					status = PSQL_CMD_UNKNOWN;
+					break;
+			}
+			break;
+		case 'e':			/* SQL/MED subsystem */
+			switch (cmd[2]) {
+				case 's':
+					success = await listForeignServers(pattern, show_verbose);
+					break;
+				case 'u':
+					success = await listUserMappings(pattern, show_verbose);
+					break;
+				case 'w':
+					success = await listForeignDataWrappers(pattern, show_verbose);
+					break;
+				case 't':
+					success = await listForeignTables(pattern, show_verbose);
+					break;
+				default:
+					status = PSQL_CMD_UNKNOWN;
+					break;
+			}
+			break;
+		case 'x':			/* Extensions */
+			if (show_verbose)
+				success = await listExtensionContents(pattern);
+			else
+				success = await listExtensions(pattern);
+			break;
+		case 'X':			/* Extended Statistics */
+			success = await listExtendedStats(pattern);
+			break;
+		case 'y':			/* Event Triggers */
+			success = await listEventTriggers(pattern, show_verbose);
+			break;
+		default:
+			status = PSQL_CMD_UNKNOWN;
 	}
-	else
-		ignore_slash_options(scan_state);
 
 	if (!success)
 		status = PSQL_CMD_ERROR;
@@ -1406,6 +1431,91 @@ async function exec_command_dfo(scan_state, cmd, pattern, show_verbose, show_sys
 }
 
 /* from describe.c */
+
+async function listAllDbs(pattern, verbose) {
+	let res;
+	let buf = { /* struct */ };
+	let myopt = pset.popt;
+
+	initPQExpBuffer(buf);
+
+	printfPQExpBuffer(buf,
+		"SELECT\n" +
+		"  d.datname as \"%s\",\n" +
+		"  pg_catalog.pg_get_userbyid(d.datdba) as \"%s\",\n" +
+		"  pg_catalog.pg_encoding_to_char(d.encoding) as \"%s\",\n",
+		gettext_noop("Name"),
+		gettext_noop("Owner"),
+		gettext_noop("Encoding"));
+	if (pset.sversion >= 150000)
+		appendPQExpBuffer(buf,
+			"  CASE d.datlocprovider WHEN 'c' THEN 'libc' WHEN 'i' THEN 'icu' END AS \"%s\",\n",
+			gettext_noop("Locale Provider"));
+	else
+		appendPQExpBuffer(buf,
+			"  'libc' AS \"%s\",\n",
+			gettext_noop("Locale Provider"));
+	appendPQExpBuffer(buf,
+		"  d.datcollate as \"%s\",\n" +
+		"  d.datctype as \"%s\",\n",
+		gettext_noop("Collate"),
+		gettext_noop("Ctype"));
+	if (pset.sversion >= 150000)
+		appendPQExpBuffer(buf,
+			"  d.daticulocale as \"%s\",\n",
+			gettext_noop("ICU Locale"));
+	else
+		appendPQExpBuffer(buf,
+			"  NULL as \"%s\",\n",
+			gettext_noop("ICU Locale"));
+	if (pset.sversion >= 160000)
+		appendPQExpBuffer(buf,
+			"  d.daticurules as \"%s\",\n",
+			gettext_noop("ICU Rules"));
+	else
+		appendPQExpBuffer(buf,
+			"  NULL as \"%s\",\n",
+			gettext_noop("ICU Rules"));
+	appendPQExpBufferStr(buf, "  ");
+	printACLColumn(buf, "d.datacl");
+	if (verbose)
+		appendPQExpBuffer(buf,
+			",\n  CASE WHEN pg_catalog.has_database_privilege(d.datname, 'CONNECT')\n" +
+			"       THEN pg_catalog.pg_size_pretty(pg_catalog.pg_database_size(d.datname))\n" +
+			"       ELSE 'No Access'\n" +
+			"  END as \"%s\"" +
+			",\n  t.spcname as \"%s\"" +
+			",\n  pg_catalog.shobj_description(d.oid, 'pg_database') as \"%s\"",
+			gettext_noop("Size"),
+			gettext_noop("Tablespace"),
+			gettext_noop("Description"));
+	appendPQExpBufferStr(buf,
+		"\nFROM pg_catalog.pg_database d\n");
+	if (verbose)
+		appendPQExpBufferStr(buf,
+			"  JOIN pg_catalog.pg_tablespace t on d.dattablespace = t.oid\n");
+
+	if (pattern) {
+		if (!validateSQLNamePattern(buf, pattern, false, false,
+			NULL, "d.datname", NULL, NULL,
+			NULL, 1)) {
+			return false;
+		}
+	}
+
+	appendPQExpBufferStr(buf, "ORDER BY 1;");
+	res = await PSQLexec(buf.data);
+
+	if (!res)
+		return false;
+
+	myopt.nullPrint = NULL;
+	myopt.title = _("List of databases");
+	myopt.translate_header = true;
+
+	printQuery(res, myopt, pset.queryFout, false, pset.logfile);
+	return true;
+}
 
 /*
  * \da
@@ -1564,7 +1674,7 @@ async function describeTablespaces(pattern, verbose) {
 
 	if (verbose) {
 		appendPQExpBufferStr(buf, ",\n  ");
-		await printACLColumn(buf, "spcacl");
+		printACLColumn(buf, "spcacl");
 		appendPQExpBuffer(buf,
 			",\n  spcoptions AS \"%s\"" +
 			",\n  pg_catalog.pg_size_pretty(pg_catalog.pg_tablespace_size(oid)) AS \"%s\"" +
@@ -1726,7 +1836,7 @@ async function describeFunctions(functypes, func_pattern, arg_patterns, num_arg_
 			gettext_noop("invoker"),
 			gettext_noop("Security"));
 		appendPQExpBufferStr(buf, ",\n ");
-		await printACLColumn(buf, "p.proacl");
+		printACLColumn(buf, "p.proacl");
 		appendPQExpBuffer(buf,
 			",\n l.lanname as \"%s\"",
 			gettext_noop("Language"));
@@ -1942,7 +2052,7 @@ async function describeTypes(pattern, verbose, showSystem) {
 			gettext_noop("Size"),
 			gettext_noop("Elements"),
 			gettext_noop("Owner"));
-		await printACLColumn(buf, "t.typacl");
+		printACLColumn(buf, "t.typacl");
 		appendPQExpBufferStr(buf, ",\n  ");
 	}
 
@@ -2224,7 +2334,7 @@ async function permissionsList(pattern, showSystem) {
 		gettext_noop("partitioned table"),
 		gettext_noop("Type"));
 
-	await printACLColumn(buf, "c.relacl");
+	printACLColumn(buf, "c.relacl");
 
 	appendPQExpBuffer(buf,
 		",\n  pg_catalog.array_to_string(ARRAY(\n" +
@@ -2375,7 +2485,7 @@ async function listDefaultACLs(pattern) {
 		gettext_noop("schema"),
 		gettext_noop("Type"));
 
-	await printACLColumn(buf, "d.defaclacl");
+	printACLColumn(buf, "d.defaclacl");
 
 	appendPQExpBufferStr(buf, "\nFROM pg_catalog.pg_default_acl d\n" +
 		"     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = d.defaclnamespace\n");
@@ -5328,7 +5438,7 @@ async function listLanguages(pattern, verbose, showSystem) {
 			gettext_noop("Call handler"),
 			gettext_noop("Validator"),
 			gettext_noop("Inline handler"));
-		await printACLColumn(buf, "l.lanacl");
+		printACLColumn(buf, "l.lanacl");
 	}
 
 	appendPQExpBuffer(buf,
@@ -5400,7 +5510,7 @@ async function listDomains(pattern, verbose, showSystem) {
 
 	if (verbose) {
 		appendPQExpBufferStr(buf, ",\n  ");
-		await printACLColumn(buf, "t.typacl");
+		printACLColumn(buf, "t.typacl");
 		appendPQExpBuffer(buf,
 			",\n       d.description as \"%s\"",
 			gettext_noop("Description"));
@@ -5546,7 +5656,7 @@ async function describeConfigurationParameters(pattern, verbose, showSystem) {
 			gettext_noop("Type"),
 			gettext_noop("Context"));
 		if (pset.sversion >= 150000)
-			await printACLColumn(buf, "p.paracl");
+			printACLColumn(buf, "p.paracl");
 		else
 			appendPQExpBuffer(buf, "NULL AS \"%s\"",
 				gettext_noop("Access privileges"));
@@ -5998,7 +6108,7 @@ async function listSchemas(pattern, verbose, showSystem) {
 
 	if (verbose) {
 		appendPQExpBufferStr(buf, ",\n  ");
-		await printACLColumn(buf, "n.nspacl");
+		printACLColumn(buf, "n.nspacl");
 		appendPQExpBuffer(buf,
 			",\n  pg_catalog.obj_description(n.oid, 'pg_namespace') AS \"%s\"",
 			gettext_noop("Description"));
@@ -6626,7 +6736,7 @@ async function listForeignDataWrappers(pattern, verbose) {
 
 	if (verbose) {
 		appendPQExpBufferStr(buf, ",\n  ");
-		await printACLColumn(buf, "fdwacl");
+		printACLColumn(buf, "fdwacl");
 		appendPQExpBuffer(buf,
 			",\n CASE WHEN fdwoptions IS NULL THEN '' ELSE " +
 			"  '(' || pg_catalog.array_to_string(ARRAY(SELECT " +
@@ -6691,7 +6801,7 @@ async function listForeignServers(pattern, verbose) {
 
 	if (verbose) {
 		appendPQExpBufferStr(buf, ",\n  ");
-		await printACLColumn(buf, "s.srvacl");
+		printACLColumn(buf, "s.srvacl");
 		appendPQExpBuffer(buf,
 			",\n" +
 			"  s.srvtype AS \"%s\",\n" +
@@ -7407,7 +7517,7 @@ async function describeSubscriptions(pattern, verbose) {
  * The proper targetlist entry is appended to buf.  Note lack of any
  * whitespace or comma decoration.
  */
-async function printACLColumn(buf, colname) {
+function printACLColumn(buf, colname) {
 	appendPQExpBuffer(buf,
 		"pg_catalog.array_to_string(%s, E'\\n') AS \"%s\"",
 		colname, gettext_noop("Access privileges"));
@@ -7786,7 +7896,7 @@ async function listLargeObjects(verbose) {
 		gettext_noop("Owner"));
 
 	if (verbose) {
-		await printACLColumn(buf, "lomacl");
+		printACLColumn(buf, "lomacl");
 		appendPQExpBufferStr(buf, ",\n  ");
 	}
 
