@@ -213,7 +213,7 @@ var require_serverless = __commonJS({
         let n = r.valueOf && r.valueOf();
         if (n != null && n !== r)
           return f.from(n, e, t);
-        let i = go(r);
+        let i = go2(r);
         if (i)
           return i;
         if (typeof Symbol < "u" && Symbol.toPrimitive != null && typeof r[Symbol.toPrimitive] == "function")
@@ -306,7 +306,7 @@ var require_serverless = __commonJS({
         ), n;
       }
       a(Rt, "fromArrayBuffer");
-      function go(r) {
+      function go2(r) {
         if (f.isBuffer(r)) {
           let e = Dt(
             r.length
@@ -318,7 +318,7 @@ var require_serverless = __commonJS({
         if (r.type === "Buffer" && Array.isArray(r.data))
           return Lt(r.data);
       }
-      a(go, "fromObject");
+      a(go2, "fromObject");
       function Dt(r) {
         if (r >= st)
           throw new RangeError("Attempt to allocate Buffer larger than maximum size: 0x" + st.toString(16) + " bytes");
@@ -5816,12 +5816,10 @@ Informational
   \\dX     [PATTERN]      list extended statistics
   \\dy[+]  [PATTERN]      list event triggers
   \\l[+]   [PATTERN]      list databases
+  \\lo_list[+]            list large objects
   \\sf[+]  FUNCNAME       show a function's definition
   \\sv[+]  VIEWNAME       show a view's definition
   \\z[S]   [PATTERN]      same as \\dp
-
-Large Objects
-  \\lo_list[+]            list large objects
 `;
 function describeDataToString(desc) {
   return desc.map((item) => typeof item === "string" ? item : tableToString(item)).join("\n\n");
@@ -12930,19 +12928,7 @@ function parse(url, parseQueryString) {
   const query = parseQueryString ? Object.fromEntries(searchParams.entries()) : search;
   return { href: url, protocol, auth, username, password, host, hostname, port, pathname, search, query, hash };
 }
-window.addEventListener("load", () => {
-  const saveData = sessionStorage.getItem("form");
-  if (!saveData)
-    return;
-  const { connectionString, cmd, echoHidden, htmlOutput } = JSON.parse(saveData);
-  document.querySelector("#dburl").value = connectionString;
-  document.querySelector("#sql").value = cmd;
-  document.querySelector("#echohidden").checked = echoHidden;
-  document.querySelector("#html").checked = htmlOutput;
-});
-var goBtn = document.querySelector("#gobtn");
-var goBtnUsualTitle = goBtn.value;
-goBtn.addEventListener("click", async () => {
+async function go() {
   const connectionString = document.querySelector("#dburl").value;
   let dbName;
   try {
@@ -12964,6 +12950,23 @@ goBtn.addEventListener("click", async () => {
   goBtn.value = goBtnUsualTitle;
   const output2 = htmlOutput ? describeDataToHtml(tableData) : "<pre>" + describeDataToString(tableData, true) + "</pre>";
   document.querySelector("#output").innerHTML = output2;
+}
+window.addEventListener("load", () => {
+  const saveData = sessionStorage.getItem("form");
+  if (!saveData)
+    return;
+  const { connectionString, cmd, echoHidden, htmlOutput } = JSON.parse(saveData);
+  document.querySelector("#dburl").value = connectionString;
+  document.querySelector("#sql").value = cmd;
+  document.querySelector("#echohidden").checked = echoHidden;
+  document.querySelector("#html").checked = htmlOutput;
+});
+var goBtn = document.querySelector("#gobtn");
+var goBtnUsualTitle = goBtn.value;
+goBtn.addEventListener("click", go);
+document.querySelector("#sql").addEventListener("keyup", ({ key }) => {
+  if (key === "Enter" && goBtn.disabled === false)
+    go();
 });
 /*! Bundled license information:
 

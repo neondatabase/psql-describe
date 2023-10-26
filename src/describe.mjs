@@ -132,12 +132,10 @@ Informational
   \\dX     [PATTERN]      list extended statistics
   \\dy[+]  [PATTERN]      list event triggers
   \\l[+]   [PATTERN]      list databases
+  \\lo_list[+]            list large objects
   \\sf[+]  FUNCNAME       show a function's definition
   \\sv[+]  VIEWNAME       show a view's definition
   \\z[S]   [PATTERN]      same as \\dp
-
-Large Objects
-  \\lo_list[+]            list large objects
 `;
 
 export function describeDataToString(desc) {

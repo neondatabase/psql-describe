@@ -14,23 +14,11 @@ function parse(url, parseQueryString) {
   return { href: url, protocol, auth, username, password, host, hostname, port, pathname, search, query, hash };
 }
 
-window.addEventListener('load', () => {
-  const saveData = sessionStorage.getItem('form');
-  if (!saveData) return;
-  const { connectionString, cmd, echoHidden, htmlOutput} = JSON.parse(saveData);
-  document.querySelector('#dburl').value = connectionString;
-  document.querySelector('#sql').value = cmd;
-  document.querySelector('#echohidden').checked = echoHidden;
-  document.querySelector('#html').checked = htmlOutput;
-});
-
-const goBtn = document.querySelector('#gobtn');
-const goBtnUsualTitle = goBtn.value;
-goBtn.addEventListener('click', async () => {
+async function go() {
   const connectionString = document.querySelector('#dburl').value;
   let dbName;
   try { dbName = parse(connectionString).pathname.slice(1); }
-  catch (err) { 
+  catch (err) {
     alert('Invalid connection string');
     return;
   }
@@ -39,8 +27,8 @@ goBtn.addEventListener('click', async () => {
   const echoHidden = document.querySelector('#echohidden').checked;
   const htmlOutput = document.querySelector('#html').checked;
 
-  sessionStorage.setItem('form', JSON.stringify({connectionString, cmd, echoHidden, htmlOutput}));
-  
+  sessionStorage.setItem('form', JSON.stringify({ connectionString, cmd, echoHidden, htmlOutput }));
+
   const pool = new Pool({ connectionString });
   const queryFn = sql => pool.query({ text: sql, rowMode: 'array' });
 
@@ -50,10 +38,28 @@ goBtn.addEventListener('click', async () => {
   goBtn.disabled = false;
   goBtn.value = goBtnUsualTitle;
 
-  const output = htmlOutput ? 
-    describeDataToHtml(tableData) : 
+  const output = htmlOutput ?
+    describeDataToHtml(tableData) :
     '<pre>' + describeDataToString(tableData, true) + '</pre>';
 
   document.querySelector('#output').innerHTML = output;
+}
+
+window.addEventListener('load', () => {
+  const saveData = sessionStorage.getItem('form');
+  if (!saveData) return;
+  const { connectionString, cmd, echoHidden, htmlOutput } = JSON.parse(saveData);
+  document.querySelector('#dburl').value = connectionString;
+  document.querySelector('#sql').value = cmd;
+  document.querySelector('#echohidden').checked = echoHidden;
+  document.querySelector('#html').checked = htmlOutput;
 });
+
+const goBtn = document.querySelector('#gobtn');
+const goBtnUsualTitle = goBtn.value;
+goBtn.addEventListener('click', go);
+
+document.querySelector('#sql').addEventListener('keyup', ({ key }) => {
+  if (key === "Enter" && goBtn.disabled === false) go();
+})
 
