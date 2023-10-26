@@ -53,6 +53,14 @@
   dd {
     padding: 0.25ex 0;
   }
+  #examples a {
+    display: inline-block;
+    text-decoration: none;
+    color: inherit;
+    background: #f0f0f4;
+    padding: .25ex 1ex;
+    border-radius: 1ex;
+  }
 </style>
 <p>
   Database URL<br>
@@ -62,7 +70,7 @@
   Describe command<br>
   <input type="text" size="30" placeholder="\?" id="sql" />
 </p>
-<p>Examples: <a href="#">\?</a> <a href="#">\dconfig</a> <a href="#">\dS+</a> <a href="#">\dfS</a> <a href="#">\sf date_trunc(interval)</a></p>
+<p>Examples: <span id="examples"><a href="#">\?</a> <a href="#">\l</a> <a href="#">\dconfig</a> <a href="#">\dS+</a> <a href="#">\dfS</a> <a href="#">\sf date_trunc(text, interval)</a> <a href="#">\sv+ pg_stats</a></span></p>
 <p>
   <label><input type="checkbox" id="echohidden" /> show queries (psql -E)</label>
 </p>

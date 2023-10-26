@@ -5758,6 +5758,7 @@ var FLOAT4OID = 700;
 var FLOAT8OID = 701;
 var MONEYOID = 790;
 var NUMERICOID = 1700;
+var typeOIDs = [16, 17, 18, 20, 21, 23, 24, 25, 26, 27, 28, 29, 114, 142, 143, 194, 199, 271, 602, 604, 650, 651, 700, 701, 718, 719, 774, 775, 790, 791, 829, 869, 1e3, 1001, 1002, 1005, 1007, 1008, 1009, 1010, 1011, 1012, 1014, 1015, 1016, 1019, 1021, 1022, 1027, 1028, 1033, 1034, 1040, 1041, 1042, 1043, 1082, 1083, 1114, 1115, 1182, 1183, 1184, 1185, 1186, 1187, 1231, 1266, 1270, 1560, 1561, 1562, 1563, 1700, 1790, 2201, 2202, 2203, 2204, 2205, 2206, 2207, 2208, 2209, 2210, 2211, 2949, 2950, 2951, 2970, 3220, 3221, 3361, 3402, 3614, 3615, 3642, 3643, 3644, 3645, 3734, 3735, 3769, 3770, 3802, 3807, 4072, 4073, 4089, 4090, 4096, 4097, 4191, 4192, 4600, 4601, 5017, 5038, 5039, 5069];
 var PSQLexec;
 var pset;
 var output;
@@ -5938,9 +5939,9 @@ function tableToHtml(td) {
 async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = 14e4, std_strings = 1) {
   const raw = (x) => x;
   const originalParsers = {};
-  for (let b in pg.types.builtins) {
-    originalParsers[b] = pg.types.getTypeParser(pg.types.builtins[b]);
-    pg.types.setTypeParser(pg.types.builtins[b], raw);
+  for (let oid of typeOIDs) {
+    originalParsers[oid] = pg.types.getTypeParser(oid);
+    pg.types.setTypeParser(oid, raw);
   }
   output = [];
   pset = {
@@ -5992,8 +5993,8 @@ ${trimmed}
   } else {
     output.push(`unsupported command: ${cmd}`);
   }
-  for (let b in pg.types.builtins)
-    pg.types.setTypeParser(pg.types.builtins[b], originalParsers[b]);
+  for (let oid of typeOIDs)
+    pg.types.setTypeParser(oid, originalParsers[oid]);
   return trimTrailingNulls(output);
 }
 function gettext_noop(x) {
@@ -6767,52 +6768,50 @@ async function get_create_object_cmd(obj_type, oid, buf) {
         appendPQExpBufferStr(buf, PQgetvalue(res, 0, 0));
         break;
       case EditableView:
-        {
-          let nspname = PQgetvalue(res, 0, 0);
-          let relname = PQgetvalue(res, 0, 1);
-          let relkind = PQgetvalue(res, 0, 2);
-          let viewdef = PQgetvalue(res, 0, 3);
-          let reloptions = PQgetvalue(res, 0, 4);
-          let checkoption = PQgetvalue(res, 0, 5);
-          switch (relkind[0]) {
-            case RELKIND_VIEW:
-              appendPQExpBufferStr(buf, "CREATE OR REPLACE VIEW ");
-              break;
-            default:
-              pg_log_error(
-                '"%s.%s" is not a view',
-                nspname,
-                relname
-              );
-              result = false;
-              break;
-          }
-          appendPQExpBuffer(buf, "%s.", fmtId(nspname));
-          appendPQExpBufferStr(buf, fmtId(relname));
-          if (reloptions != NULL && strlen(reloptions) > 2) {
-            appendPQExpBufferStr(buf, "\n WITH (");
-            if (!appendReloptionsArray(
-              buf,
-              reloptions,
-              "",
-              pset.encoding,
-              standard_strings()
-            )) {
-              pg_log_error("could not parse reloptions array");
-              result = false;
-            }
-            appendPQExpBufferChar(buf, ")");
-          }
-          appendPQExpBuffer(buf, " AS\n%s", viewdef);
-          if (buf.len > 0 && buf.data[buf.len - 1] == ";")
-            buf.data = buf.data.slice(0, buf.len - 1);
-          if (checkoption && checkoption[0] != "\0")
-            appendPQExpBuffer(
-              buf,
-              "\n WITH %s CHECK OPTION",
-              checkoption
+        let nspname = PQgetvalue(res, 0, 0);
+        let relname = PQgetvalue(res, 0, 1);
+        let relkind = PQgetvalue(res, 0, 2);
+        let viewdef = PQgetvalue(res, 0, 3);
+        let reloptions = PQgetvalue(res, 0, 4);
+        let checkoption = PQgetvalue(res, 0, 5);
+        switch (relkind[0]) {
+          case RELKIND_VIEW:
+            appendPQExpBufferStr(buf, "CREATE OR REPLACE VIEW ");
+            break;
+          default:
+            pg_log_error(
+              '"%s.%s" is not a view',
+              nspname,
+              relname
             );
+            result = false;
+            break;
         }
+        appendPQExpBuffer(buf, "%s.", fmtId(nspname));
+        appendPQExpBufferStr(buf, fmtId(relname));
+        if (reloptions != NULL && strlen(reloptions) > 2) {
+          appendPQExpBufferStr(buf, "\n WITH (");
+          if (!appendReloptionsArray(
+            buf,
+            reloptions,
+            "",
+            pset.encoding,
+            pset.db.standard_strings
+          )) {
+            pg_log_error("could not parse reloptions array");
+            result = false;
+          }
+          appendPQExpBufferChar(buf, ")");
+        }
+        appendPQExpBuffer(buf, " AS\n%s", viewdef);
+        if (buf.len > 0 && buf.data[buf.len - 1] == ";")
+          buf.data = buf.data.slice(0, buf.len - 1);
+        if (checkoption && checkoption[0] != "\0")
+          appendPQExpBuffer(
+            buf,
+            "\n WITH %s CHECK OPTION",
+            checkoption
+          );
         break;
     }
     if (buf.len > 0 && buf.data[buf.len - 1] != "\n")
@@ -6849,7 +6848,6 @@ function parsePGArray(atext, items, nitems) {
   let inputlen;
   let strings;
   let curitem;
-  itemarray = NULL;
   inputlen = strlen(atext);
   nitems.value = 0;
   if (inputlen < 2 || atext[0] != "{" || atext[inputlen - 1] != "}")
@@ -12967,6 +12965,13 @@ goBtn.addEventListener("click", go);
 document.querySelector("#sql").addEventListener("keyup", ({ key }) => {
   if (key === "Enter" && goBtn.disabled === false)
     go();
+});
+document.querySelector("#examples").addEventListener("click", (e) => {
+  if (e.target.nodeName === "A" && goBtn.disabled === false) {
+    document.querySelector("#sql").value = e.target.textContent;
+    go();
+  }
+  return false;
 });
 /*! Bundled license information:
 
