@@ -12,7 +12,7 @@ For now, please see `demo-src/demo.js` and `test/test.mjs` for examples.
 
 ## Re-entrancy
 
-This is a very direct port of C code. We use `async/await` where C would block. So it's important not to call `describe` again while awaiting an earlier call: this will mess with global state, and also leave your DB driver in an unhappy state (we disable all type parsing on entry, and restore it on exit).
+This is a very direct port of C code. We use `async/await` where C would block. So it's important not to call `describe` again while awaiting an earlier call: this will mess with global state, and also leave your DB driver in an unhappy place (because we disable all type parsing on entry, and restore it on exit).
 
 ## Tests
 
