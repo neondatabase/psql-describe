@@ -5936,12 +5936,16 @@ function tableToHtml(td) {
   }
   return result;
 }
-async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = 14e4, std_strings = 1) {
+async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = null, std_strings = 1) {
   const raw = (x) => x;
   const originalParsers = {};
   for (let oid of typeOIDs) {
     originalParsers[oid] = pg.types.getTypeParser(oid);
     pg.types.setTypeParser(oid, raw);
+  }
+  if (sversion == null) {
+    const vres = await runQuery("SHOW server_version_num");
+    sversion = parseInt(vres.rows[0][0], 10);
   }
   output = [];
   pset = {
@@ -5981,14 +5985,18 @@ ${trimmed}
       matchedCommand += "\0";
       remaining += "\0";
       const scan_state = [remaining, 0];
-      const result = await (matchedCommand[0] === "d" ? exec_command_d(scan_state, true, matchedCommand) : matchedCommand[0] === "s" ? matchedCommand[1] === "f" || matchedCommand[1] === "v" ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === "f") : PSQL_CMD_UNKNOWN : exec_command_list(scan_state, true, matchedCommand));
-      if (result === PSQL_CMD_UNKNOWN)
-        output.push(`invalid command \\${matchedCommand}`);
-      let arg, warnings = [];
-      while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true))
-        warnings.push(trimTrailingNull(sprintf('\\%s: extra argument "%s" ignored', matchedCommand, arg)));
-      if (warnings.length > 0)
-        output.push(warnings.join("\n"));
+      try {
+        const result = await (matchedCommand[0] === "d" ? exec_command_d(scan_state, true, matchedCommand) : matchedCommand[0] === "s" ? matchedCommand[1] === "f" || matchedCommand[1] === "v" ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === "f") : PSQL_CMD_UNKNOWN : exec_command_list(scan_state, true, matchedCommand));
+        if (result === PSQL_CMD_UNKNOWN)
+          output.push(`invalid command \\${matchedCommand}`);
+        let arg, warnings = [];
+        while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true))
+          warnings.push(trimTrailingNull(sprintf('\\%s: extra argument "%s" ignored', matchedCommand, arg)));
+        if (warnings.length > 0)
+          output.push(warnings.join("\n"));
+      } catch (err) {
+        output.push("ERROR:  " + err.message);
+      }
     }
   } else {
     output.push(`unsupported command: ${cmd}`);
