@@ -2,9 +2,12 @@
 
 psql's `\d` (describe) family of commands ported to JavaScript.
 
-* From the master branch (17devel), we take `exec_command_d` from `command.c` and all of `describe.c` from `src/bin/psql`.
-* We use RegExp search-and-replace to turn the C code into valid JS syntax.
-* Then we fix a variety of problems, mostly related to pointer arithmetic, pointer dereferencing, and pointer output parameters.
+* From the Postgres master branch (17devel), we take `exec_command_d`, `exec_command_list` and `exec_command_sf_sv` from `command.c`, and all of `describe.c`, from `src/bin/psql`.
+* We use plenty of RegExp search-and-replace to turn this C code into valid JS syntax.
+* We implement some C library functions, such as `strlen` and `strchr`, and some Postgres support functions, such as `printTable` and `printQuery`, in JavaScript.
+* We write tests to catch (and then fix) problems, mostly related to pointer arithmetic, pointer dereferencing, and pointer output parameters.
+
+This approach means that most of the 8000+ lines of code in `describe.mjs` have not actually been looked at. If you find bugs, please file an issue!
 
 ## Usage
 
@@ -12,11 +15,11 @@ For now, please see `demo-src/demo.js` and `test/test.mjs` for examples.
 
 ## Re-entrancy
 
-This is a very direct port of C code. We use `async/await` where C would block. So it's important not to call `describe` again while awaiting an earlier call: this will mess with global state, and also leave your DB driver in an unhappy place (because we disable all type parsing on entry, and restore it on exit).
+This is a very direct port of C code. We use `async/await` where C would block. So it's important not to call `describe` again while awaiting an earlier call: this will mess with global state, and also leave your DB driver in a bad way (because we disable all type parsing on entry, and restore it on exit).
 
 ## Possible future improvements
 
-* Allow cancel/abort
+* Implement cancel/abort
 * Show results as they come in (especially for long and complex stuff like `\d+ *`)
 
 ## Tests

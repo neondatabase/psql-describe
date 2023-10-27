@@ -1,7 +1,9 @@
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,700;1,400;1,700&family=IBM+Plex+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet"> 
 <style>
   body {
-    font-family: sans-serif;
+    font: 14px/1.5 'IBM Plex Sans', sans-serif;
     padding: 3ex 5ex;
     color: #333;
     line-height: 1.35;
@@ -13,7 +15,7 @@
     font-family: monospace;
   }
   #output {
-    font-family: monospace;
+    font: 14px/1.5 'IBM Plex Mono', monospace;
     background: #f0f0f4;
     padding: 1ex 2ex;
     border-radius: 1ex;
@@ -24,6 +26,7 @@
     padding: 0;
   }
   table {
+    font: inherit;
     border-collapse: collapse;
     margin-top: 2ex;
   }
@@ -54,6 +57,7 @@
     padding: 0.25ex 0;
   }
   #examples a {
+    font: 14px/1.5 'IBM Plex Mono', monospace;
     display: inline-block;
     text-decoration: none;
     color: inherit;
@@ -62,6 +66,7 @@
     border-radius: 1ex;
   }
 </style>
+<p><img src="neon.svg"></p>
 <p>
   Database URL<br>
   <input type="text" size="100" placeholder="postgres://user:pass@host/db" id="dburl" />
@@ -75,9 +80,9 @@
   <label><input type="checkbox" id="echohidden" /> show queries (psql -E)</label>
 </p>
 <p>
-  <label><input type="checkbox" id="html" /> HTML output</label>
+  <label><input type="checkbox" id="html" checked="checked" /> HTML output</label>
 </p>
 <input type="button" value="Submit" id="gobtn" />
 <div id="output"></div>
-
+<p><a href="https://github.com/neondatabase/psql-describe">Source on GitHub</a></p>
 <script src="demo.js"></script>
