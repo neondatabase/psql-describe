@@ -12970,16 +12970,17 @@ window.addEventListener("load", () => {
 var goBtn = document.querySelector("#gobtn");
 var goBtnUsualTitle = goBtn.value;
 goBtn.addEventListener("click", go);
-document.querySelector("#sql").addEventListener("keyup", ({ key }) => {
-  if (key === "Enter" && goBtn.disabled === false)
+document.querySelector("#sql").addEventListener("keyup", (e) => {
+  if (e.key === "Enter" && goBtn.disabled === false)
     go();
+  e.preventDefault();
 });
 document.querySelector("#examples").addEventListener("click", (e) => {
   if (e.target.nodeName === "A" && goBtn.disabled === false) {
     document.querySelector("#sql").value = e.target.textContent;
     go();
   }
-  return false;
+  e.preventDefault();
 });
 /*! Bundled license information:
 
