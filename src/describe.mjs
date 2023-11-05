@@ -75,22 +75,6 @@ const
   MONEYOID = 790,
   NUMERICOID = 1700;
 
-/*
-WITH 
-types AS (
-  SELECT * FROM pg_type PT
-  WHERE typnamespace = (SELECT pgn.oid FROM pg_namespace pgn WHERE nspname = 'pg_catalog') -- only built-in Postgres types with stable OID 
-  AND typtype = 'b' -- only basic types
-  AND typelem = 0 -- ignore aliases
-  AND typisdefined -- ignore undefined types
-),
-oids AS (
-  SELECT oid::int4 AS oid FROM types UNION SELECT typarray::int4 AS oid FROM types
-)
-SELECT json_agg(DISTINCT oid ORDER BY oid) FROM oids WHERE oid != 0;
-*/
-const typeOIDs = [16, 17, 18, 20, 21, 23, 24, 25, 26, 27, 28, 29, 114, 142, 143, 194, 199, 271, 602, 604, 650, 651, 700, 701, 718, 719, 774, 775, 790, 791, 829, 869, 1000, 1001, 1002, 1005, 1007, 1008, 1009, 1010, 1011, 1012, 1014, 1015, 1016, 1019, 1021, 1022, 1027, 1028, 1033, 1034, 1040, 1041, 1042, 1043, 1082, 1083, 1114, 1115, 1182, 1183, 1184, 1185, 1186, 1187, 1231, 1266, 1270, 1560, 1561, 1562, 1563, 1700, 1790, 2201, 2202, 2203, 2204, 2205, 2206, 2207, 2208, 2209, 2210, 2211, 2949, 2950, 2951, 2970, 3220, 3221, 3361, 3402, 3614, 3615, 3642, 3643, 3644, 3645, 3734, 3735, 3769, 3770, 3802, 3807, 4072, 4073, 4089, 4090, 4096, 4097, 4191, 4192, 4600, 4601, 5017, 5038, 5039, 5069];
-
 let PSQLexec, pset, output;
 
 const helpText = `Help
@@ -161,7 +145,7 @@ export function describeDataToString(desc) {
 export function describeDataToHtml(desc) {
   return desc.map(item =>
     typeof item === 'string' ?
-      `<p>${htmlEscape(item).replace(/ /g, '&nbsp;').replace(/\n/g, '<br />')}</p>` :
+      `<p>${htmlEscape(item, true)}</p>` :
       tableToHtml(item)).join('\n\n');
 }
 
@@ -171,7 +155,7 @@ function trimTrailingNull(str) {
   return str;
 }
 
-function trimTrailingNulls(obj) {
+function trimTrailingNulls(obj) {  // (recursively)
   if (Array.isArray(obj)) for (let i = 0, len = obj.length; i < len; i++) obj[i] = trimTrailingNulls(obj[i]);
   else if (typeof obj === 'object' && obj !== null) for (let i in obj) obj[i] = trimTrailingNulls(obj[i]);
   else if (typeof obj === 'string') return trimTrailingNull(obj);
@@ -182,7 +166,7 @@ function pad(str, len, align, pre = '', post = '') {
   const spaces = Math.max(0, len - strlen(str));
   if (align === 'r') return pre + ' '.repeat(spaces) + str + post;
   if (align === 'c') return pre + ' '.repeat(Math.floor(spaces / 2)) + str + ' '.repeat(Math.ceil(spaces / 2)) + post;
-  return pre + str + ' '.repeat(spaces) + post;  // default left align
+  return pre + str + ' '.repeat(spaces) + post;  // default is left align
 }
 
 function byN(arr, n) {
@@ -275,18 +259,17 @@ function tableToHtml(td) {
 }
 
 export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = null, std_strings = 1) {
-  const raw = x => x;
-  const originalParsers = {};
-  for (let oid of typeOIDs) {
-    originalParsers[oid] = pg.types.getTypeParser(oid);
-    pg.types.setTypeParser(oid, raw);
-  }
+  // disable all type parsing: psql expects Postgres's raw text format
+  const originalGetTypeParser = pg.types.getTypeParser;
+  pg.types.getTypeParser = () => x => x;
 
+  // get server version, if not supplied
   if (sversion == null) {  // could also be undefined
     const vres = await runQuery('SHOW server_version_num');
     sversion = parseInt(vres.rows[0][0], 10);
   }
 
+  // set globals
   output = [];
   pset = {
     sversion,
@@ -310,6 +293,7 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
     return runQuery(trimmed);
   }
 
+  // parse and run command
   const match = cmd.match(/^\\([?dzsl]\S*)(.*)/);
   if (match) {
     let [, matchedCommand, remaining] = match;
@@ -353,7 +337,9 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
     output.push(`unsupported command: ${cmd}`);
   }
 
-  for (let oid of typeOIDs) pg.types.setTypeParser(oid, originalParsers[oid]);
+  // restore type parsing
+  pg.types.getTypeParser = originalGetTypeParser;
+
   return trimTrailingNulls(output);
 }
 
@@ -363,7 +349,7 @@ function strchr(str, chr) {
   return strstr(str, chr);
 }
 
-function strstr(str1, str2) {  // this is not a fully general implementation, but it usually works
+function strstr(str1, str2) {  // unlike the C version, this returns JS null on not found, and 0+ if found
   const index = str1.indexOf(trimTrailingNull(str2));
   return index === -1 ? NULL : index;
 }
