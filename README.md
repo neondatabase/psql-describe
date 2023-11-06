@@ -15,12 +15,13 @@ For now, please see `demo-src/demo.js` and `test/test.mjs` for examples.
 
 ## Re-entrancy
 
-This is a very direct port of C code. We use `async/await` where C would block. So it's important not to call `describe` again while awaiting an earlier call: this will mess with global state, and also leave your DB driver in a bad way (because we disable all type parsing on entry, and restore it on exit).
+This is a very direct port of C code. We use `async/await` where C would block. So it's important not to call `describe` again while awaiting an earlier call: this will mess with global state, giving you weird and random results, and also leave your DB driver in a bad way (because we disable all type parsing on entry and restore it on exit).
 
 ## Possible future improvements
 
 * Implement cancel/abort
 * Show results as they come in (especially for long and complex stuff like `\d+ *`)
+* Get rid of all null-terminated strings, for better performance
 
 ## Tests
 
