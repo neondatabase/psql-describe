@@ -12,10 +12,7 @@ const
 
 const
   PSQL_CMD_UNKNOWN = 0,		/* not done parsing yet (internal only) */
-  PSQL_CMD_SEND = 1,				/* query complete; send off */
   PSQL_CMD_SKIP_LINE = 2,			/* keep building query */
-  PSQL_CMD_TERMINATE = 3,			/* quit program */
-  PSQL_CMD_NEWEDIT = 4,			/* query buffer was changed (e.g., via \e) */
   PSQL_CMD_ERROR = 5;				/* the execution of the backslash command */
 
 const
@@ -29,12 +26,10 @@ const
   CONNECTION_BAD = 1;
 
 const
-  COERCION_METHOD_FUNCTION = 'f', /* use a function */
   COERCION_METHOD_BINARY = 'b',	/* types are binary-compatible */
   COERCION_METHOD_INOUT = 'i'; /* use input/output functions */
 
 const
-  COERCION_CODE_IMPLICIT = 'i',	/* coercion in context of expression */
   COERCION_CODE_ASSIGNMENT = 'a', /* coercion in context of assignment */
   COERCION_CODE_EXPLICIT = 'e';	/* explicit cast operation */
 
@@ -138,6 +133,87 @@ Informational
   \\z[S]   [PATTERN]      same as \\dp
 `;
 
+export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = null, std_strings = 1) {
+  // disable all type parsing: psql expects Postgres's raw text format
+  const originalGetTypeParser = pg.types.getTypeParser;
+  pg.types.getTypeParser = () => x => x;
+
+  // get server version, if not supplied
+  if (sversion == null) {  // could also be undefined
+    const vres = await runQuery('SHOW server_version_num');
+    sversion = parseInt(vres.rows[0][0], 10);
+  }
+
+  // set globals
+  output = [];
+  pset = {
+    sversion,
+    db: {  // PGconn struct
+      dbName,
+      sversion,
+      std_strings,
+      status: CONNECTION_OK,
+      encoding: PG_UTF8
+    },
+    popt: {  // print options
+      topt: {
+        default_footer: true,
+      },
+      nullPrint: '',
+    }
+  };
+  PSQLexec = sql => {
+    if (echoHidden) output.push(`/******** QUERY *********/\n${sql}\n/************************/`);
+    return runQuery(sql);
+  }
+
+  // parse and run command
+  const match = cmd.match(/^\\([?dzsl]\S*)(.*)/);
+  if (match) {
+    let [, matchedCommand, remaining] = match;
+
+    // synonyms
+    matchedCommand = matchedCommand.replace(/^lo_list/, 'dl');
+    matchedCommand = matchedCommand.replace(/^z/, 'dp');
+
+    if (matchedCommand[0] === '?') {
+      output.push(helpText);
+
+    } else {
+      const scan_state = [remaining, 0];
+      
+      try {
+        const result = await (
+          matchedCommand[0] === 'd' ? exec_command_d(scan_state, true, matchedCommand) :
+            matchedCommand[0] === 's' ?
+              (matchedCommand[1] === 'f' || matchedCommand[1] === 'v' ?
+                exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === 'f') :
+                PSQL_CMD_UNKNOWN) :
+              exec_command_list(scan_state, true, matchedCommand)
+        );
+
+        if (result == PSQL_CMD_UNKNOWN) output.push(`invalid command \\${matchedCommand}`);
+        // if (result === PSQL_CMD_ERROR) output.push('...');  // what goes here?
+
+        let arg, warnings = [];
+        while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(sprintf("\\%s: extra argument \"%s\" ignored", matchedCommand, arg));
+        if (warnings.length > 0) output.push(warnings.join('\n'));
+
+      } catch (err) {
+        output.push('ERROR:  ' + err.message);
+      }
+    }
+
+  } else {
+    output.push(`unsupported command: ${cmd}`);
+  }
+
+  // restore type parsing
+  pg.types.getTypeParser = originalGetTypeParser;
+
+  return output;
+}
+
 export function describeDataToString(desc) {
   return desc.map(item => typeof item === 'string' ? item : tableToString(item)).join('\n\n');
 }
@@ -149,18 +225,6 @@ export function describeDataToHtml(desc) {
       tableToHtml(item)).join('\n\n');
 }
 
-function trimTrailingNull(str) {
-  const nullIndex = str.indexOf('\0');
-  if (nullIndex !== -1) return str.slice(0, nullIndex);
-  return str;
-}
-
-function trimTrailingNulls(obj) {  // (recursively)
-  if (Array.isArray(obj)) for (let i = 0, len = obj.length; i < len; i++) obj[i] = trimTrailingNulls(obj[i]);
-  else if (typeof obj === 'object' && obj !== null) for (let i in obj) obj[i] = trimTrailingNulls(obj[i]);
-  else if (typeof obj === 'string') return trimTrailingNull(obj);
-  return obj;
-}
 
 function pad(str, len, align, pre = '', post = '') {
   const spaces = Math.max(0, len - strlen(str));
@@ -258,91 +322,6 @@ function tableToHtml(td) {
   return result;
 }
 
-export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = null, std_strings = 1) {
-  // disable all type parsing: psql expects Postgres's raw text format
-  const originalGetTypeParser = pg.types.getTypeParser;
-  pg.types.getTypeParser = () => x => x;
-
-  // get server version, if not supplied
-  if (sversion == null) {  // could also be undefined
-    const vres = await runQuery('SHOW server_version_num');
-    sversion = parseInt(vres.rows[0][0], 10);
-  }
-
-  // set globals
-  output = [];
-  pset = {
-    sversion,
-    db: {  // PGconn struct
-      dbName,
-      sversion,
-      std_strings,
-      status: CONNECTION_OK,
-      encoding: PG_UTF8
-    },
-    popt: {  // print options
-      topt: {
-        default_footer: true,
-      },
-      nullPrint: '',
-    }
-  };
-  PSQLexec = sql => {
-    const trimmed = trimTrailingNull(sql);
-    if (echoHidden) output.push(`/******** QUERY *********/\n${trimmed}\n/************************/`);
-    return runQuery(trimmed);
-  }
-
-  // parse and run command
-  const match = cmd.match(/^\\([?dzsl]\S*)(.*)/);
-  if (match) {
-    let [, matchedCommand, remaining] = match;
-
-    // synonyms
-    matchedCommand = matchedCommand.replace(/^lo_list/, 'dl');
-    matchedCommand = matchedCommand.replace(/^z/, 'dp');
-
-    if (matchedCommand[0] === '?') {
-      output.push(helpText);
-
-    } else {
-      matchedCommand += '\0';
-      remaining += '\0';
-
-      const scan_state = [remaining, 0];
-
-      try {
-        const result = await (
-          matchedCommand[0] === 'd' ? exec_command_d(scan_state, true, matchedCommand) :
-            matchedCommand[0] === 's' ?
-              (matchedCommand[1] === 'f' || matchedCommand[1] === 'v' ?
-                exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === 'f') :
-                PSQL_CMD_UNKNOWN) :
-              exec_command_list(scan_state, true, matchedCommand)
-        );
-
-        if (result === PSQL_CMD_UNKNOWN) output.push(`invalid command \\${matchedCommand}`);
-        // if (result === PSQL_CMD_ERROR) output.push('...');  // what goes here?
-
-        let arg, warnings = [];
-        while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(trimTrailingNull(sprintf("\\%s: extra argument \"%s\" ignored", matchedCommand, arg)));
-        if (warnings.length > 0) output.push(warnings.join('\n'));
-
-      } catch (err) {
-        output.push('ERROR:  ' + err.message);
-      }
-    }
-
-  } else {
-    output.push(`unsupported command: ${cmd}`);
-  }
-
-  // restore type parsing
-  pg.types.getTypeParser = originalGetTypeParser;
-
-  return trimTrailingNulls(output);
-}
-
 function gettext_noop(x) { return x; }
 
 function strchr(str, chr) {
@@ -350,13 +329,12 @@ function strchr(str, chr) {
 }
 
 function strstr(str1, str2) {  // unlike the C version, this returns JS null on not found, and 0+ if found
-  const index = str1.indexOf(trimTrailingNull(str2));
+  const index = str1.indexOf(str2);
   return index === -1 ? NULL : index;
 }
 
 function strlen(str) {
-  const nullIndex = str.indexOf('\0');
-  return nullIndex === -1 ? str.length : nullIndex;
+  return str.length;
 }
 
 function strcmp(s1, s2) {
@@ -365,9 +343,7 @@ function strcmp(s1, s2) {
 
 function strncmp(s1, s2, n) {
   if (typeof s1 !== 'string' || typeof s2 !== 'string') throw new Error('Not a string');
-  s1 = trimTrailingNull(s1);
   if (s1.length > n) s1 = s1.slice(0, n);
-  s2 = trimTrailingNull(s2);
   if (s2.length > n) s2 = s2.slice(0, n);
   return s1 < s2 ? -1 : s1 > s2 ? 1 : 0;
 }
@@ -465,7 +441,7 @@ function PQfnumber(res, field_name) {
    * Note: it is correct to reject a zero-length input string; the proper
    * input to match a zero-length field name would be "".
    */
-  if (field_name == NULL || field_name[0] == '\0') return -1;
+  if (field_name == NULL || field_name[0] == NULL) return -1;
 
   /*
    * Note: this code will not reject partially quoted strings, eg
@@ -498,7 +474,6 @@ function PQfnumber(res, field_name) {
       optr += c;
     }
   }
-  optr += '\0';
 
   for (i = 0, len = PQnfields(res); i < len; i++) {
     if (strcmp(optr, PQfname(res, i)) == 0) {
@@ -563,7 +538,7 @@ function formatPGVersionNumber(version_number, include_minor, buf, buflen) {
  * need to worry about flushing remaining input.
  */
 function psql_scan_slash_option(scan_state, type, quote, semicolon) {
-  if (type !== OT_NORMAL && type !== OT_WHOLE_LINE) throw new Error(`scan type ${type} not yet implemented`);
+  if (type !== OT_NORMAL && type !== OT_WHOLE_LINE) throw new Error(`scan type ${type} not implemented`);
   if (quote !== NULL) throw new Error('cannot return quote type');
 
   const quoteStack = [];
@@ -573,7 +548,7 @@ function psql_scan_slash_option(scan_state, type, quote, semicolon) {
   // trim leading whitespace
   for (; ;) {
     chr = scan_state[0][scan_state[1]];  // => str[index]
-    if (chr === '\0') return NULL;
+    if (chr == NULL) return NULL;
     if (!isWhitespace(chr)) break;
     scan_state[1]++;
   }
@@ -582,12 +557,14 @@ function psql_scan_slash_option(scan_state, type, quote, semicolon) {
     return scan_state[0].slice(scan_state[1], scan_state[1] = scan_state[0].length);
   }
 
-  // parse for \0 or next unquoted whitespace or \0
+  // parse for next unquoted whitespace or end of string
   let result = '';
-  while (chr = scan_state[0][scan_state[1]++]) {  // => str[index++]
-    if (chr === '\0') {
+  for (;;) {  
+    chr = scan_state[0][scan_state[1]++];  // => str[index++]
+
+    if (chr == NULL) {
       if (quoteStack.length > 0) return NULL;
-      return result.match(resultRe)[1] + '\0';
+      return result.match(resultRe)[1];
     }
 
     if (isQuote(chr)) {
@@ -597,17 +574,15 @@ function psql_scan_slash_option(scan_state, type, quote, semicolon) {
 
     } else {
       if (quoteStack.length === 0 && isWhitespace(chr)) {
-        return result.match(resultRe)[1] + '\0';
+        return result.match(resultRe)[1];
       }
       result += chr;
     }
   }
-
-  return NULL;
 }
 
 function initPQExpBuffer(buf) {
-  buf.data = '\0';
+  buf.data = '';
   buf.len = 0;
 }
 function resetPQExpBuffer(buf) {
@@ -615,8 +590,8 @@ function resetPQExpBuffer(buf) {
 }
 
 function appendPQExpBufferStr(buf, str) {
-  buf.data = trimTrailingNull(buf.data) + trimTrailingNull(str) + '\0';
-  buf.len = buf.data.length - 1; // assume (and omit counting) trailing null
+  buf.data += str;
+  buf.len = buf.data.length;
 }
 
 function sprintf(template, ...values) {
@@ -644,7 +619,7 @@ function sprintf(template, ...values) {
       pcChr = template[chrIndex++];
     }
     if (pcChr === 's' || pcChr === 'c' || pcChr === 'd' || pcChr === 'u') {
-      const ins = trimTrailingNull(String(values[valuesIndex++]));
+      const ins = String(values[valuesIndex++]);
       const padBy = padTo - ins.length;
       if (padLeft === false && padBy > 0) result += ' '.repeat(padBy);
       result += ins;
@@ -652,7 +627,6 @@ function sprintf(template, ...values) {
     }
   }
   result += template.slice(chrIndex);
-  result = trimTrailingNull(result) + '\0';
   return result;
 }
 
@@ -854,7 +828,7 @@ function processSQLNamePattern(conn, buf, pattern,
 }
 
 function appendPQExpBufferChar(str, ch) {
-  str.data = trimTrailingNull(str.data) + ch + '\0';
+  str.data += ch;
   str.len++;
 }
 
@@ -870,8 +844,8 @@ function appendPQExpBufferChar(str, ch) {
  */
 function appendStringLiteral(buf, str, encoding, std_strings) {
   const escaped = str.replace((std_strings ? /[']/g : /['\\]/g), '\\$&');
-  buf.data = trimTrailingNull(buf.data) + "'" + trimTrailingNull(escaped) + "'\0";
-  buf.len = buf.data.length - 1;
+  buf.data += "'" + escaped + "'";
+  buf.len = buf.data.length;
 }
 
 /*
@@ -1009,7 +983,7 @@ function patternToSQLRegex(encoding, dbnamebuf /* PQExpBuffer output param */, s
 
   let cpIndex = 0;
   let ch;
-  while ((ch = cp[cpIndex]) !== '\0') {
+  while ((ch = cp[cpIndex]) != NULL) {
     if (ch == '"') {
       if (inquotes && cp[cpIndex + 1] == '"') {
         /* emit one quote, stay in inquotes mode */
@@ -1312,7 +1286,7 @@ function print_with_linenumbers(lines, is_func) {
   let lineno = 0;
   let result = '';
 
-  lines = trimTrailingNull(lines.split('\n'));
+  lines = lines.trimEnd().split('\n');
   for (let line of lines) {
     if (in_header &&
       (strncmp(line, "AS ", 3) == 0 ||
@@ -1326,9 +1300,9 @@ function print_with_linenumbers(lines, is_func) {
 
     /* show current line as appropriate */
     if (in_header)
-      result += trimTrailingNull(sprintf("        %s\n", line));
+      result += sprintf("        %s\n", line);
     else
-      result += trimTrailingNull(sprintf("%-7d %s\n", lineno, line));
+      result += sprintf("%-7d %s\n", lineno, line);
   }
 
   output.push(result);
@@ -1505,7 +1479,7 @@ async function get_create_object_cmd(obj_type, oid, buf) {
           buf.data = buf.data.slice(0, buf.len - 1);
 
         /* WITH [LOCAL|CASCADED] CHECK OPTION */
-        if (checkoption && checkoption[0] != '\0')
+        if (checkoption && checkoption[0] != NULL)
           appendPQExpBuffer(buf, "\n WITH %s CHECK OPTION",
             checkoption);
 
@@ -1611,13 +1585,13 @@ function parsePGArray(atext, items, nitems) {
 
   curitem = 0;
   while (atext[at] != '}') {
-    if (atext[at] == '\0')
+    if (atext[at] == NULL)
       return false;		/* premature end of string */
 
     // *** items[curitem] = strings;
     strings = "";
     while (atext[at] != '}' && atext[at] != ',') {
-      if (atext[at] == '\0')
+      if (atext[at] == NULL)
         return false;	/* premature end of string */
       if (atext[at] != '"')
         strings += atext[at++];  /* copy unquoted data */
@@ -1625,11 +1599,11 @@ function parsePGArray(atext, items, nitems) {
         /* process quoted substring */
         at++;
         while (atext[at] != '"') {
-          if (atext[at] == '\0')
+          if (atext[at] == NULL)
             return false;	/* premature end of string */
           if (atext[at] == '\\') {
             at++;
-            if (atext[at] == '\0')
+            if (atext[at] == NULL)
               return false;	/* premature end of string */
           }
           strings += atext[at++];	/* copy quoted data */
@@ -1643,7 +1617,7 @@ function parsePGArray(atext, items, nitems) {
       at++;
     curitem++;
   }
-  if (atext[at + 1] && atext[at + 1] != '\0')
+  if (atext[at + 1] && atext[at + 1] != NULL)
     return false;			/* bogus syntax (embedded '}') */
   nitems.value = curitem;
   return true;
@@ -1705,7 +1679,7 @@ async function exec_command_list(scan_state, active_branch, cmd) {
   let success;
   let pattern;
   let show_verbose;
-
+  
   pattern = psql_scan_slash_option(scan_state,
     OT_NORMAL, NULL, true);
 
@@ -1730,9 +1704,10 @@ async function exec_command_d(scan_state, active_branch, cmd) {
   show_system = strchr(cmd, 'S') != NULL;
 
   switch (cmd[1]) {
-    case '\0':
+    case undefined:
     case '+':
     case 'S':
+      
       if (pattern)
         success = await describeTableDetails(pattern, show_verbose, show_system);
       else
@@ -1743,11 +1718,11 @@ async function exec_command_d(scan_state, active_branch, cmd) {
       {
         let pattern2 = NULL;
 
-        if (pattern && cmd[2] != '\0' && cmd[2] != '+')
+        if (pattern && cmd[2] != NULL && cmd[2] != '+')
           pattern2 = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true);
 
         switch (cmd[2]) {
-          case '\0':
+          case undefined:
           case '+':
             success = await describeAccessMethods(pattern, show_verbose);
             break;
@@ -1800,7 +1775,7 @@ async function exec_command_d(scan_state, active_branch, cmd) {
       break;
     case 'f':			/* function subsystem */
       switch (cmd[2]) {
-        case '\0':
+        case undefined:
         case '+':
         case 'S':
         case 'a':
@@ -1842,7 +1817,7 @@ async function exec_command_d(scan_state, active_branch, cmd) {
     case 'P':
       {
         switch (cmd[2]) {
-          case '\0':
+          case undefined:
           case '+':
           case 't':
           case 'i':
@@ -1900,7 +1875,7 @@ async function exec_command_d(scan_state, active_branch, cmd) {
       break;
     case 'F':			/* text search subsystem */
       switch (cmd[2]) {
-        case '\0':
+        case undefined:
         case '+':
           success = await listTSConfigs(pattern, show_verbose);
           break;
@@ -3294,7 +3269,7 @@ async function describeTableDetails(pattern, verbose, showSystem) {
     "n.nspname", "c.relname", NULL,
     "pg_catalog.pg_table_is_visible(c.oid)",
     NULL, 3)) {
-
+      
     return false;
   }
 
@@ -3894,7 +3869,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
       /* these strings are literal in our syntax, so not translated. */
       printTableAddCell(cont, (compression[0] == 'p' ? "pglz" :
         (compression[0] == 'l' ? "lz4" :
-          ((compression[0] == '\0' || compression[0] === undefined) ? "" :
+          ((compression[0] == NULL) ? "" :
             "???"))),
         false, false);
     }
@@ -3953,7 +3928,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
         if (!PQgetisnull(result, 0, 3))
           partconstraintdef = PQgetvalue(result, 0, 3);
         /* If there isn't any constraint, show that explicitly */
-        if (partconstraintdef == NULL || (partconstraintdef[0] == '\0' || partconstraintdef[0] === undefined))
+        if (partconstraintdef == NULL || partconstraintdef[0] == NULL)
           printfPQExpBuffer(tmpbuf, _("No partition constraint"));
         else
           printfPQExpBuffer(tmpbuf, _("Partition constraint: %s"),
@@ -5044,7 +5019,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
       /* Print per-table FDW options, if any */
       ftoptions = PQgetvalue(result, 0, 1);
-      if (ftoptions && ftoptions[0] != '\0') {
+      if (ftoptions && ftoptions[0] != NULL) {
         printfPQExpBuffer(buf, _("FDW options: (%s)"), ftoptions);
         printTableAddFooter(cont, buf.data);
       }
@@ -5216,7 +5191,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
 
   /* reloptions, if verbose */
   if (verbose &&
-    tableinfo.reloptions && tableinfo.reloptions[0] != '\0') {
+    tableinfo.reloptions && tableinfo.reloptions[0] != NULL) {
     let t = _("Options");
 
     printfPQExpBuffer(buf, "%s: %s", t, tableinfo.reloptions);
