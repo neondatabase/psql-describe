@@ -72,6 +72,10 @@ const
 
 let PSQLexec, pset, output;
 
+function noop(x) {
+  return x;
+}
+
 const helpText = `Help
   \\? [commands]          show help on backslash commands
 
@@ -136,7 +140,7 @@ Informational
 export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = null, std_strings = 1) {
   // disable all type parsing: psql expects Postgres's raw text format
   const originalGetTypeParser = pg.types.getTypeParser;
-  pg.types.getTypeParser = () => x => x;
+  pg.types.getTypeParser = () => noop;
 
   // get server version, if not supplied
   if (sversion == null) {  // could also be undefined
@@ -322,23 +326,24 @@ function tableToHtml(td) {
   return result;
 }
 
-function gettext_noop(x) { return x; }
-
-function strchr(str, chr) {
-  return strstr(str, chr);
+function Assert(cond) {
+  if (!cond) throw new Error(`Assertion failed (value: ${cond})`);
 }
+
+const 
+  gettext_noop = noop, 
+  pg_strdup = noop, 
+  _ = noop;
 
 function strstr(str1, str2) {  // unlike the C version, this returns JS null on not found, and 0+ if found
   const index = str1.indexOf(str2);
   return index === -1 ? NULL : index;
 }
 
+const strchr = strstr;
+
 function strlen(str) {
   return str.length;
-}
-
-function strcmp(s1, s2) {
-  return strncmp(s1, s2, Infinity);
 }
 
 function strncmp(s1, s2, n) {
@@ -348,11 +353,13 @@ function strncmp(s1, s2, n) {
   return s1 < s2 ? -1 : s1 > s2 ? 1 : 0;
 }
 
+function strcmp(s1, s2) {
+  return strncmp(s1, s2, Infinity);
+}
+
 function strspn(str, chrs) {
   const len = strlen(str);
-  for (let i = 0; i < len; i++) {
-    if (chrs.indexOf(str[i]) === -1) return i;
-  }
+  for (let i = 0; i < len; i++) if (chrs.indexOf(str[i]) === -1) return i;
   return len;
 }
 
@@ -364,16 +371,125 @@ function atooid(str) {
   return parseInt(str, 10);
 }
 
-function pg_strdup(str) {
-  return str;
-}
-
 function isWhitespace(chr) {
   return chr === ' ' || chr === '\t' || chr === '\n' || chr === '\r';
 }
 
 function isQuote(chr) {
   return chr === '"' || chr === "'";
+}
+
+function isupper(chr) {
+  const ch = chr.charCodeAt(0);
+  return ch >= 65 && ch <= 90;
+}
+
+function lengthof(x) {
+  return x.length;
+}
+
+function pg_tolower(ch) {
+  return ch.toLowerCase();
+}
+
+function pg_strcasecmp(s1, s2) {
+  return strcmp(s1.toLowerCase(), s2.toLowerCase());
+}
+
+function pg_wcswidth(pwcs, len, encoding) {
+  return len;
+}
+
+function sizeof(x) {
+  return 0;
+}
+
+function initPQExpBuffer(buf) {
+  buf.data = '';
+  buf.len = 0;
+}
+
+const resetPQExpBuffer = initPQExpBuffer;
+
+function appendPQExpBufferStr(buf, str) {
+  buf.data += str;
+  buf.len = buf.data.length;
+}
+
+const appendPQExpBufferChar = appendPQExpBufferStr;
+
+function appendPQExpBuffer(buf, template, ...values) {
+  const str = sprintf(template, ...values);
+  appendPQExpBufferStr(buf, str);
+}
+
+function printfPQExpBuffer(buf, template, ...values) {
+  initPQExpBuffer(buf);
+  appendPQExpBuffer(buf, template, ...values);
+}
+
+function appendStringLiteral(buf, str, encoding, std_strings) {
+  const escaped = str.replace((std_strings ? /[']/g : /['\\]/g), '\\$&');
+  const quoted = "'" + escaped + "'";
+  appendPQExpBufferStr(buf, quoted);
+}
+
+function appendStringLiteralConn(buf, str, conn) {
+  /*
+   * XXX This is a kluge to silence escape_string_warning in our utility
+   * programs.  It should go away someday.
+   */
+  if (strchr(str, '\\') != NULL && PQserverVersion(conn) >= 80100) {
+    /* ensure we are not adjacent to an identifier */
+    if (buf.len > 0 && buf.data[buf.len - 1] != ' ')
+      appendPQExpBufferChar(buf, ' ');
+    appendPQExpBufferChar(buf, ESCAPE_STRING_SYNTAX);
+    appendStringLiteral(buf, str, PQclientEncoding(conn), false);
+    return;
+  }
+  /* XXX end kluge */
+
+  appendStringLiteral(buf, str, conn.encoding, conn.std_strings);
+}
+
+function sprintf(template, ...values) {  // just enough sprintf
+  let result = '';
+  let valuesIndex = 0;
+  let chrIndex = 0;
+  let nextChrIndex;
+  while ((nextChrIndex = template.indexOf('%', chrIndex)) !== -1) {
+    let padTo = 0;
+    let padLeft = false;
+    result += template.slice(chrIndex, nextChrIndex);
+    chrIndex = nextChrIndex + 1;
+    let pcChr = template[chrIndex++];
+    if (pcChr === '%') result += '%';
+    if (pcChr === '*') {
+      padTo = parseInt(values[valuesIndex++], 10);
+      pcChr = template[chrIndex++];
+    }
+    if (pcChr === '-') {
+      padLeft = true;
+      pcChr = template[chrIndex++];
+    }
+    if (pcChr >= '0' && pcChr <= '9') {  // don't support multidigit widths!
+      padTo = parseInt(pcChr, 10);
+      pcChr = template[chrIndex++];
+    }
+    if (pcChr === 's' || pcChr === 'c' || pcChr === 'd' || pcChr === 'u') {
+      const ins = String(values[valuesIndex++]);
+      const padBy = padTo - ins.length;
+      if (padLeft === false && padBy > 0) result += ' '.repeat(padBy);
+      result += ins;
+      if (padLeft === true && padBy > 0) result += ' '.repeat(padBy);
+    }
+  }
+  result += template.slice(chrIndex);
+  return result;
+}
+
+function pg_log_error(template, ...args) {
+  output.push(sprintf(template, ...args));
 }
 
 function PQdb(conn) {
@@ -484,18 +600,6 @@ function PQfnumber(res, field_name) {
   return -1;
 }
 
-function pg_wcswidth(pwcs, len, encoding) {
-  return len;
-}
-
-function sizeof(x) {
-  return 0;
-}
-
-function _(str) {
-  return str;
-}
-
 function formatPGVersionNumber(version_number, include_minor, buf, buflen) {
   if (version_number >= 100000) {
     /* New two-part style */
@@ -579,73 +683,6 @@ function psql_scan_slash_option(scan_state, type, quote, semicolon) {
       result += chr;
     }
   }
-}
-
-function initPQExpBuffer(buf) {
-  buf.data = '';
-  buf.len = 0;
-}
-function resetPQExpBuffer(buf) {
-  initPQExpBuffer(buf);
-}
-
-function appendPQExpBufferStr(buf, str) {
-  buf.data += str;
-  buf.len = buf.data.length;
-}
-
-function sprintf(template, ...values) {
-  let result = '';
-  let valuesIndex = 0;
-  let chrIndex = 0;
-  let nextChrIndex;
-  while ((nextChrIndex = template.indexOf('%', chrIndex)) !== -1) {
-    let padTo = 0;
-    let padLeft = false;
-    result += template.slice(chrIndex, nextChrIndex);
-    chrIndex = nextChrIndex + 1;
-    let pcChr = template[chrIndex++];
-    if (pcChr === '%') result += '%';
-    if (pcChr === '*') {
-      padTo = parseInt(values[valuesIndex++], 10);
-      pcChr = template[chrIndex++];
-    }
-    if (pcChr === '-') {
-      padLeft = true;
-      pcChr = template[chrIndex++];
-    }
-    if (pcChr >= '0' && pcChr <= '9') {  // don't support multidigit widths!
-      padTo = parseInt(pcChr, 10);
-      pcChr = template[chrIndex++];
-    }
-    if (pcChr === 's' || pcChr === 'c' || pcChr === 'd' || pcChr === 'u') {
-      const ins = String(values[valuesIndex++]);
-      const padBy = padTo - ins.length;
-      if (padLeft === false && padBy > 0) result += ' '.repeat(padBy);
-      result += ins;
-      if (padLeft === true && padBy > 0) result += ' '.repeat(padBy);
-    }
-  }
-  result += template.slice(chrIndex);
-  return result;
-}
-
-function printfPQExpBuffer(buf, template, ...values) {
-  initPQExpBuffer(buf);
-  appendPQExpBuffer(buf, template, ...values);
-}
-
-function appendPQExpBuffer(buf, template, ...values) {
-  const str = sprintf(template, ...values);
-  appendPQExpBufferStr(buf, str);
-}
-
-function pg_log_error(template, ...args) {
-  output.push(sprintf(template, ...args));
-}
-
-function pg_log_warning(template, ...args) {
-  output.push(sprintf(template, ...args));
 }
 
 /*
@@ -825,71 +862,6 @@ function processSQLNamePattern(conn, buf, pattern,
   }
 
   return added_clause;
-}
-
-function appendPQExpBufferChar(str, ch) {
-  str.data += ch;
-  str.len++;
-}
-
-/*
- * Convert a string value to an SQL string literal and append it to
- * the given buffer.  We assume the specified client_encoding and
- * standard_conforming_strings settings.
- *
- * This is essentially equivalent to libpq's PQescapeStringInternal,
- * except for the output buffer structure.  We need it in situations
- * where we do not have a PGconn available.  Where we do,
- * appendStringLiteralConn is a better choice.
- */
-function appendStringLiteral(buf, str, encoding, std_strings) {
-  const escaped = str.replace((std_strings ? /[']/g : /['\\]/g), '\\$&');
-  buf.data += "'" + escaped + "'";
-  buf.len = buf.data.length;
-}
-
-/*
- * Convert a string value to an SQL string literal and append it to
- * the given buffer.  Encoding and string syntax rules are as indicated
- * by current settings of the PGconn.
- */
-function appendStringLiteralConn(buf, str, conn) {
-  /*
-   * XXX This is a kluge to silence escape_string_warning in our utility
-   * programs.  It should go away someday.
-   */
-  if (strchr(str, '\\') != NULL && PQserverVersion(conn) >= 80100) {
-    /* ensure we are not adjacent to an identifier */
-    if (buf.len > 0 && buf.data[buf.len - 1] != ' ')
-      appendPQExpBufferChar(buf, ' ');
-    appendPQExpBufferChar(buf, ESCAPE_STRING_SYNTAX);
-    appendStringLiteral(buf, str, PQclientEncoding(conn), false);
-    return;
-  }
-  /* XXX end kluge */
-
-  appendStringLiteral(buf, str, conn.encoding, conn.std_strings);
-}
-
-function Assert(cond) {
-  if (!cond) throw new Error(`Assertion failed (value: ${cond})`);
-}
-
-function isupper(chr) {
-  const ch = chr.charCodeAt(0);
-  return ch >= 65 && ch <= 90;
-}
-
-function lengthof(x) {
-  return x.length;
-}
-
-function pg_tolower(ch) {
-  return ch.toLowerCase();
-}
-
-function pg_strcasecmp(s1, s2) {
-  return strcmp(s1.toLowerCase(), s2.toLowerCase());
 }
 
 /*
