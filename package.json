@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "test/test.mjs /usr/local/pgsql/bin/psql postgres://localhost:5435/main < test/tests.txt",
-    "build": "esbuild src/describe.mjs --outfile=dist/describe.min.js --platform=neutral --target=es2020 --minify --line-limit=80",
+    "build": "esbuild src/describe.mjs --outfile=dist/describe.min.js --platform=neutral --target=es2020 --minify --line-limit=120",
     "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020"
   },
   "author": "George MacKerron",

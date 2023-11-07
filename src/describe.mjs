@@ -150,6 +150,7 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
 
   // set globals
   output = [];
+
   pset = {
     sversion,
     db: {  // PGconn struct
@@ -166,6 +167,7 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
       nullPrint: '',
     }
   };
+
   PSQLexec = sql => {
     if (echoHidden) output.push(`/******** QUERY *********/\n${sql}\n/************************/`);
     return runQuery(sql);
@@ -229,6 +231,7 @@ export function describeDataToHtml(desc) {
       tableToHtml(item)).join('\n\n');
 }
 
+// end of exports
 
 function pad(str, len, align, pre = '', post = '') {
   const spaces = Math.max(0, len - strlen(str));

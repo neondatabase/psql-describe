@@ -5758,10 +5758,12 @@ var FLOAT4OID = 700;
 var FLOAT8OID = 701;
 var MONEYOID = 790;
 var NUMERICOID = 1700;
-var typeOIDs = [16, 17, 18, 20, 21, 23, 24, 25, 26, 27, 28, 29, 114, 142, 143, 194, 199, 271, 602, 604, 650, 651, 700, 701, 718, 719, 774, 775, 790, 791, 829, 869, 1e3, 1001, 1002, 1005, 1007, 1008, 1009, 1010, 1011, 1012, 1014, 1015, 1016, 1019, 1021, 1022, 1027, 1028, 1033, 1034, 1040, 1041, 1042, 1043, 1082, 1083, 1114, 1115, 1182, 1183, 1184, 1185, 1186, 1187, 1231, 1266, 1270, 1560, 1561, 1562, 1563, 1700, 1790, 2201, 2202, 2203, 2204, 2205, 2206, 2207, 2208, 2209, 2210, 2211, 2949, 2950, 2951, 2970, 3220, 3221, 3361, 3402, 3614, 3615, 3642, 3643, 3644, 3645, 3734, 3735, 3769, 3770, 3802, 3807, 4072, 4073, 4089, 4090, 4096, 4097, 4191, 4192, 4600, 4601, 5017, 5038, 5039, 5069];
 var PSQLexec;
 var pset;
 var output;
+function noop(x) {
+  return x;
+}
 var helpText = `Help
   \\? [commands]          show help on backslash commands
 
@@ -5822,28 +5824,72 @@ Informational
   \\sv[+]  VIEWNAME       show a view's definition
   \\z[S]   [PATTERN]      same as \\dp
 `;
+async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = null, std_strings = 1) {
+  const originalGetTypeParser = pg.types.getTypeParser;
+  pg.types.getTypeParser = () => noop;
+  if (sversion == null) {
+    const vres = await runQuery("SHOW server_version_num");
+    sversion = parseInt(vres.rows[0][0], 10);
+  }
+  output = [];
+  pset = {
+    sversion,
+    db: {
+      // PGconn struct
+      dbName,
+      sversion,
+      std_strings,
+      status: CONNECTION_OK,
+      encoding: PG_UTF8
+    },
+    popt: {
+      // print options
+      topt: {
+        default_footer: true
+      },
+      nullPrint: ""
+    }
+  };
+  PSQLexec = (sql) => {
+    if (echoHidden)
+      output.push(`/******** QUERY *********/
+${sql}
+/************************/`);
+    return runQuery(sql);
+  };
+  const match = cmd.match(/^\\([?dzsl]\S*)(.*)/);
+  if (match) {
+    let [, matchedCommand, remaining] = match;
+    matchedCommand = matchedCommand.replace(/^lo_list/, "dl");
+    matchedCommand = matchedCommand.replace(/^z/, "dp");
+    if (matchedCommand[0] === "?") {
+      output.push(helpText);
+    } else {
+      const scan_state = [remaining, 0];
+      try {
+        const result = await (matchedCommand[0] === "d" ? exec_command_d(scan_state, true, matchedCommand) : matchedCommand[0] === "s" ? matchedCommand[1] === "f" || matchedCommand[1] === "v" ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === "f") : PSQL_CMD_UNKNOWN : exec_command_list(scan_state, true, matchedCommand));
+        if (result == PSQL_CMD_UNKNOWN)
+          output.push(`invalid command \\${matchedCommand}`);
+        let arg, warnings = [];
+        while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true))
+          warnings.push(sprintf('\\%s: extra argument "%s" ignored', matchedCommand, arg));
+        if (warnings.length > 0)
+          output.push(warnings.join("\n"));
+      } catch (err) {
+        output.push("ERROR:  " + err.message);
+      }
+    }
+  } else {
+    output.push(`unsupported command: ${cmd}`);
+  }
+  pg.types.getTypeParser = originalGetTypeParser;
+  return output;
+}
 function describeDataToString(desc) {
   return desc.map((item) => typeof item === "string" ? item : tableToString(item)).join("\n\n");
 }
 function describeDataToHtml(desc) {
-  return desc.map((item) => typeof item === "string" ? `<p>${htmlEscape(item).replace(/ /g, "&nbsp;").replace(/\n/g, "<br />")}</p>` : tableToHtml(item)).join("\n\n");
-}
-function trimTrailingNull(str) {
-  const nullIndex = str.indexOf("\0");
-  if (nullIndex !== -1)
-    return str.slice(0, nullIndex);
-  return str;
-}
-function trimTrailingNulls(obj) {
-  if (Array.isArray(obj))
-    for (let i = 0, len = obj.length; i < len; i++)
-      obj[i] = trimTrailingNulls(obj[i]);
-  else if (typeof obj === "object" && obj !== null)
-    for (let i in obj)
-      obj[i] = trimTrailingNulls(obj[i]);
-  else if (typeof obj === "string")
-    return trimTrailingNull(obj);
-  return obj;
+  return desc.map((item) => typeof item === "string" ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item)).join("\n\n");
 }
 function pad(str, len, align, pre = "", post = "") {
   const spaces = Math.max(0, len - strlen(str));
@@ -5936,109 +5982,38 @@ function tableToHtml(td) {
   }
   return result;
 }
-async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = null, std_strings = 1) {
-  const raw = (x) => x;
-  const originalParsers = {};
-  for (let oid of typeOIDs) {
-    originalParsers[oid] = pg.types.getTypeParser(oid);
-    pg.types.setTypeParser(oid, raw);
-  }
-  if (sversion == null) {
-    const vres = await runQuery("SHOW server_version_num");
-    sversion = parseInt(vres.rows[0][0], 10);
-  }
-  output = [];
-  pset = {
-    sversion,
-    db: {
-      // PGconn struct
-      dbName,
-      sversion,
-      std_strings,
-      status: CONNECTION_OK,
-      encoding: PG_UTF8
-    },
-    popt: {
-      // print options
-      topt: {
-        default_footer: true
-      },
-      nullPrint: ""
-    }
-  };
-  PSQLexec = (sql) => {
-    const trimmed = trimTrailingNull(sql);
-    if (echoHidden)
-      output.push(`/******** QUERY *********/
-${trimmed}
-/************************/`);
-    return runQuery(trimmed);
-  };
-  const match = cmd.match(/^\\([?dzsl]\S*)(.*)/);
-  if (match) {
-    let [, matchedCommand, remaining] = match;
-    matchedCommand = matchedCommand.replace(/^lo_list/, "dl");
-    matchedCommand = matchedCommand.replace(/^z/, "dp");
-    if (matchedCommand[0] === "?") {
-      output.push(helpText);
-    } else {
-      matchedCommand += "\0";
-      remaining += "\0";
-      const scan_state = [remaining, 0];
-      try {
-        const result = await (matchedCommand[0] === "d" ? exec_command_d(scan_state, true, matchedCommand) : matchedCommand[0] === "s" ? matchedCommand[1] === "f" || matchedCommand[1] === "v" ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === "f") : PSQL_CMD_UNKNOWN : exec_command_list(scan_state, true, matchedCommand));
-        if (result === PSQL_CMD_UNKNOWN)
-          output.push(`invalid command \\${matchedCommand}`);
-        let arg, warnings = [];
-        while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true))
-          warnings.push(trimTrailingNull(sprintf('\\%s: extra argument "%s" ignored', matchedCommand, arg)));
-        if (warnings.length > 0)
-          output.push(warnings.join("\n"));
-      } catch (err) {
-        output.push("ERROR:  " + err.message);
-      }
-    }
-  } else {
-    output.push(`unsupported command: ${cmd}`);
-  }
-  for (let oid of typeOIDs)
-    pg.types.setTypeParser(oid, originalParsers[oid]);
-  return trimTrailingNulls(output);
+function Assert(cond) {
+  if (!cond)
+    throw new Error(`Assertion failed (value: ${cond})`);
 }
-function gettext_noop(x) {
-  return x;
-}
-function strchr(str, chr) {
-  return strstr(str, chr);
-}
+var gettext_noop = noop;
+var pg_strdup = noop;
+var _ = noop;
 function strstr(str1, str2) {
-  const index = str1.indexOf(trimTrailingNull(str2));
+  const index = str1.indexOf(str2);
   return index === -1 ? NULL : index;
 }
+var strchr = strstr;
 function strlen(str) {
-  const nullIndex = str.indexOf("\0");
-  return nullIndex === -1 ? str.length : nullIndex;
-}
-function strcmp(s1, s2) {
-  return strncmp(s1, s2, Infinity);
+  return str.length;
 }
 function strncmp(s1, s2, n) {
   if (typeof s1 !== "string" || typeof s2 !== "string")
     throw new Error("Not a string");
-  s1 = trimTrailingNull(s1);
   if (s1.length > n)
     s1 = s1.slice(0, n);
-  s2 = trimTrailingNull(s2);
   if (s2.length > n)
     s2 = s2.slice(0, n);
   return s1 < s2 ? -1 : s1 > s2 ? 1 : 0;
 }
+function strcmp(s1, s2) {
+  return strncmp(s1, s2, Infinity);
+}
 function strspn(str, chrs) {
   const len = strlen(str);
-  for (let i = 0; i < len; i++) {
+  for (let i = 0; i < len; i++)
     if (chrs.indexOf(str[i]) === -1)
       return i;
-  }
   return len;
 }
 function atoi(str) {
@@ -6047,14 +6022,104 @@ function atoi(str) {
 function atooid(str) {
   return parseInt(str, 10);
 }
-function pg_strdup(str) {
-  return str;
-}
 function isWhitespace(chr) {
   return chr === " " || chr === "	" || chr === "\n" || chr === "\r";
 }
 function isQuote(chr) {
   return chr === '"' || chr === "'";
+}
+function isupper(chr) {
+  const ch = chr.charCodeAt(0);
+  return ch >= 65 && ch <= 90;
+}
+function lengthof(x) {
+  return x.length;
+}
+function pg_tolower(ch) {
+  return ch.toLowerCase();
+}
+function pg_strcasecmp(s1, s2) {
+  return strcmp(s1.toLowerCase(), s2.toLowerCase());
+}
+function pg_wcswidth(pwcs, len, encoding) {
+  return len;
+}
+function sizeof(x) {
+  return 0;
+}
+function initPQExpBuffer(buf) {
+  buf.data = "";
+  buf.len = 0;
+}
+var resetPQExpBuffer = initPQExpBuffer;
+function appendPQExpBufferStr(buf, str) {
+  buf.data += str;
+  buf.len = buf.data.length;
+}
+var appendPQExpBufferChar = appendPQExpBufferStr;
+function appendPQExpBuffer(buf, template, ...values) {
+  const str = sprintf(template, ...values);
+  appendPQExpBufferStr(buf, str);
+}
+function printfPQExpBuffer(buf, template, ...values) {
+  initPQExpBuffer(buf);
+  appendPQExpBuffer(buf, template, ...values);
+}
+function appendStringLiteral(buf, str, encoding, std_strings) {
+  const escaped = str.replace(std_strings ? /[']/g : /['\\]/g, "\\$&");
+  const quoted = "'" + escaped + "'";
+  appendPQExpBufferStr(buf, quoted);
+}
+function appendStringLiteralConn(buf, str, conn) {
+  if (strchr(str, "\\") != NULL && PQserverVersion(conn) >= 80100) {
+    if (buf.len > 0 && buf.data[buf.len - 1] != " ")
+      appendPQExpBufferChar(buf, " ");
+    appendPQExpBufferChar(buf, ESCAPE_STRING_SYNTAX);
+    appendStringLiteral(buf, str, PQclientEncoding(conn), false);
+    return;
+  }
+  appendStringLiteral(buf, str, conn.encoding, conn.std_strings);
+}
+function sprintf(template, ...values) {
+  let result = "";
+  let valuesIndex = 0;
+  let chrIndex = 0;
+  let nextChrIndex;
+  while ((nextChrIndex = template.indexOf("%", chrIndex)) !== -1) {
+    let padTo = 0;
+    let padLeft = false;
+    result += template.slice(chrIndex, nextChrIndex);
+    chrIndex = nextChrIndex + 1;
+    let pcChr = template[chrIndex++];
+    if (pcChr === "%")
+      result += "%";
+    if (pcChr === "*") {
+      padTo = parseInt(values[valuesIndex++], 10);
+      pcChr = template[chrIndex++];
+    }
+    if (pcChr === "-") {
+      padLeft = true;
+      pcChr = template[chrIndex++];
+    }
+    if (pcChr >= "0" && pcChr <= "9") {
+      padTo = parseInt(pcChr, 10);
+      pcChr = template[chrIndex++];
+    }
+    if (pcChr === "s" || pcChr === "c" || pcChr === "d" || pcChr === "u") {
+      const ins = String(values[valuesIndex++]);
+      const padBy = padTo - ins.length;
+      if (padLeft === false && padBy > 0)
+        result += " ".repeat(padBy);
+      result += ins;
+      if (padLeft === true && padBy > 0)
+        result += " ".repeat(padBy);
+    }
+  }
+  result += template.slice(chrIndex);
+  return result;
+}
+function pg_log_error(template, ...args) {
+  output.push(sprintf(template, ...args));
 }
 function PQdb(conn) {
   if (!conn)
@@ -6100,7 +6165,7 @@ function PQfnumber(res, field_name) {
   let len;
   if (!res)
     return -1;
-  if (field_name == NULL || field_name[0] == "\0")
+  if (field_name == NULL || field_name[0] == NULL)
     return -1;
   in_quotes = false;
   optr = "";
@@ -6122,22 +6187,12 @@ function PQfnumber(res, field_name) {
       optr += c;
     }
   }
-  optr += "\0";
   for (i = 0, len = PQnfields(res); i < len; i++) {
     if (strcmp(optr, PQfname(res, i)) == 0) {
       return i;
     }
   }
   return -1;
-}
-function pg_wcswidth(pwcs, len, encoding) {
-  return len;
-}
-function sizeof(x) {
-  return 0;
-}
-function _(str) {
-  return str;
 }
 function formatPGVersionNumber(version_number, include_minor, buf, buflen) {
   if (version_number >= 1e5) {
@@ -6168,7 +6223,7 @@ function formatPGVersionNumber(version_number, include_minor, buf, buflen) {
 }
 function psql_scan_slash_option(scan_state, type, quote, semicolon) {
   if (type !== OT_NORMAL && type !== OT_WHOLE_LINE)
-    throw new Error(`scan type ${type} not yet implemented`);
+    throw new Error(`scan type ${type} not implemented`);
   if (quote !== NULL)
     throw new Error("cannot return quote type");
   const quoteStack = [];
@@ -6176,7 +6231,7 @@ function psql_scan_slash_option(scan_state, type, quote, semicolon) {
   let chr;
   for (; ; ) {
     chr = scan_state[0][scan_state[1]];
-    if (chr === "\0")
+    if (chr == NULL)
       return NULL;
     if (!isWhitespace(chr))
       break;
@@ -6186,11 +6241,12 @@ function psql_scan_slash_option(scan_state, type, quote, semicolon) {
     return scan_state[0].slice(scan_state[1], scan_state[1] = scan_state[0].length);
   }
   let result = "";
-  while (chr = scan_state[0][scan_state[1]++]) {
-    if (chr === "\0") {
+  for (; ; ) {
+    chr = scan_state[0][scan_state[1]++];
+    if (chr == NULL) {
       if (quoteStack.length > 0)
         return NULL;
-      return result.match(resultRe)[1] + "\0";
+      return result.match(resultRe)[1];
     }
     if (isQuote(chr)) {
       if (chr === quoteStack[quoteStack.length - 1])
@@ -6201,73 +6257,11 @@ function psql_scan_slash_option(scan_state, type, quote, semicolon) {
         result += chr;
     } else {
       if (quoteStack.length === 0 && isWhitespace(chr)) {
-        return result.match(resultRe)[1] + "\0";
+        return result.match(resultRe)[1];
       }
       result += chr;
     }
   }
-  return NULL;
-}
-function initPQExpBuffer(buf) {
-  buf.data = "\0";
-  buf.len = 0;
-}
-function resetPQExpBuffer(buf) {
-  initPQExpBuffer(buf);
-}
-function appendPQExpBufferStr(buf, str) {
-  buf.data = trimTrailingNull(buf.data) + trimTrailingNull(str) + "\0";
-  buf.len = buf.data.length - 1;
-}
-function sprintf(template, ...values) {
-  let result = "";
-  let valuesIndex = 0;
-  let chrIndex = 0;
-  let nextChrIndex;
-  while ((nextChrIndex = template.indexOf("%", chrIndex)) !== -1) {
-    let padTo = 0;
-    let padLeft = false;
-    result += template.slice(chrIndex, nextChrIndex);
-    chrIndex = nextChrIndex + 1;
-    let pcChr = template[chrIndex++];
-    if (pcChr === "%")
-      result += "%";
-    if (pcChr === "*") {
-      padTo = parseInt(values[valuesIndex++], 10);
-      pcChr = template[chrIndex++];
-    }
-    if (pcChr === "-") {
-      padLeft = true;
-      pcChr = template[chrIndex++];
-    }
-    if (pcChr >= "0" && pcChr <= "9") {
-      padTo = parseInt(pcChr, 10);
-      pcChr = template[chrIndex++];
-    }
-    if (pcChr === "s" || pcChr === "c" || pcChr === "d" || pcChr === "u") {
-      const ins = trimTrailingNull(String(values[valuesIndex++]));
-      const padBy = padTo - ins.length;
-      if (padLeft === false && padBy > 0)
-        result += " ".repeat(padBy);
-      result += ins;
-      if (padLeft === true && padBy > 0)
-        result += " ".repeat(padBy);
-    }
-  }
-  result += template.slice(chrIndex);
-  result = trimTrailingNull(result) + "\0";
-  return result;
-}
-function printfPQExpBuffer(buf, template, ...values) {
-  initPQExpBuffer(buf);
-  appendPQExpBuffer(buf, template, ...values);
-}
-function appendPQExpBuffer(buf, template, ...values) {
-  const str = sprintf(template, ...values);
-  appendPQExpBufferStr(buf, str);
-}
-function pg_log_error(template, ...args) {
-  output.push(sprintf(template, ...args));
 }
 function validateSQLNamePattern(buf, pattern, have_where, force_escape, schemavar, namevar, altnamevar, visibilityrule, added_clause, maxparts) {
   let dbbuf = {
@@ -6399,42 +6393,6 @@ function processSQLNamePattern(conn, buf, pattern, have_where, force_escape, sch
   }
   return added_clause;
 }
-function appendPQExpBufferChar(str, ch) {
-  str.data = trimTrailingNull(str.data) + ch + "\0";
-  str.len++;
-}
-function appendStringLiteral(buf, str, encoding, std_strings) {
-  const escaped = str.replace(std_strings ? /[']/g : /['\\]/g, "\\$&");
-  buf.data = trimTrailingNull(buf.data) + "'" + trimTrailingNull(escaped) + "'\0";
-  buf.len = buf.data.length - 1;
-}
-function appendStringLiteralConn(buf, str, conn) {
-  if (strchr(str, "\\") != NULL && PQserverVersion(conn) >= 80100) {
-    if (buf.len > 0 && buf.data[buf.len - 1] != " ")
-      appendPQExpBufferChar(buf, " ");
-    appendPQExpBufferChar(buf, ESCAPE_STRING_SYNTAX);
-    appendStringLiteral(buf, str, PQclientEncoding(conn), false);
-    return;
-  }
-  appendStringLiteral(buf, str, conn.encoding, conn.std_strings);
-}
-function Assert(cond) {
-  if (!cond)
-    throw new Error(`Assertion failed (value: ${cond})`);
-}
-function isupper(chr) {
-  const ch = chr.charCodeAt(0);
-  return ch >= 65 && ch <= 90;
-}
-function lengthof(x) {
-  return x.length;
-}
-function pg_tolower(ch) {
-  return ch.toLowerCase();
-}
-function pg_strcasecmp(s1, s2) {
-  return strcmp(s1.toLowerCase(), s2.toLowerCase());
-}
 function patternToSQLRegex(encoding, dbnamebuf, schemabuf, namebuf, pattern, force_escape, want_literal_dbname, dotcnt) {
   let buf = [{}, {}, {}];
   let bufIndex = 0;
@@ -6467,7 +6425,7 @@ function patternToSQLRegex(encoding, dbnamebuf, schemabuf, namebuf, pattern, for
   appendPQExpBufferStr(curbuf, "^(");
   let cpIndex = 0;
   let ch;
-  while ((ch = cp[cpIndex]) !== "\0") {
+  while ((ch = cp[cpIndex]) != NULL) {
     if (ch == '"') {
       if (inquotes && cp[cpIndex + 1] == '"') {
         appendPQExpBufferChar(curbuf, '"');
@@ -6687,16 +6645,16 @@ function print_with_linenumbers(lines, is_func) {
   let in_header = is_func;
   let lineno = 0;
   let result = "";
-  lines = trimTrailingNull(lines.split("\n"));
+  lines = lines.trimEnd().split("\n");
   for (let line of lines) {
     if (in_header && (strncmp(line, "AS ", 3) == 0 || strncmp(line, "BEGIN ", 6) == 0 || strncmp(line, "RETURN ", 7) == 0))
       in_header = false;
     if (!in_header)
       lineno++;
     if (in_header)
-      result += trimTrailingNull(sprintf("        %s\n", line));
+      result += sprintf("        %s\n", line);
     else
-      result += trimTrailingNull(sprintf("%-7d %s\n", lineno, line));
+      result += sprintf("%-7d %s\n", lineno, line);
   }
   output.push(result);
 }
@@ -6814,7 +6772,7 @@ async function get_create_object_cmd(obj_type, oid, buf) {
         appendPQExpBuffer(buf, " AS\n%s", viewdef);
         if (buf.len > 0 && buf.data[buf.len - 1] == ";")
           buf.data = buf.data.slice(0, buf.len - 1);
-        if (checkoption && checkoption[0] != "\0")
+        if (checkoption && checkoption[0] != NULL)
           appendPQExpBuffer(
             buf,
             "\n WITH %s CHECK OPTION",
@@ -6864,22 +6822,22 @@ function parsePGArray(atext, items, nitems) {
   at++;
   curitem = 0;
   while (atext[at] != "}") {
-    if (atext[at] == "\0")
+    if (atext[at] == NULL)
       return false;
     strings = "";
     while (atext[at] != "}" && atext[at] != ",") {
-      if (atext[at] == "\0")
+      if (atext[at] == NULL)
         return false;
       if (atext[at] != '"')
         strings += atext[at++];
       else {
         at++;
         while (atext[at] != '"') {
-          if (atext[at] == "\0")
+          if (atext[at] == NULL)
             return false;
           if (atext[at] == "\\") {
             at++;
-            if (atext[at] == "\0")
+            if (atext[at] == NULL)
               return false;
           }
           strings += atext[at++];
@@ -6892,7 +6850,7 @@ function parsePGArray(atext, items, nitems) {
       at++;
     curitem++;
   }
-  if (atext[at + 1] && atext[at + 1] != "\0")
+  if (atext[at + 1] && atext[at + 1] != NULL)
     return false;
   nitems.value = curitem;
   return true;
@@ -6953,7 +6911,7 @@ async function exec_command_d(scan_state, active_branch, cmd) {
   show_verbose = strchr(cmd, "+") != NULL;
   show_system = strchr(cmd, "S") != NULL;
   switch (cmd[1]) {
-    case "\0":
+    case void 0:
     case "+":
     case "S":
       if (pattern)
@@ -6964,10 +6922,10 @@ async function exec_command_d(scan_state, active_branch, cmd) {
     case "A":
       {
         let pattern2 = NULL;
-        if (pattern && cmd[2] != "\0" && cmd[2] != "+")
+        if (pattern && cmd[2] != NULL && cmd[2] != "+")
           pattern2 = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true);
         switch (cmd[2]) {
-          case "\0":
+          case void 0:
           case "+":
             success = await describeAccessMethods(pattern, show_verbose);
             break;
@@ -7023,7 +6981,7 @@ async function exec_command_d(scan_state, active_branch, cmd) {
       break;
     case "f":
       switch (cmd[2]) {
-        case "\0":
+        case void 0:
         case "+":
         case "S":
         case "a":
@@ -7074,7 +7032,7 @@ async function exec_command_d(scan_state, active_branch, cmd) {
     case "P":
       {
         switch (cmd[2]) {
-          case "\0":
+          case void 0:
           case "+":
           case "t":
           case "i":
@@ -7134,7 +7092,7 @@ async function exec_command_d(scan_state, active_branch, cmd) {
       break;
     case "F":
       switch (cmd[2]) {
-        case "\0":
+        case void 0:
         case "+":
           success = await listTSConfigs(pattern, show_verbose);
           break;
@@ -8933,7 +8891,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
       let compression = PQgetvalue(res, i, attcompression_col);
       printTableAddCell(
         cont,
-        compression[0] == "p" ? "pglz" : compression[0] == "l" ? "lz4" : compression[0] == "\0" || compression[0] === void 0 ? "" : "???",
+        compression[0] == "p" ? "pglz" : compression[0] == "l" ? "lz4" : compression[0] == NULL ? "" : "???",
         false,
         false
       );
@@ -8992,7 +8950,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
         let partconstraintdef = NULL;
         if (!PQgetisnull(result, 0, 3))
           partconstraintdef = PQgetvalue(result, 0, 3);
-        if (partconstraintdef == NULL || (partconstraintdef[0] == "\0" || partconstraintdef[0] === void 0))
+        if (partconstraintdef == NULL || partconstraintdef[0] == NULL)
           printfPQExpBuffer(tmpbuf, _("No partition constraint"));
         else
           printfPQExpBuffer(
@@ -9787,7 +9745,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
       );
       printTableAddFooter(cont, buf.data);
       ftoptions = PQgetvalue(result, 0, 1);
-      if (ftoptions && ftoptions[0] != "\0") {
+      if (ftoptions && ftoptions[0] != NULL) {
         printfPQExpBuffer(buf, _("FDW options: (%s)"), ftoptions);
         printTableAddFooter(cont, buf.data);
       }
@@ -9922,7 +9880,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
       printTableAddFooter(cont, buf.data);
     }
   }
-  if (verbose && tableinfo.reloptions && tableinfo.reloptions[0] != "\0") {
+  if (verbose && tableinfo.reloptions && tableinfo.reloptions[0] != NULL) {
     let t = _("Options");
     printfPQExpBuffer(buf, "%s: %s", t, tableinfo.reloptions);
     printTableAddFooter(cont, buf.data);
