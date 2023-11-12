@@ -1,4 +1,3 @@
-let cancel_pressed = false;
 let quote_all_identifiers = 0;
 
 const NULL = null;
@@ -70,7 +69,12 @@ const
   MONEYOID = 790,
   NUMERICOID = 1700;
 
-let PSQLexec, pset, outputFn;
+let 
+  PSQLexec,
+  pset,
+  outputFn,
+  inFlight = false,
+  cancel_pressed = false;  // can be false *or* a Promise-resolving function
 
 function noop(x) {
   return x;
@@ -137,85 +141,97 @@ Informational
   \\z[S]   [PATTERN]      same as \\dp
 `;
 
+export function cancel() {
+  return new Promise(resolve => cancel_pressed = resolve);
+}
+
 export async function describe(pg, cmd, dbName, runQuery, output, echoHidden = false, sversion = null, std_strings = 1) {
+  // parse and run command
+  const match = cmd.match(/^\\([?dzsl]\S*)(.*)/);
+  if (!match) {
+    outputFn(`unsupported command: ${cmd}`);
+    return;
+  }
+  let [, matchedCommand, remaining] = match;
+
+  // synonyms
+  matchedCommand = matchedCommand.replace(/^lo_list/, 'dl');
+  matchedCommand = matchedCommand.replace(/^z/, 'dp');
+
+  if (matchedCommand[0] === '?') {
+    outputFn(helpText);
+    return;
+  }
+
+  if (inFlight) throw new Error('Cannot execute describe command (except \\?) until the previous describe command completes');
+
+  inFlight = true;
+  cancel_pressed = false;
+  outputFn = output;
+
+  PSQLexec = sql => {
+    if (cancel_pressed) return NULL;
+    if (echoHidden) outputFn(`/******** QUERY *********/\n${sql}\n/************************/`);
+    return runQuery(sql);
+  };
+
   // disable all type parsing: psql expects Postgres's raw text format
   const originalGetTypeParser = pg.types.getTypeParser;
   pg.types.getTypeParser = () => noop;
 
-  // get server version, if not supplied
-  if (sversion == null) {  // could also be undefined
-    const vres = await runQuery('SHOW server_version_num');
-    sversion = parseInt(vres.rows[0][0], 10);
-  }
+  try {
+    // get server version, if not supplied
+    if (sversion == null) {  // could also be undefined
+      const vres = await runQuery('SHOW server_version_num');
+      sversion = parseInt(vres.rows[0][0], 10);
+    }
 
-  // set globals
-  outputFn = output;
-  
-  pset = {
-    sversion,
-    db: {  // PGconn struct
-      dbName,
+    pset = {
       sversion,
-      std_strings,
-      status: CONNECTION_OK,
-      encoding: PG_UTF8
-    },
-    popt: {  // print options
-      topt: {
-        default_footer: true,
+      db: {  // PGconn struct
+        dbName,
+        sversion,
+        std_strings,
+        status: CONNECTION_OK,
+        encoding: PG_UTF8
       },
-      nullPrint: '',
-    }
-  };
-
-  PSQLexec = sql => {
-    if (echoHidden) outputFn(`/******** QUERY *********/\n${sql}\n/************************/`);
-    return runQuery(sql);
-  }
-
-  // parse and run command
-  const match = cmd.match(/^\\([?dzsl]\S*)(.*)/);
-  if (match) {
-    let [, matchedCommand, remaining] = match;
-
-    // synonyms
-    matchedCommand = matchedCommand.replace(/^lo_list/, 'dl');
-    matchedCommand = matchedCommand.replace(/^z/, 'dp');
-
-    if (matchedCommand[0] === '?') {
-      outputFn(helpText);
-
-    } else {
-      const scan_state = [remaining, 0];
-      
-      try {
-        const result = await (
-          matchedCommand[0] === 'd' ? exec_command_d(scan_state, true, matchedCommand) :
-            matchedCommand[0] === 's' ?
-              (matchedCommand[1] === 'f' || matchedCommand[1] === 'v' ?
-                exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === 'f') :
-                PSQL_CMD_UNKNOWN) :
-              exec_command_list(scan_state, true, matchedCommand)
-        );
-
-        if (result == PSQL_CMD_UNKNOWN) outputFn(`invalid command \\${matchedCommand}`);
-        // if (result === PSQL_CMD_ERROR) outputFn('...');  // what goes here?
-
-        let arg, warnings = [];
-        while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(sprintf("\\%s: extra argument \"%s\" ignored", matchedCommand, arg));
-        if (warnings.length > 0) outputFn(warnings.join('\n'));
-
-      } catch (err) {
-        outputFn('ERROR:  ' + err.message);
+      popt: {  // print options
+        topt: {
+          default_footer: true,
+        },
+        nullPrint: '',
       }
-    }
+    };
 
-  } else {
-    outputFn(`unsupported command: ${cmd}`);
+    const
+      scan_state = [remaining, 0],
+      result = await (
+        matchedCommand[0] === 'd' ? exec_command_d(scan_state, true, matchedCommand) :
+          matchedCommand[0] === 's' ?
+            (matchedCommand[1] === 'f' || matchedCommand[1] === 'v' ?
+              exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === 'f') :
+              PSQL_CMD_UNKNOWN) :
+            exec_command_list(scan_state, true, matchedCommand)
+      );
+
+    if (result == PSQL_CMD_UNKNOWN) outputFn(`invalid command \\${matchedCommand}`);
+    // if (result === PSQL_CMD_ERROR) outputFn('...');  // what goes here?
+
+    let arg, warnings = [];
+    while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(sprintf("\\%s: extra argument \"%s\" ignored", matchedCommand, arg));
+    if (warnings.length > 0) outputFn(warnings.join('\n'));
+
+  } catch (err) {
+    outputFn('ERROR:  ' + err.message);
+
+  } finally {
+    inFlight = false;
+
+    // restore type parsing
+    pg.types.getTypeParser = originalGetTypeParser;
+
+    if (cancel_pressed) cancel_pressed();  // resolve the Promise returned by cancel()
   }
-
-  // restore type parsing
-  pg.types.getTypeParser = originalGetTypeParser;
 }
 
 export function describeDataToString(item) {
@@ -328,9 +344,9 @@ function Assert(cond) {
   if (!cond) throw new Error(`Assertion failed (value: ${cond})`);
 }
 
-const 
-  gettext_noop = noop, 
-  pg_strdup = noop, 
+const
+  gettext_noop = noop,
+  pg_strdup = noop,
   _ = noop;
 
 function strstr(str1, str2) {  // unlike the C version, this returns JS null on not found, and 0+ if found
@@ -661,7 +677,7 @@ function psql_scan_slash_option(scan_state, type, quote, semicolon) {
 
   // parse for next unquoted whitespace or end of string
   let result = '';
-  for (;;) {  
+  for (; ;) {
     chr = scan_state[0][scan_state[1]++];  // => str[index++]
 
     if (chr == NULL) {
@@ -1648,7 +1664,7 @@ async function exec_command_list(scan_state, active_branch, cmd) {
   let success;
   let pattern;
   let show_verbose;
-  
+
   pattern = psql_scan_slash_option(scan_state,
     OT_NORMAL, NULL, true);
 
@@ -1676,7 +1692,7 @@ async function exec_command_d(scan_state, active_branch, cmd) {
     case undefined:
     case '+':
     case 'S':
-      
+
       if (pattern)
         success = await describeTableDetails(pattern, show_verbose, show_system);
       else
@@ -3238,7 +3254,7 @@ async function describeTableDetails(pattern, verbose, showSystem) {
     "n.nspname", "c.relname", NULL,
     "pg_catalog.pg_table_is_visible(c.oid)",
     NULL, 3)) {
-      
+
     return false;
   }
 

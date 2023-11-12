@@ -5709,7 +5709,6 @@ var neonConfig = import_index.default.neonConfig;
 var types = import_index.default.types;
 
 // src/describe.mjs
-var cancel_pressed = false;
 var quote_all_identifiers = 0;
 var NULL = null;
 var FUNC_MAX_ARGS = 100;
@@ -5761,6 +5760,8 @@ var NUMERICOID = 1700;
 var PSQLexec;
 var pset;
 var outputFn;
+var inFlight = false;
+var cancel_pressed = false;
 function noop(x) {
   return x;
 }
@@ -5824,65 +5825,77 @@ Informational
   \\sv[+]  VIEWNAME       show a view's definition
   \\z[S]   [PATTERN]      same as \\dp
 `;
+function cancel() {
+  return new Promise((resolve) => cancel_pressed = resolve);
+}
 async function describe(pg, cmd, dbName, runQuery, output, echoHidden = false, sversion = null, std_strings = 1) {
-  const originalGetTypeParser = pg.types.getTypeParser;
-  pg.types.getTypeParser = () => noop;
-  if (sversion == null) {
-    const vres = await runQuery("SHOW server_version_num");
-    sversion = parseInt(vres.rows[0][0], 10);
+  const match = cmd.match(/^\\([?dzsl]\S*)(.*)/);
+  if (!match) {
+    outputFn(`unsupported command: ${cmd}`);
+    return;
   }
+  let [, matchedCommand, remaining] = match;
+  matchedCommand = matchedCommand.replace(/^lo_list/, "dl");
+  matchedCommand = matchedCommand.replace(/^z/, "dp");
+  if (matchedCommand[0] === "?") {
+    outputFn(helpText);
+    return;
+  }
+  if (inFlight)
+    throw new Error("Cannot execute describe command (except \\?) until the previous describe command completes");
+  inFlight = true;
+  cancel_pressed = false;
   outputFn = output;
-  pset = {
-    sversion,
-    db: {
-      // PGconn struct
-      dbName,
-      sversion,
-      std_strings,
-      status: CONNECTION_OK,
-      encoding: PG_UTF8
-    },
-    popt: {
-      // print options
-      topt: {
-        default_footer: true
-      },
-      nullPrint: ""
-    }
-  };
   PSQLexec = (sql) => {
+    if (cancel_pressed)
+      return NULL;
     if (echoHidden)
       outputFn(`/******** QUERY *********/
 ${sql}
 /************************/`);
     return runQuery(sql);
   };
-  const match = cmd.match(/^\\([?dzsl]\S*)(.*)/);
-  if (match) {
-    let [, matchedCommand, remaining] = match;
-    matchedCommand = matchedCommand.replace(/^lo_list/, "dl");
-    matchedCommand = matchedCommand.replace(/^z/, "dp");
-    if (matchedCommand[0] === "?") {
-      outputFn(helpText);
-    } else {
-      const scan_state = [remaining, 0];
-      try {
-        const result = await (matchedCommand[0] === "d" ? exec_command_d(scan_state, true, matchedCommand) : matchedCommand[0] === "s" ? matchedCommand[1] === "f" || matchedCommand[1] === "v" ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === "f") : PSQL_CMD_UNKNOWN : exec_command_list(scan_state, true, matchedCommand));
-        if (result == PSQL_CMD_UNKNOWN)
-          outputFn(`invalid command \\${matchedCommand}`);
-        let arg, warnings = [];
-        while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true))
-          warnings.push(sprintf('\\%s: extra argument "%s" ignored', matchedCommand, arg));
-        if (warnings.length > 0)
-          outputFn(warnings.join("\n"));
-      } catch (err) {
-        outputFn("ERROR:  " + err.message);
-      }
+  const originalGetTypeParser = pg.types.getTypeParser;
+  pg.types.getTypeParser = () => noop;
+  try {
+    if (sversion == null) {
+      const vres = await runQuery("SHOW server_version_num");
+      sversion = parseInt(vres.rows[0][0], 10);
     }
-  } else {
-    outputFn(`unsupported command: ${cmd}`);
+    pset = {
+      sversion,
+      db: {
+        // PGconn struct
+        dbName,
+        sversion,
+        std_strings,
+        status: CONNECTION_OK,
+        encoding: PG_UTF8
+      },
+      popt: {
+        // print options
+        topt: {
+          default_footer: true
+        },
+        nullPrint: ""
+      }
+    };
+    const scan_state = [remaining, 0], result = await (matchedCommand[0] === "d" ? exec_command_d(scan_state, true, matchedCommand) : matchedCommand[0] === "s" ? matchedCommand[1] === "f" || matchedCommand[1] === "v" ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === "f") : PSQL_CMD_UNKNOWN : exec_command_list(scan_state, true, matchedCommand));
+    if (result == PSQL_CMD_UNKNOWN)
+      outputFn(`invalid command \\${matchedCommand}`);
+    let arg, warnings = [];
+    while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true))
+      warnings.push(sprintf('\\%s: extra argument "%s" ignored', matchedCommand, arg));
+    if (warnings.length > 0)
+      outputFn(warnings.join("\n"));
+  } catch (err) {
+    outputFn("ERROR:  " + err.message);
+  } finally {
+    inFlight = false;
+    pg.types.getTypeParser = originalGetTypeParser;
+    if (cancel_pressed)
+      cancel_pressed();
   }
-  pg.types.getTypeParser = originalGetTypeParser;
 }
 function describeDataToString(item) {
   return typeof item === "string" ? item : tableToString(item);
@@ -12891,31 +12904,46 @@ function parse(url, parseQueryString) {
   const query = parseQueryString ? Object.fromEntries(searchParams.entries()) : search;
   return { href: url, protocol, auth, username, password, host, hostname, port, pathname, search, query, hash };
 }
+var states = {
+  idle: 0,
+  running: 1,
+  cancelling: 2
+};
+var state = states.idle;
 async function go() {
-  const connectionString = document.querySelector("#dburl").value;
-  let dbName;
-  try {
-    dbName = parse(connectionString).pathname.slice(1);
-  } catch (err) {
-    alert("Invalid connection string");
-    return;
+  if (state === states.idle) {
+    state = states.running;
+    goBtn.value = "Cancel";
+    const connectionString = document.querySelector("#dburl").value;
+    let dbName;
+    try {
+      dbName = parse(connectionString).pathname.slice(1);
+    } catch (err) {
+      alert("Invalid database URL");
+      return;
+    }
+    const cmd = document.querySelector("#sql").value, echoHidden = document.querySelector("#echohidden").checked, htmlOutput = document.querySelector("#html").checked;
+    sessionStorage.setItem("form", JSON.stringify({ connectionString, cmd, echoHidden, htmlOutput }));
+    const pool = new Pool({ connectionString }), queryFn = (sql) => pool.query({ text: sql, rowMode: "array" });
+    let outputEl = document.querySelector("#output");
+    outputEl.innerHTML = "";
+    if (!htmlOutput)
+      outputEl = outputEl.appendChild(document.createElement("pre"));
+    let firstOutput = true;
+    const outputFn2 = htmlOutput ? (x) => outputEl.innerHTML += describeDataToHtml(x) : (x) => {
+      outputEl.innerHTML += (firstOutput ? "" : "\n\n") + describeDataToString(x, true);
+      firstOutput = false;
+    };
+    await describe(serverless_default, cmd, dbName, queryFn, outputFn2, echoHidden);
+  } else if (state === states.running) {
+    state = states.cancelling;
+    goBtn.value = "Cancelling ...";
+    goBtn.disabled = true;
+    await cancel();
   }
-  const cmd = document.querySelector("#sql").value;
-  const echoHidden = document.querySelector("#echohidden").checked;
-  const htmlOutput = document.querySelector("#html").checked;
-  sessionStorage.setItem("form", JSON.stringify({ connectionString, cmd, echoHidden, htmlOutput }));
-  const pool = new Pool({ connectionString });
-  const queryFn = (sql) => pool.query({ text: sql, rowMode: "array" });
-  goBtn.disabled = true;
-  goBtn.value = "Working ...";
-  let outputEl = document.querySelector("#output");
-  if (!htmlOutput)
-    outputEl = outputEl.appendChild(document.createElement("pre"));
-  outputEl.innerHTML = "";
-  const outputFn2 = htmlOutput ? (x) => outputEl.innerHTML += describeDataToHtml(x) : (x) => outputEl.innerHTML += describeDataToString(x, true) + "\n\n";
-  await describe(serverless_default, cmd, dbName, queryFn, outputFn2, echoHidden);
-  goBtn.disabled = false;
+  state = states.idle;
   goBtn.value = goBtnUsualTitle;
+  goBtn.disabled = false;
 }
 window.addEventListener("load", () => {
   const saveData = sessionStorage.getItem("form");

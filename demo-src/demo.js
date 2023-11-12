@@ -1,7 +1,6 @@
-
 import pg from '@neondatabase/serverless';
 import { Pool } from '@neondatabase/serverless';
-import { describe, describeDataToString, describeDataToHtml } from '../src/describe.mjs';
+import { describe, describeDataToString, describeDataToHtml, cancel } from '../src/describe.mjs';
 
 function parse(url, parseQueryString) {
   const { protocol } = new URL(url);
@@ -14,38 +13,63 @@ function parse(url, parseQueryString) {
   return { href: url, protocol, auth, username, password, host, hostname, port, pathname, search, query, hash };
 }
 
+const states = {
+  idle: 0,
+  running: 1,
+  cancelling: 2,
+}
+
+let state = states.idle;
+
 async function go() {
-  const connectionString = document.querySelector('#dburl').value;
-  let dbName;
-  try { dbName = parse(connectionString).pathname.slice(1); }
-  catch (err) {
-    alert('Invalid connection string');
-    return;
-  }
+  if (state === states.idle) {
+    state = states.running;
+    goBtn.value = "Cancel";
 
-  const cmd = document.querySelector('#sql').value;
-  const echoHidden = document.querySelector('#echohidden').checked;
-  const htmlOutput = document.querySelector('#html').checked;
+    const connectionString = document.querySelector('#dburl').value;
+    let dbName;
+    try { dbName = parse(connectionString).pathname.slice(1); }
+    catch (err) {
+      alert('Invalid database URL');
+      return;
+    }
 
-  sessionStorage.setItem('form', JSON.stringify({ connectionString, cmd, echoHidden, htmlOutput }));
+    const
+      cmd = document.querySelector('#sql').value,
+      echoHidden = document.querySelector('#echohidden').checked,
+      htmlOutput = document.querySelector('#html').checked;
 
-  const pool = new Pool({ connectionString });
-  const queryFn = sql => pool.query({ text: sql, rowMode: 'array' });
+    sessionStorage.setItem('form', JSON.stringify({ connectionString, cmd, echoHidden, htmlOutput }));
 
-  goBtn.disabled = true;
-  goBtn.value = "Working ...";
+    const
+      pool = new Pool({ connectionString }),
+      queryFn = sql => pool.query({ text: sql, rowMode: 'array' });
 
-  let outputEl = document.querySelector('#output');
-  if (!htmlOutput) outputEl = outputEl.appendChild(document.createElement('pre'));
-  outputEl.innerHTML = '';
+    let outputEl = document.querySelector('#output');
+    outputEl.innerHTML = '';
+    if (!htmlOutput) outputEl = outputEl.appendChild(document.createElement('pre'));
 
-  const outputFn = htmlOutput ?
-    x => outputEl.innerHTML += describeDataToHtml(x) :
-    x => outputEl.innerHTML += describeDataToString(x, true) + '\n\n';
+    let firstOutput = true;
+    const outputFn = htmlOutput ?
+      x => outputEl.innerHTML += describeDataToHtml(x) :
+      x => {
+        outputEl.innerHTML += (firstOutput ? '' : '\n\n') + describeDataToString(x, true);
+        firstOutput = false;
+      };
 
-  await describe(pg, cmd, dbName, queryFn, outputFn, echoHidden);
-  goBtn.disabled = false;
+    await describe(pg, cmd, dbName, queryFn, outputFn, echoHidden);
+  
+  } else if (state === states.running) {
+    state = states.cancelling;
+    goBtn.value = 'Cancelling ...';
+    goBtn.disabled = true;
+    
+    await cancel();
+  } 
+
+  state = states.idle;
   goBtn.value = goBtnUsualTitle;
+  goBtn.disabled = false;
 }
 
 window.addEventListener('load', () => {
