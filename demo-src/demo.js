@@ -34,15 +34,18 @@ async function go() {
 
   goBtn.disabled = true;
   goBtn.value = "Working ...";
-  const tableData = await describe(pg, cmd, dbName, queryFn, echoHidden);
+
+  let outputEl = document.querySelector('#output');
+  if (!htmlOutput) outputEl = outputEl.appendChild(document.createElement('pre'));
+  outputEl.innerHTML = '';
+
+  const outputFn = htmlOutput ?
+    x => outputEl.innerHTML += describeDataToHtml(x) :
+    x => outputEl.innerHTML += describeDataToString(x, true) + '\n\n';
+
+  await describe(pg, cmd, dbName, queryFn, outputFn, echoHidden);
   goBtn.disabled = false;
   goBtn.value = goBtnUsualTitle;
-
-  const output = htmlOutput ?
-    describeDataToHtml(tableData) :
-    '<pre>' + describeDataToString(tableData, true) + '</pre>';
-
-  document.querySelector('#output').innerHTML = output;
 }
 
 window.addEventListener('load', () => {

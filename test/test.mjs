@@ -34,8 +34,9 @@ const
 for (let test of tests) {
   const psqlOutput = psql(test);
 
-  const tableData = await describe(pg, test, 'main', queryFn, true);
-  const localOutput = describeDataToString(tableData);
+  const localOutputArr = [];
+  await describe(pg, test, 'main', queryFn, x => localOutputArr.push(x), true);
+  const localOutput = localOutputArr.map(x => describeDataToString(x)).join('\n\n');
 
   const stdPsqlOutput = psqlOutput.replace(/ +$/gm, '').trim();  // .replace(/\n\(\d+ rows?\)/g, '')
   const stdLocalOutput = localOutput.replace(/ +$/gm, '').trim();

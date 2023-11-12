@@ -5760,7 +5760,7 @@ var MONEYOID = 790;
 var NUMERICOID = 1700;
 var PSQLexec;
 var pset;
-var output;
+var outputFn;
 function noop(x) {
   return x;
 }
@@ -5824,14 +5824,14 @@ Informational
   \\sv[+]  VIEWNAME       show a view's definition
   \\z[S]   [PATTERN]      same as \\dp
 `;
-async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = null, std_strings = 1) {
+async function describe(pg, cmd, dbName, runQuery, output, echoHidden = false, sversion = null, std_strings = 1) {
   const originalGetTypeParser = pg.types.getTypeParser;
   pg.types.getTypeParser = () => noop;
   if (sversion == null) {
     const vres = await runQuery("SHOW server_version_num");
     sversion = parseInt(vres.rows[0][0], 10);
   }
-  output = [];
+  outputFn = output;
   pset = {
     sversion,
     db: {
@@ -5852,7 +5852,7 @@ async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion 
   };
   PSQLexec = (sql) => {
     if (echoHidden)
-      output.push(`/******** QUERY *********/
+      outputFn(`/******** QUERY *********/
 ${sql}
 /************************/`);
     return runQuery(sql);
@@ -5863,33 +5863,32 @@ ${sql}
     matchedCommand = matchedCommand.replace(/^lo_list/, "dl");
     matchedCommand = matchedCommand.replace(/^z/, "dp");
     if (matchedCommand[0] === "?") {
-      output.push(helpText);
+      outputFn(helpText);
     } else {
       const scan_state = [remaining, 0];
       try {
         const result = await (matchedCommand[0] === "d" ? exec_command_d(scan_state, true, matchedCommand) : matchedCommand[0] === "s" ? matchedCommand[1] === "f" || matchedCommand[1] === "v" ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === "f") : PSQL_CMD_UNKNOWN : exec_command_list(scan_state, true, matchedCommand));
         if (result == PSQL_CMD_UNKNOWN)
-          output.push(`invalid command \\${matchedCommand}`);
+          outputFn(`invalid command \\${matchedCommand}`);
         let arg, warnings = [];
         while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true))
           warnings.push(sprintf('\\%s: extra argument "%s" ignored', matchedCommand, arg));
         if (warnings.length > 0)
-          output.push(warnings.join("\n"));
+          outputFn(warnings.join("\n"));
       } catch (err) {
-        output.push("ERROR:  " + err.message);
+        outputFn("ERROR:  " + err.message);
       }
     }
   } else {
-    output.push(`unsupported command: ${cmd}`);
+    outputFn(`unsupported command: ${cmd}`);
   }
   pg.types.getTypeParser = originalGetTypeParser;
-  return output;
 }
-function describeDataToString(desc) {
-  return desc.map((item) => typeof item === "string" ? item : tableToString(item)).join("\n\n");
+function describeDataToString(item) {
+  return typeof item === "string" ? item : tableToString(item);
 }
-function describeDataToHtml(desc) {
-  return desc.map((item) => typeof item === "string" ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item)).join("\n\n");
+function describeDataToHtml(item) {
+  return typeof item === "string" ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item);
 }
 function pad(str, len, align, pre = "", post = "") {
   const spaces = Math.max(0, len - strlen(str));
@@ -6119,7 +6118,7 @@ function sprintf(template, ...values) {
   return result;
 }
 function pg_log_error(template, ...args) {
-  output.push(sprintf(template, ...args));
+  outputFn(sprintf(template, ...args));
 }
 function PQdb(conn) {
   if (!conn)
@@ -6604,7 +6603,7 @@ function printTableSetFooter(content, footer) {
   printTableAddFooter(content, footer);
 }
 function printTable(cont, fout, is_pager, flog) {
-  output.push({ ...cont });
+  outputFn({ ...cont });
 }
 async function exec_command_sf_sv(scan_state, active_branch, cmd, is_func) {
   let status = PSQL_CMD_SKIP_LINE;
@@ -6636,7 +6635,7 @@ async function exec_command_sf_sv(scan_state, active_branch, cmd, is_func) {
     if (show_linenumbers) {
       print_with_linenumbers(buf.data, is_func);
     } else {
-      output.push(buf.data);
+      outputFn(buf.data);
     }
   }
   return status;
@@ -6656,7 +6655,7 @@ function print_with_linenumbers(lines, is_func) {
     else
       result += sprintf("%-7d %s\n", lineno, line);
   }
-  output.push(result);
+  outputFn(result);
 }
 async function lookup_object_oid(obj_type, desc, obj_oid) {
   let result = true;
@@ -12909,11 +12908,14 @@ async function go() {
   const queryFn = (sql) => pool.query({ text: sql, rowMode: "array" });
   goBtn.disabled = true;
   goBtn.value = "Working ...";
-  const tableData = await describe(serverless_default, cmd, dbName, queryFn, echoHidden);
+  let outputEl = document.querySelector("#output");
+  if (!htmlOutput)
+    outputEl = outputEl.appendChild(document.createElement("pre"));
+  outputEl.innerHTML = "";
+  const outputFn2 = htmlOutput ? (x) => outputEl.innerHTML += describeDataToHtml(x) : (x) => outputEl.innerHTML += describeDataToString(x, true) + "\n\n";
+  await describe(serverless_default, cmd, dbName, queryFn, outputFn2, echoHidden);
   goBtn.disabled = false;
   goBtn.value = goBtnUsualTitle;
-  const output2 = htmlOutput ? describeDataToHtml(tableData) : "<pre>" + describeDataToString(tableData, true) + "</pre>";
-  document.querySelector("#output").innerHTML = output2;
 }
 window.addEventListener("load", () => {
   const saveData = sessionStorage.getItem("form");

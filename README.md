@@ -20,7 +20,6 @@ This is a very direct port of C code. We use `async/await` where C would block. 
 ## Possible future improvements
 
 * Implement cancel/abort
-* Show results as they come in (especially for long and complex stuff like `\d+ *`)
 
 ## Tests
 

@@ -70,7 +70,7 @@ const
   MONEYOID = 790,
   NUMERICOID = 1700;
 
-let PSQLexec, pset, output;
+let PSQLexec, pset, outputFn;
 
 function noop(x) {
   return x;
@@ -137,7 +137,7 @@ Informational
   \\z[S]   [PATTERN]      same as \\dp
 `;
 
-export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sversion = null, std_strings = 1) {
+export async function describe(pg, cmd, dbName, runQuery, output, echoHidden = false, sversion = null, std_strings = 1) {
   // disable all type parsing: psql expects Postgres's raw text format
   const originalGetTypeParser = pg.types.getTypeParser;
   pg.types.getTypeParser = () => noop;
@@ -149,8 +149,8 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
   }
 
   // set globals
-  output = [];
-
+  outputFn = output;
+  
   pset = {
     sversion,
     db: {  // PGconn struct
@@ -169,7 +169,7 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
   };
 
   PSQLexec = sql => {
-    if (echoHidden) output.push(`/******** QUERY *********/\n${sql}\n/************************/`);
+    if (echoHidden) outputFn(`/******** QUERY *********/\n${sql}\n/************************/`);
     return runQuery(sql);
   }
 
@@ -183,7 +183,7 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
     matchedCommand = matchedCommand.replace(/^z/, 'dp');
 
     if (matchedCommand[0] === '?') {
-      output.push(helpText);
+      outputFn(helpText);
 
     } else {
       const scan_state = [remaining, 0];
@@ -198,37 +198,32 @@ export async function describe(pg, cmd, dbName, runQuery, echoHidden = false, sv
               exec_command_list(scan_state, true, matchedCommand)
         );
 
-        if (result == PSQL_CMD_UNKNOWN) output.push(`invalid command \\${matchedCommand}`);
-        // if (result === PSQL_CMD_ERROR) output.push('...');  // what goes here?
+        if (result == PSQL_CMD_UNKNOWN) outputFn(`invalid command \\${matchedCommand}`);
+        // if (result === PSQL_CMD_ERROR) outputFn('...');  // what goes here?
 
         let arg, warnings = [];
         while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(sprintf("\\%s: extra argument \"%s\" ignored", matchedCommand, arg));
-        if (warnings.length > 0) output.push(warnings.join('\n'));
+        if (warnings.length > 0) outputFn(warnings.join('\n'));
 
       } catch (err) {
-        output.push('ERROR:  ' + err.message);
+        outputFn('ERROR:  ' + err.message);
       }
     }
 
   } else {
-    output.push(`unsupported command: ${cmd}`);
+    outputFn(`unsupported command: ${cmd}`);
   }
 
   // restore type parsing
   pg.types.getTypeParser = originalGetTypeParser;
-
-  return output;
 }
 
-export function describeDataToString(desc) {
-  return desc.map(item => typeof item === 'string' ? item : tableToString(item)).join('\n\n');
+export function describeDataToString(item) {
+  return typeof item === 'string' ? item : tableToString(item);
 }
 
-export function describeDataToHtml(desc) {
-  return desc.map(item =>
-    typeof item === 'string' ?
-      `<p>${htmlEscape(item, true)}</p>` :
-      tableToHtml(item)).join('\n\n');
+export function describeDataToHtml(item) {
+  return typeof item === 'string' ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item);
 }
 
 // end of exports
@@ -492,7 +487,7 @@ function sprintf(template, ...values) {  // just enough sprintf
 }
 
 function pg_log_error(template, ...args) {
-  output.push(sprintf(template, ...args));
+  outputFn(sprintf(template, ...args));
 }
 
 function PQdb(conn) {
@@ -1194,7 +1189,7 @@ function printTableSetFooter(content, footer) {
 }
 
 function printTable(cont, fout, is_pager, flog) {
-  output.push({ ...cont });  // must clone in case same content object is reused (and thus mutated) later
+  outputFn({ ...cont });  // must clone in case same content object is reused (and thus mutated) later
 }
 
 
@@ -1237,8 +1232,7 @@ async function exec_command_sf_sv(scan_state, active_branch, cmd, is_func) {
     }
     else {
       /* just send the definition to output */
-      // fputs(buf.data, output);
-      output.push(buf.data);
+      outputFn(buf.data);
     }
   }
 
@@ -1280,7 +1274,7 @@ function print_with_linenumbers(lines, is_func) {
       result += sprintf("%-7d %s\n", lineno, line);
   }
 
-  output.push(result);
+  outputFn(result);
 }
 
 /*
