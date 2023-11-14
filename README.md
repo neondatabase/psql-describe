@@ -7,27 +7,19 @@ psql's `\d` (describe) family of commands ported to JavaScript.
 * We implement some C library functions, such as `strlen` and `strchr`, and some Postgres support functions, such as `printTable` and `printQuery`, in JavaScript.
 * We write tests to catch (and then fix) problems, mostly related to pointer arithmetic, pointer dereferencing, and pointer output parameters.
 
-This approach means that most of the 8000+ lines of code in `describe.mjs` have not actually been looked at. If you find bugs, please file an issue.
+This approach means that many of the 8000+ lines of code in `describe.mjs` have not actually been looked at. If you find bugs, please file an issue.
 
 ## Usage
 
 For now, please see `demo-src/demo.js` and `test/test.mjs` for examples.
 
-## Re-entrancy
-
-This is a very direct port of C code. We use `async/await` where C would block. So it's important not to call `describe` again while awaiting an earlier call: this would mess with global state, giving you weird and random results, and also leave your DB driver in a bad way (because we disable all type parsing on entry and restore it on exit). Attempting to do so will throw.
-
 ## Tests
 
 The tests compare this software's output against `psql` for the commands in `test/tests.txt`. Output is expected to be character-for-character identical, except for differences in trailing space at the end of lines.
 
-To test on my machine, I run:
-
-```
-./test.mjs /usr/local/pgsql/bin/psql postgres://localhost:5435/main < tests.txt
-```
-
 In case of failure, the tests halt and a `psql.txt` and `local.txt` are written, which you can then `diff`.
+
+To make the tests work on your machine, you'll need to create a test database (see below) and update the DB connection strings in the `test` command in `package.json`.
 
 ### Database
 
