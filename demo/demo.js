@@ -7191,6 +7191,11 @@ function parse(url, parseQueryString) {
   return { href: url, protocol, auth, username, password, host, hostname, port, pathname, search, query, hash };
 }
 var cancelFn;
+function end() {
+  goBtn.value = goBtnUsualTitle;
+  spinner.style.display = "none";
+  cancelFn = void 0;
+}
 async function go() {
   if (cancelFn === void 0) {
     goBtn.value = "Cancel";
@@ -7239,16 +7244,11 @@ async function go() {
     const { promise, cancel } = describe(cmd, dbName, queryFn, outputFn, echoHidden);
     cancelFn = cancel;
     const status = await promise;
-    if (status !== null) {
-      goBtn.value = goBtnUsualTitle;
-      spinner.style.display = "none";
-      cancelFn = void 0;
-    }
+    if (status !== null)
+      end();
   } else {
     cancelFn();
-    goBtn.value = goBtnUsualTitle;
-    spinner.style.display = "none";
-    cancelFn = void 0;
+    end();
   }
 }
 window.addEventListener("load", () => {
@@ -7264,15 +7264,14 @@ window.addEventListener("load", () => {
 var goBtn = document.querySelector("#gobtn");
 var goBtnUsualTitle = goBtn.value;
 goBtn.addEventListener("click", go);
-var spinner = document.querySelector("#spinner");
 document.querySelector("#sql").addEventListener("keyup", (e) => {
   if (e.key === "Enter")
     go();
   e.preventDefault();
 });
 document.querySelector("#examples").addEventListener("click", (e) => {
-  if (e.target.nodeName === "A") {
+  if (e.target.nodeName === "A")
     document.querySelector("#sql").value = e.target.textContent;
-  }
   e.preventDefault();
 });
+var spinner = document.querySelector("#spinner");

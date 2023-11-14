@@ -13,6 +13,12 @@ function parse(url, parseQueryString) {
 
 let cancelFn;
 
+function end() {
+  goBtn.value = goBtnUsualTitle;
+  spinner.style.display = 'none';
+  cancelFn = undefined;
+}
+
 async function go() {
   if (cancelFn === undefined) {
     goBtn.value = "Cancel";
@@ -77,18 +83,11 @@ async function go() {
     cancelFn = cancel;
     const status = await promise;
 
-    if (status !== null) {
-      // if this query was cancelled, ignore that it returned; otherwise:
-      goBtn.value = goBtnUsualTitle;
-      spinner.style.display = 'none';
-      cancelFn = undefined;
-    }
+    if (status !== null) end();  // if this query was cancelled, ignore that it returned; otherwise:
 
   } else {
     cancelFn();
-    goBtn.value = goBtnUsualTitle;
-    spinner.style.display = 'none';
-    cancelFn = undefined;
+    end();
   }
 }
 
@@ -106,17 +105,16 @@ const goBtn = document.querySelector('#gobtn');
 const goBtnUsualTitle = goBtn.value;
 goBtn.addEventListener('click', go);
 
-const spinner = document.querySelector('#spinner');
-
 document.querySelector('#sql').addEventListener('keyup', (e) => {
   if (e.key === "Enter") go();
   e.preventDefault();
 })
 
 document.querySelector('#examples').addEventListener('click', (e) => {
-  if (e.target.nodeName === 'A') {
-    document.querySelector('#sql').value = e.target.textContent;
-  }
+  if (e.target.nodeName === 'A') document.querySelector('#sql').value = e.target.textContent;
   e.preventDefault();
 });
+
+const spinner = document.querySelector('#spinner');
+
 
