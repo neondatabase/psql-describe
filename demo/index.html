@@ -16,7 +16,7 @@
   input[type=text] {
     font-family: monospace;
   }
-  #output {
+  #output-wrapper {
     font: 14px/1.5 'IBM Plex Mono', monospace;
     background: #f0f0f4;
     padding: 1ex 2ex;
@@ -67,6 +67,9 @@
     padding: .25ex 1ex;
     border-radius: 1ex;
   }
+  #spinner {
+    display: none;
+  }
 </style>
 <p><img src="neon.svg"></p>
 <p>
@@ -85,6 +88,9 @@
   <label><input type="checkbox" id="html" checked="checked" /> HTML output</label>
 </p>
 <input type="button" value="Submit" id="gobtn" />
-<div id="output"></div>
+<div id="output-wrapper">
+  <div id="output"></div>
+  <img src="spinner.svg" alt="Spinner" id="spinner">
+</div>
 <p><a href="https://github.com/neondatabase/psql-describe">Source on GitHub</a></p>
 <script src="demo.js"></script>

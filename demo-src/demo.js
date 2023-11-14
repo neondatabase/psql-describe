@@ -1,6 +1,4 @@
-import pg from '@neondatabase/serverless';
-import { Pool } from '@neondatabase/serverless';
-import { describe, describeDataToString, describeDataToHtml, cancel } from '../src/describe.mjs';
+import { describe, describeDataToString, describeDataToHtml } from '../src/describe.mjs';
 
 function parse(url, parseQueryString) {
   const { protocol } = new URL(url);
@@ -13,23 +11,20 @@ function parse(url, parseQueryString) {
   return { href: url, protocol, auth, username, password, host, hostname, port, pathname, search, query, hash };
 }
 
-const states = {
-  idle: 0,
-  running: 1,
-  cancelling: 2,
-}
-
-let state = states.idle;
+let cancelFn;
 
 async function go() {
-  if (state === states.idle) {
-    state = states.running;
+  if (cancelFn === undefined) {
     goBtn.value = "Cancel";
+    spinner.style.display = 'block';
 
     const connectionString = document.querySelector('#dburl').value;
-    let dbName;
-    try { dbName = parse(connectionString).pathname.slice(1); }
-    catch (err) {
+    let dbName, dbHost;
+    try {
+      const parsedConnnectionString = parse(connectionString);
+      dbName = parsedConnnectionString.pathname.slice(1);
+      dbHost = parsedConnnectionString.hostname;
+    } catch (err) {
       alert('Invalid database URL');
       return;
     }
@@ -41,9 +36,30 @@ async function go() {
 
     sessionStorage.setItem('form', JSON.stringify({ connectionString, cmd, echoHidden, htmlOutput }));
 
-    const
-      pool = new Pool({ connectionString }),
-      queryFn = sql => pool.query({ text: sql, rowMode: 'array' });
+    const headers = {
+      'Neon-Connection-String': connectionString,
+      'Neon-Raw-Text-Output': 'true',  // because we want raw Postgres text format
+      'Neon-Array-Mode': 'true',  // this saves data and post-processing even if we return objects, not arrays
+      'Neon-Pool-Opt-In': 'true',
+    };
+
+    queryFn = async (sql) => {
+      const response = await fetch(`https://${dbHost}/sql`, {
+        method: 'POST',
+        body: JSON.stringify({ query: sql, params: [] }),
+        headers,
+      });
+
+      const json = await response.json();
+      if (response.status === 200) return json;
+
+      const
+        jsonMsg = json.message,
+        msgMatch = jsonMsg.match(/ERROR: (.*?)\n/),
+        errMsg = msgMatch ? msgMatch[1] : jsonMsg;
+
+      throw new Error(errMsg);
+    }
 
     let outputEl = document.querySelector('#output');
     outputEl.innerHTML = '';
@@ -57,19 +73,23 @@ async function go() {
         firstOutput = false;
       };
 
-    await describe(pg, cmd, dbName, queryFn, outputFn, echoHidden);
-  
-  } else if (state === states.running) {
-    state = states.cancelling;
-    goBtn.value = 'Cancelling ...';
-    goBtn.disabled = true;
-    
-    await cancel();
-  } 
+    const { promise, cancel } = describe(cmd, dbName, queryFn, outputFn, echoHidden);
+    cancelFn = cancel;
+    const status = await promise;
 
-  state = states.idle;
-  goBtn.value = goBtnUsualTitle;
-  goBtn.disabled = false;
+    if (status !== null) {
+      // if this query was cancelled, ignore that it returned; otherwise:
+      goBtn.value = goBtnUsualTitle;
+      spinner.style.display = 'none';
+      cancelFn = undefined;
+    }
+
+  } else {
+    cancelFn();
+    goBtn.value = goBtnUsualTitle;
+    spinner.style.display = 'none';
+    cancelFn = undefined;
+  }
 }
 
 window.addEventListener('load', () => {
@@ -86,15 +106,16 @@ const goBtn = document.querySelector('#gobtn');
 const goBtnUsualTitle = goBtn.value;
 goBtn.addEventListener('click', go);
 
+const spinner = document.querySelector('#spinner');
+
 document.querySelector('#sql').addEventListener('keyup', (e) => {
-  if (e.key === "Enter" && goBtn.disabled === false) go();
+  if (e.key === "Enter") go();
   e.preventDefault();
 })
 
 document.querySelector('#examples').addEventListener('click', (e) => {
-  if (e.target.nodeName === 'A' && goBtn.disabled === false) {
+  if (e.target.nodeName === 'A') {
     document.querySelector('#sql').value = e.target.textContent;
-    go();
   }
   e.preventDefault();
 });

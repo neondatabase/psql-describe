@@ -143,9 +143,10 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
 
   function cancel() {
     cancel_pressed = true;
+    outputFn = () => void 0;
   }
   function throwIfCancelled() {
-    if (cancel_pressed) throw new Error('Cancelled');
+    if (cancel_pressed) throw new Error('cancelled');
   }
 
   async function main() {
@@ -220,6 +221,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
     } catch (err) {
       // throw err;
       outputFn('ERROR:  ' + err.message);
+      return cancel_pressed ? null : false; 
     }
 
     function pg_log_error(template, ...args) {
@@ -7964,6 +7966,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
 
     }
+    
     return true;
   }
 
