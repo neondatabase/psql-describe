@@ -7208,6 +7208,7 @@ async function go() {
       dbHost = parsedConnnectionString.hostname;
     } catch (err) {
       alert("Invalid database URL");
+      end();
       return;
     }
     const cmd = document.querySelector("#sql").value, echoHidden = document.querySelector("#echohidden").checked, htmlOutput = document.querySelector("#html").checked;

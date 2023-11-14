@@ -30,8 +30,10 @@ async function go() {
       const parsedConnnectionString = parse(connectionString);
       dbName = parsedConnnectionString.pathname.slice(1);
       dbHost = parsedConnnectionString.hostname;
+
     } catch (err) {
       alert('Invalid database URL');
+      end();
       return;
     }
 
