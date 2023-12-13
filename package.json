@@ -1,11 +1,10 @@
 {
   "name": "psql-describe",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
-  "main": "index.js",
   "scripts": {
     "test": "test/test.mjs /usr/local/pgsql/bin/psql postgres://localhost:5435/main < test/tests.txt && NODE_TLS_REJECT_UNAUTHORIZED=0 test/test.mjs /usr/local/pgsql/bin/psql postgres://george:n30nNEON@proxy.localtest.me:5435/main http < test/tests.txt",
-    "build": "esbuild src/describe.mjs --outfile=dist/describe.min.js --platform=neutral --target=es2020 --minify --line-limit=120",
+    "build": "esbuild src/describe.mjs --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
     "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020"
   },
   "author": "George MacKerron",
@@ -13,5 +12,9 @@
   "devDependencies": {
     "esbuild": "^0.19.5",
     "pg": "^8.11.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neondatabase/psql-describe"
   }
 }

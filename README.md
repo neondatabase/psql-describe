@@ -9,9 +9,38 @@ psql's `\d` (describe) family of commands ported to JavaScript.
 
 This approach means that many of the 8000+ lines of code in `describe.mjs` have not actually been looked at. If you find bugs, please file an issue.
 
+
 ## Usage
 
-For now, please see `demo-src/demo.js` and `test/test.mjs` for examples.
+The key export is the `describe()` function:
+
+```describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sversion = null, std_strings = true): { promise, cancel };```
+
+* `cmd` (string) is the desired describe command, including the leading backslash, such as `\d` (don't forget you may need to escape the backslash in a literal string).
+* `dbName` (string) is the name of the connected database.
+* `runQuery` is an async function that takes a SQL query (string) and must return *unparsed* query results in the same format used by node-postgres when specifying `rowMode: 'array'`.
+* `outputFn` is a function that receives output for display: this will be either a string or a table object (see below).
+* `echoHidden` (boolean) has the same effect as the `-E` argument to psql: if `true`, all SQL queries are output to `outputFn`, in addition to the final results.
+* `sversion` (number) should be the same value as `SHOW server_version_num` executed on the server, and it used to determine what features the database supports. If it is not provided, the server is queried for it.
+* `std_strings` (boolean) indicates the value of `standard_conforming_strings` in the database.
+
+The function returns an object with two keys: `{ promise, cancel }`: 
+
+* `promise` is a `Promise` that resolves when the command completes. 
+* `cancel()` is a function you can call to abort the command.
+
+The outputs of `describe()`, as passed to the `outputFn` argument, are a mix of plain strings and JS objects representing tables.
+
+To format these outputs for display, two additional functions are exported:
+
+* ```describeDataToString(item)```
+
+This function passes though string items unchanged. When an object item is passed in, a formatted plain-text table is returned, identical to those produced by the psql CLI.
+
+* ```describeDataToHtml(item)```
+
+This function HTML-escapes string items, and formats returns object items as HTML tables (whose contents are HTML-escaped).
+
 
 ## Tests
 
@@ -21,9 +50,10 @@ In case of failure, the tests halt and a `psql.txt` and `local.txt` are written,
 
 To make the tests work on your machine, you'll need to create a test database (see below) and update the DB connection strings in the `test` command in `package.json`.
 
+
 ### Database
 
-Tests should be run against the [Pagila](https://github.com/devrimgunduz/pagila) data set, with these additions:
+Tests should be run against the [Pagila](https://github.com/devrimgunduz/pagila) data set, with the following additions:
 
 ```
 -- extensions with \dx

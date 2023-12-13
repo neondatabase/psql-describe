@@ -178,7 +178,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
     let pset;
     try {
       // get server version, if not supplied
-      if (sversion == null) {  // could also be undefined
+      if (!sversion) {  // covers null, undefined and (importantly) 0
         const vres = await PSQLexec('SHOW server_version_num', true);
         sversion = parseInt(vres.rows[0][0], 10);
       }

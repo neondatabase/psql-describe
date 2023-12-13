@@ -148,7 +148,7 @@ ${sql}
     };
     let pset;
     try {
-      if (sversion == null) {
+      if (!sversion) {
         const vres = await PSQLexec("SHOW server_version_num", true);
         sversion = parseInt(vres.rows[0][0], 10);
       }

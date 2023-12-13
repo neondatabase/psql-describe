@@ -65,11 +65,11 @@ function Ne(){if(z)throw new Error("cancelled")}async function fe(){const We=_.m
 `unsupported command: ${_}`),!1;let[,G,re]=We;if(G=G.replace(/^lo_list/,"dl"),G=G.replace(/^z/,"dp"),G[0]==="?")return C(
 Pt),!1;const A=async(i,l=!1)=>{Ne(),P&&!l&&C(`/******** QUERY *********/
 ${i}
-/************************/`);const t=await O(i);return Ne(),t};let p;try{if(j==null){const n=await A("SHOW server_versio\
-n_num",!0);j=parseInt(n.rows[0][0],10)}p={sversion:j,db:{dbName:T,sversion:j,std_strings:Y,status:0,encoding:6},popt:{topt:{
-default_footer:!0},nullPrint:""}};const i=[re,0];await(G[0]==="d"?ha(i,!0,G):G[0]==="s"?G[1]==="f"||G[1]==="v"?Ta(i,!0,G,
-G[1]==="f"):0:Ua(i,!0,G))==0&&C(`invalid command \\${G}`);let t,a=[];for(;t=Te(i,0,null,!0);)a.push(ee('\\%s: extra argum\
-ent "%s" ignored',G,t));a.length>0&&C(a.join(`
+/************************/`);const t=await O(i);return Ne(),t};let p;try{if(!j){const n=await A("SHOW server_version_num",
+!0);j=parseInt(n.rows[0][0],10)}p={sversion:j,db:{dbName:T,sversion:j,std_strings:Y,status:0,encoding:6},popt:{topt:{default_footer:!0},
+nullPrint:""}};const i=[re,0];await(G[0]==="d"?ha(i,!0,G):G[0]==="s"?G[1]==="f"||G[1]==="v"?Ta(i,!0,G,G[1]==="f"):0:Ua(i,
+!0,G))==0&&C(`invalid command \\${G}`);let t,a=[];for(;t=Te(i,0,null,!0);)a.push(ee('\\%s: extra argument "%s" ignored',
+G,t));a.length>0&&C(a.join(`
 `))}catch(i){return C("ERROR:  "+i.message),z?null:!1}function M(i,...l){C(ee(i,...l))}function U(i,l,t,a,n,e,o,L,d,R){let c={},
 y={},S;if(D(c),S=Ue(p.db,i,l,t,a,n,e,o,L,c,y),y=y.value,d&&(d.value=S),y>=R)return M("improper qualified name (too many \
 dotted names): %s",l),!1;if(R>1&&y==R-1){if(Ea(p.db)==null)return M("You are currently not connected to a database."),!1;
