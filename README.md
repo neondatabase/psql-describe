@@ -21,7 +21,7 @@ The key export is the `describe()` function:
 * `runQuery` is an async function that takes a SQL query (string) and must return *unparsed* query results in the same format used by node-postgres when specifying `rowMode: 'array'`.
 * `outputFn` is a function that receives output for display: this will be either a string or a table object (see below).
 * `echoHidden` (boolean) has the same effect as the `-E` argument to psql: if `true`, all SQL queries are output to `outputFn`, in addition to the final results.
-* `sversion` (number) should be the same value as `SHOW server_version_num` executed on the server, and it used to determine what features the database supports. If it is not provided, the server is queried for it.
+* `sversion` (number) should be the same value as `SHOW server_version_num` executed on the server. It is used to determine what features the database supports. If it is not provided, the server is queried for it.
 * `std_strings` (boolean) indicates the value of `standard_conforming_strings` in the database.
 
 The function returns an object with two keys: `{ promise, cancel }`: 
@@ -39,7 +39,7 @@ This function passes though string items unchanged. When an object item is passe
 
 * ```describeDataToHtml(item)```
 
-This function HTML-escapes string items, and formats returns object items as HTML tables (whose contents are HTML-escaped).
+This function HTML-escapes string items, and formats object items as HTML tables (whose contents are HTML-escaped).
 
 
 ## Tests
