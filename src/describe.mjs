@@ -221,7 +221,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
     } catch (err) {
       // throw err;
       outputFn('ERROR:  ' + err.message);
-      return cancel_pressed ? null : false; 
+      return cancel_pressed ? null : false;
     }
 
     function pg_log_error(template, ...args) {
@@ -678,10 +678,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
 
       /* set footers */
       if (opt.footers) {
-        let footer;
-        let footerIndex = 0;
-        for (footer = opt.footers[footerIndex]; footer; footerIndex++)
-          printTableAddFooter(cont, footer);
+        for (let footer of opt.footers) printTableAddFooter(cont, footer);
       }
 
       printTable(cont, fout, is_pager, flog);
@@ -2820,6 +2817,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
         if (cancel_pressed) {
           return false;
         }
+
       }
 
       return true;
@@ -2838,7 +2836,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
       let res = NULL;
       let myopt = pset.popt.topt;
       let cont = { /* struct */ };
-      let printTableInitialized = false;
       let i;
       let view_def = NULL;
       let headers = [];
@@ -3309,7 +3306,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
       Assert(cols <= lengthof(headers));
 
       printTableInit(cont, myopt, title.data, cols, numrows);
-      printTableInitialized = true;
 
       for (i = 0; i < cols; i++)
         printTableAddHeader(cont, headers[i], true, 'l');
@@ -7966,7 +7962,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
 
     }
-    
+
     return true;
   }
 
@@ -8038,7 +8034,8 @@ function tableToString(td, escape) {
           cellLine[rowLineIndex + 1] === undefined ? ' ' : '+'
         )).join('|')).join('\n')
     }).join('\n'),
-    footers = td.footers ? '\n' + td.footers.join('\n') :
+    nonEmptyFooters = td.footers ? td.footers.filter(noop) : [],
+    footers = nonEmptyFooters.length > 0 ? '\n' + nonEmptyFooters.join('\n') :
       td.opt.default_footer ? `\n(${nrows} row${nrows === 1 ? '' : 's'})` :
         '';
 
@@ -8231,6 +8228,8 @@ function sprintf(template, ...values) {  // just enough sprintf
   result += template.slice(chrIndex);
   return result;
 }
+
+const psprintf = sprintf;
 
 function PQdb(conn) {
   if (!conn) return NULL;

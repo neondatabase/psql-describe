@@ -1,3 +1,4 @@
+\d+ pl*
 \l
 \l+
 \l post*
@@ -21,10 +22,11 @@
 \d actor
 \d act*
 \d+ act*
+
 \d public.Film
 \d public."Film"
 \d public.'Film'
-\d main.public.film
+\d psqldescribe.public.film
 \d other.public.film
 \dS
 \dS+
@@ -165,7 +167,7 @@
 \dPin
 \dPn+ *cust*
 \drds
-\drds * main
+\drds * psqldescribe
 \drg
 \drgS
 \dRp

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
   "scripts": {
-    "test": "test/test.mjs /usr/local/pgsql/bin/psql postgres://localhost:5435/main < test/tests.txt && NODE_TLS_REJECT_UNAUTHORIZED=0 test/test.mjs /usr/local/pgsql/bin/psql postgres://george:n30nNEON@proxy.localtest.me:5435/main http < test/tests.txt",
+    "test": "test/test.mjs /usr/local/pgsql/bin/psql postgres://localhost/psqldescribe < test/tests.txt",
     "build": "esbuild src/describe.mjs --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
     "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020"
   },

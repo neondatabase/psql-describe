@@ -3,23 +3,53 @@
 import pg from 'pg';
 import fs from 'fs';
 import { describe, describeDataToString } from '../src/describe.mjs';
-import { spawnSync } from 'child_process';
+import { execFileSync, spawn } from 'child_process';
 
 const [psqlPath, dbUrl, transport] = process.argv.slice(2);
+const db = parseURL(dbUrl);
 const useHttp = transport === 'http';
 
 console.log(`
 PSQL:      ${psqlPath}
-DB:        ${dbUrl.replace(/(?<=^postgres(ql)?:[/][/][^:]+:)[^@]+(?=@)/, '***')}
+DB:        postgres://${db.auth !== ':' ? db.auth + '@' : ''}${db.hostname}${db.port ? ':' + db.port : ''}${db.pathname}
 Transport: ${useHttp ? 'http' : 'pg'}
 `);
 
+async function spawnAsync(command, args, options) {
+  // ridiculous shenanigans to work around spawnSync output truncation: https://github.com/nodejs/node/issues/19218
+  return new Promise(resolve => {
+    let output = '';
+    const cmd = spawn(command, args, options);
+
+    cmd.stdin.write(options.input);
+    cmd.stdin.end();
+
+    cmd.stdout.setEncoding('utf8');
+    cmd.stdout.on('data', data => output += data);
+
+    cmd.stderr.setEncoding('utf8');
+    cmd.stderr.on('data', data => output += data);
+
+    cmd.on('close', code => resolve(output));
+  });
+}
+
+export function parseURL(url, parseQueryString = false) {
+  const { protocol } = new URL(url);
+  // we now swap the protocol to http: so that `new URL()` will parse it fully
+  const httpUrl = 'http:' + url.substring(protocol.length);
+  let { username, password, host, hostname, port, pathname, search, searchParams, hash } = new URL(httpUrl);
+  password = decodeURIComponent(password);
+  const auth = username + ':' + password;
+  const query = parseQueryString ? Object.fromEntries(searchParams.entries()) : search;
+  return { href: url, protocol, auth, username, password, host, hostname, port, pathname, search, query, hash };
+}
+
 function psql(input) {
-  const { stdout, stderr } = spawnSync(psqlPath, [dbUrl, '-E'], {
+  return spawnAsync(psqlPath, [dbUrl, '-E'], {
     input,
     env: { ...process.env, PGCLIENTENCODING: 'UTF8' },  // to match node-postgres for /dconfig
   });
-  return stdout.toString('utf-8') + stderr.toString('utf-8');
 }
 
 function countLines(str) {
@@ -63,10 +93,10 @@ const
   tests = testsStr.split('\n').map(t => t.trim()).filter(x => !!x);
 
 for (let test of tests) {
-  const psqlOutput = psql(test);
+  const psqlOutput = await psql(test);
 
   const localOutputArr = [];
-  await describe(test, 'main', queryFn, x => localOutputArr.push(x), true).promise;
+  await describe(test, db.pathname.slice(1), queryFn, x => localOutputArr.push(x), true).promise;
   const localOutput = localOutputArr.map(x => describeDataToString(x)).join('\n\n');
 
   const stdPsqlOutput = psqlOutput.replace(/ +$/gm, '').trim();
