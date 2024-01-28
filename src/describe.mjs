@@ -8055,11 +8055,12 @@ function tableToHtml(td) {
       '</tr>';
   }
   result += '</table>';
-  if (td.footers) {
-    if (td.footers.length > 1 && td.footers.some(footer => /^\s/.test(footer))) {
-      result += `<dl>` + td.footers.map(footer => /^\s/.test(footer) ? `<dd>${htmlEscape(footer.trim(), true)}</dd>` : `<dt>${htmlEscape(footer, true)}</dt>`).join('') + '</dl>';
+  const nonEmptyFooters = td.footers ? td.footers.filter(noop) : [];
+  if (nonEmptyFooters.length > 0) {
+    if (nonEmptyFooters.length > 1 && nonEmptyFooters.some(footer => /^\s/.test(footer))) {
+      result += `<dl>` + nonEmptyFooters.map(footer => /^\s/.test(footer) ? `<dd>${htmlEscape(footer.trim(), true)}</dd>` : `<dt>${htmlEscape(footer, true)}</dt>`).join('') + '</dl>';
     } else {
-      result += td.footers.map(footer => `<p>${htmlEscape(footer, true)}</p>`).join('');
+      result += nonEmptyFooters.map(footer => `<p>${htmlEscape(footer, true)}</p>`).join('');
     }
   } else if (td.opt.default_footer) {
     result += `<p>(${td.nrows} row${td.nrows === 1 ? '' : 's'})</p>`;
