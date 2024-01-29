@@ -2,7 +2,7 @@
 
 psql's `\d` (describe) family of commands ported to JavaScript.
 
-* From the Postgres master branch (17devel), we take `exec_command_d`, `exec_command_list` and `exec_command_sf_sv` from `command.c`, and all of `describe.c`, from `src/bin/psql`.
+* From the Postgres master branch (17devel), we take `exec_command_d`, `exec_command_list` and `exec_command_sf_sv` from `command.c`, and all of `describe.c` and `sql_help.c`, from `src/bin/psql`.
 * We use plenty of RegExp search-and-replace to turn this C code into valid JS syntax.
 * We implement some C library functions, such as `strlen` and `strchr`, and some Postgres support functions, such as `printTable` and `printQuery`, in JavaScript.
 * We write tests to catch (and then fix) problems, mostly related to pointer arithmetic, pointer dereferencing, and pointer output parameters.
@@ -14,15 +14,27 @@ This approach means that many of the 8000+ lines of code in `describe.mjs` have 
 
 The key export is the `describe()` function:
 
-```describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sversion = null, std_strings = true): { promise, cancel };```
+```typescript
+describe(
+  cmd,
+  dbName,
+  runQuery,
+  outputFn,
+  echoHidden = false,
+  sversion = null,
+  std_strings = true, 
+  docsURLTemplate = (id) => `https://www.postgresql.org/docs/current/${id}.html`,
+): { promise, cancel };```
+```
 
 * `cmd` (string) is the desired describe command, including the leading backslash, such as `\d` (don't forget you may need to escape the backslash in a literal string).
 * `dbName` (string) is the name of the connected database.
 * `runQuery` is an async function that takes a SQL query (string) and must return *unparsed* query results in the same format used by node-postgres when specifying `rowMode: 'array'`.
-* `outputFn` is a function that receives output for display: this will be either a string or a table object (see below).
+* `outputFn` is a function that receives output for display: this output will be either a string or a table object (see below).
 * `echoHidden` (boolean) has the same effect as the `-E` argument to psql: if `true`, all SQL queries are output to `outputFn`, in addition to the final results.
 * `sversion` (number) should be the same value as `SHOW server_version_num` executed on the server. It is used to determine what features the database supports. If it is not provided, the server is queried for it.
 * `std_strings` (boolean) indicates the value of `standard_conforming_strings` in the database.
+* `docsURLTemplate` (function) specifies how a docs page ID is transformed into a URL, for use with `\\h`. 
 
 The function returns an object with two keys: `{ promise, cancel }`: 
 

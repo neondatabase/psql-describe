@@ -10,7 +10,7 @@
   "author": "George MacKerron",
   "license": "postgresql",
   "devDependencies": {
-    "esbuild": "^0.19.5",
+    "esbuild": "^0.20.0",
     "pg": "^8.11.3"
   },
   "repository": {
