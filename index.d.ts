@@ -6,7 +6,8 @@ export function describe(
   outputFn: (item: string | Record<string, any>) => void,
   echoHidden?: boolean,
   sversion?: number | null,
-  std_strings?: boolean
+  std_strings?: boolean,
+  docsURLTemplate?: (id: string) => string,
 ): {
   promise: Promise<boolean | null>;
   cancel: () => void;
