@@ -110,6 +110,7 @@ Syntax:
 ${helpBuf.data}
 
 URL: ${docsURLTemplate(index[2])}
+
 `
             );
           }

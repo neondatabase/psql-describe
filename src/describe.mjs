@@ -141,7 +141,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
               `Command:     ${index[0]}\n` +
               `Description: ${index[1]}\n` +
               `Syntax:\n${helpBuf.data}\n\n` +
-              `URL: ${docsURLTemplate(index[2])}\n`
+              `URL: ${docsURLTemplate(index[2])}\n\n`
             );
           }
           return false;

@@ -16,6 +16,7 @@ Syntax:
 ${s.data}
 
 URL: ${z(t[2])}
+
 `)}return!1}}const O=async(r,E=!1)=>{le(),v&&!E&&U(`/******** QUERY *********/
 ${r}
 /************************/`);const t=await C(r);return le(),t};let p;try{if(!Y){const i=await O("SHOW server_version_num",
