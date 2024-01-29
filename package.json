@@ -1,6 +1,6 @@
 {
   "name": "psql-describe",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
   "scripts": {
     "test": "test/test.mjs /usr/local/pgsql/bin/psql postgres://localhost/psqldescribe < test/tests.txt",
