@@ -24,7 +24,7 @@ describe(
   sversion = null,
   std_strings = true, 
   docsURLTemplate = (id) => `https://www.postgresql.org/docs/current/${id}.html`,
-): { promise, cancel };```
+): { promise, cancel };
 ```
 
 * `cmd` (string) is the desired describe command, including the leading backslash, such as `\d` (don't forget you may need to escape the backslash in a literal string).
@@ -34,7 +34,7 @@ describe(
 * `echoHidden` (boolean) has the same effect as the `-E` argument to psql: if `true`, all SQL queries are output to `outputFn`, in addition to the final results.
 * `sversion` (number) should be the same value as `SHOW server_version_num` executed on the server. It is used to determine what features the database supports. If it is not provided, the server is queried for it.
 * `std_strings` (boolean) indicates the value of `standard_conforming_strings` in the database.
-* `docsURLTemplate` (function) specifies how a docs page ID is transformed into a URL, for use with `\\h`. 
+* `docsURLTemplate` (function) specifies how a docs page ID is transformed into a URL, for use with `\h`. 
 
 The function returns an object with two keys: `{ promise, cancel }`: 
 
