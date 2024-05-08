@@ -9,7 +9,7 @@ psql's `\d` (describe) family of commands ported to JavaScript.
 
 This approach means that some of the 8000+ lines of code in `describe.mjs` may not actually have been looked at. If you find a bug, please file an issue.
 
-This library [powers backslash commands in the Neon SQL Editor](https://neon.tech/blog/bringing-psqls-d-to-your-web-browser).
+This library is [on npm](https://www.npmjs.com/package/psql-describe) and [powers backslash commands in the Neon SQL Editor](https://neon.tech/blog/bringing-psqls-d-to-your-web-browser).
 
 ## Usage
 
