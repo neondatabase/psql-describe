@@ -7,8 +7,9 @@ psql's `\d` (describe) family of commands ported to JavaScript.
 * We implement some C library functions, such as `strlen` and `strchr`, and some Postgres support functions, such as `printTable` and `printQuery`, in JavaScript.
 * We write tests to catch (and then fix) problems, mostly related to pointer arithmetic, pointer dereferencing, and pointer output parameters.
 
-This approach means that many of the 8000+ lines of code in `describe.mjs` have not actually been looked at. If you find bugs, please file an issue.
+This approach means that some of the 8000+ lines of code in `describe.mjs` may not actually have been looked at. If you find a bug, please file an issue.
 
+This library [powers backslash commands in the Neon SQL Editor](https://neon.tech/blog/bringing-psqls-d-to-your-web-browser).
 
 ## Usage
 
