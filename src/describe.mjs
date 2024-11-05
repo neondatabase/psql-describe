@@ -3984,7 +3984,8 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
                 PQgetvalue(result, i, 1));
 
               /* Show the stats target if it's not default */
-              if (strcmp(PQgetvalue(result, i, 8), "-1") != 0)
+              if (!PQgetisnull(result, i, 8) &&
+                strcmp(PQgetvalue(result, i, 8), "-1") != 0)
                 appendPQExpBuffer(buf, "; STATISTICS %s",
                   PQgetvalue(result, i, 8));
 
@@ -4212,47 +4213,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
             if (!PQgetisnull(result, i, 1))
               appendPQExpBuffer(buf, " WHERE %s",
                 PQgetvalue(result, i, 1));
-
-            printTableAddFooter(cont, buf.data);
-          }
-        }
-
-        /* If verbose, print NOT NULL constraints */
-        if (verbose) {
-          printfPQExpBuffer(buf,
-            "SELECT co.conname, at.attname, co.connoinherit, co.conislocal,\n" +
-            "co.coninhcount <> 0\n" +
-            "FROM pg_catalog.pg_constraint co JOIN\n" +
-            "pg_catalog.pg_attribute at ON\n" +
-            "(at.attnum = co.conkey[1])\n" +
-            "WHERE co.contype = 'n' AND\n" +
-            "co.conrelid = '%s'::pg_catalog.regclass AND\n" +
-            "at.attrelid = '%s'::pg_catalog.regclass\n" +
-            "ORDER BY at.attnum",
-            oid,
-            oid);
-
-          result = await PSQLexec(buf.data);
-          if (!result)
-            return retval;
-          else
-            tuples = PQntuples(result);
-
-          if (tuples > 0)
-            printTableAddFooter(cont, _("Not-null constraints:"));
-
-          /* Might be an empty set - that's ok */
-          for (i = 0; i < tuples; i++) {
-            let islocal = PQgetvalue(result, i, 3)[0] == 't';
-            let inherited = PQgetvalue(result, i, 4)[0] == 't';
-
-            printfPQExpBuffer(buf, "    \"%s\" NOT NULL \"%s\"%s",
-              PQgetvalue(result, i, 0),
-              PQgetvalue(result, i, 1),
-              PQgetvalue(result, i, 2)[0] == 't' ?
-                " NO INHERIT" :
-                islocal && inherited ? _(" (local, inherited)") :
-                  inherited ? _(" (inherited)") : "");
 
             printTableAddFooter(cont, buf.data);
           }
@@ -5529,7 +5489,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
         "       CASE WHEN t.typnotnull THEN 'not null' END as \"%s\",\n" +
         "       t.typdefault as \"%s\",\n" +
         "       pg_catalog.array_to_string(ARRAY(\n" +
-        "         SELECT pg_catalog.pg_get_constraintdef(r.oid, true) FROM pg_catalog.pg_constraint r WHERE t.oid = r.contypid\n" +
+        "         SELECT pg_catalog.pg_get_constraintdef(r.oid, true) FROM pg_catalog.pg_constraint r WHERE t.oid = r.contypid AND r.contype = 'c' ORDER BY r.conname\n" +
         "       ), ' ') as \"%s\"",
         gettext_noop("Schema"),
         gettext_noop("Name"),
@@ -6029,7 +5989,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
 
       if (pset.sversion >= 100000)
         appendPQExpBuffer(buf,
-          "  CASE c.collprovider WHEN 'd' THEN 'default' WHEN 'c' THEN 'libc' WHEN 'i' THEN 'icu' END AS \"%s\",\n",
+          "  CASE c.collprovider WHEN 'd' THEN 'default' WHEN 'b' THEN 'builtin' WHEN 'c' THEN 'libc' WHEN 'i' THEN 'icu' END AS \"%s\",\n",
           gettext_noop("Provider"));
       else
         appendPQExpBuffer(buf,
@@ -6042,14 +6002,18 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
         gettext_noop("Collate"),
         gettext_noop("Ctype"));
 
-      if (pset.sversion >= 150000)
+      if (pset.sversion >= 170000)
+        appendPQExpBuffer(buf,
+          "  c.colllocale AS \"%s\",\n",
+          gettext_noop("Locale"));
+      else if (pset.sversion >= 150000)
         appendPQExpBuffer(buf,
           "  c.colliculocale AS \"%s\",\n",
-          gettext_noop("ICU Locale"));
+          gettext_noop("Locale"));
       else
         appendPQExpBuffer(buf,
           "  c.collcollate AS \"%s\",\n",
-          gettext_noop("ICU Locale"));
+          gettext_noop("Locale"));
 
       if (pset.sversion >= 160000)
         appendPQExpBuffer(buf,
@@ -7434,7 +7398,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
       let res;
       let myopt = pset.popt;
       let translate_columns = [false, false, false, false,
-        false, false, false, false, false, false, false, false, false, false];
+        false, false, false, false, false, false, false, false, false, false, false];
 
       if (pset.sversion < 100000) {
         let sverbuf;
@@ -7495,6 +7459,11 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
             gettext_noop("Password required"),
             gettext_noop("Run as owner?"));
 
+        if (pset.sversion >= 170000)
+          appendPQExpBuffer(buf,
+            ", subfailover AS \"%s\"\n",
+            gettext_noop("Failover"));
+
         appendPQExpBuffer(buf,
           ",  subsynccommit AS \"%s\"\n" +
           ",  subconninfo AS \"%s\"\n",
@@ -7547,10 +7516,17 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
      * Helper function for consistently formatting ACL (privilege) columns.
      * The proper targetlist entry is appended to buf.  Note lack of any
      * whitespace or comma decoration.
+     *
+     * If you change this, see also the handling of attacl in permissionsList(),
+     * which can't conveniently use this code.
      */
     function printACLColumn(buf, colname) {
       appendPQExpBuffer(buf,
-        "pg_catalog.array_to_string(%s, E'\\n') AS \"%s\"",
+        "CASE" +
+        " WHEN pg_catalog.array_length(%s, 1) = 0 THEN '%s'" +
+        " ELSE pg_catalog.array_to_string(%s, E'\\n')" +
+        " END AS \"%s\"",
+        colname, gettext_noop("(none)"),
         colname, gettext_noop("Access privileges"));
     }
 

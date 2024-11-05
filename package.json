@@ -1,6 +1,6 @@
 {
   "name": "psql-describe",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
   "scripts": {
     "test": "test/test.mjs /usr/local/pgsql/bin/psql postgres://localhost/psqldescribe < test/tests.txt",
@@ -10,7 +10,7 @@
   "author": "George MacKerron",
   "license": "postgresql",
   "devDependencies": {
-    "esbuild": "^0.20.0",
+    "esbuild": "^0.24.0",
     "pg": "^8.11.3"
   },
   "repository": {

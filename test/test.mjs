@@ -99,7 +99,11 @@ for (let test of tests) {
   await describe(test, db.pathname.slice(1), queryFn, x => localOutputArr.push(x), true).promise;
   const localOutput = localOutputArr.map(x => describeDataToString(x)).join('\n\n');
 
-  const stdPsqlOutput = psqlOutput.replace(/ +$/gm, '').trim();
+  const stdPsqlOutput = psqlOutput
+    // in case an older v17 release is compared: https://github.com/postgres/postgres/commit/923a71584fd7efb5302cb8bf5a5bd417b531123f
+    .replace(/pg_catalog\.cardinality\(([^)]+)\) = 0/g, 'pg_catalog.array_length($1, 1) = 0')
+    .replace(/ +$/gm, '').trim();
+
   const stdLocalOutput = localOutput.replace(/ +$/gm, '').trim();
 
   let pass = stdPsqlOutput === stdLocalOutput;
@@ -115,6 +119,7 @@ for (let test of tests) {
       stdPsqlOutput.replace(/\n\s*application_name[^\n]+/, '').replace(/\n\(\d+ rows?\)/g, '')
       === stdLocalOutput.replace(/\n\(\d+ rows?\)/g, '')) {
       pass = true;
+
     }
   }
 
