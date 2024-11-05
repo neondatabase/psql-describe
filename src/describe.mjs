@@ -7523,7 +7523,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
     function printACLColumn(buf, colname) {
       appendPQExpBuffer(buf,
         "CASE" +
-        " WHEN pg_catalog.array_length(%s, 1) = 0 THEN '%s'" +
+        " WHEN pg_catalog.cardinality(%s) = 0 THEN '%s'" +
         " ELSE pg_catalog.array_to_string(%s, E'\\n')" +
         " END AS \"%s\"",
         colname, gettext_noop("(none)"),
@@ -8767,7 +8767,7 @@ function sql_help_ALTER_DEFAULT_PRIVILEGES(buf) {
     "\n" +
     "%s\n" +
     "\n" +
-    "GRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER }\n" +
+    "GRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n" +
     "    [, ...] | ALL [ PRIVILEGES ] }\n" +
     "    ON TABLES\n" +
     "    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n" +
@@ -8785,12 +8785,13 @@ function sql_help_ALTER_DEFAULT_PRIVILEGES(buf) {
     "    ON TYPES\n" +
     "    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n" +
     "\n" +
-    "GRANT { USAGE | CREATE | ALL [ PRIVILEGES ] }\n" +
+    "GRANT { { USAGE | CREATE }\n" +
+		"    [, ...] | ALL [ PRIVILEGES ] }\n" +
     "    ON SCHEMAS\n" +
     "    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n" +
     "\n" +
     "REVOKE [ GRANT OPTION FOR ]\n" +
-    "    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER }\n" +
+    "    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n" +
     "    [, ...] | ALL [ PRIVILEGES ] }\n" +
     "    ON TABLES\n" +
     "    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n" +
@@ -8816,7 +8817,8 @@ function sql_help_ALTER_DEFAULT_PRIVILEGES(buf) {
     "    [ CASCADE | RESTRICT ]\n" +
     "\n" +
     "REVOKE [ GRANT OPTION FOR ]\n" +
-    "    { USAGE | CREATE | ALL [ PRIVILEGES ] }\n" +
+    "    { { USAGE | CREATE }\n" +
+		"    [, ...] | ALL [ PRIVILEGES ] }\n" +
     "    ON SCHEMAS\n" +
     "    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n" +
     "    [ CASCADE | RESTRICT ]",
@@ -9309,7 +9311,11 @@ function sql_help_ALTER_OPERATOR(buf) {
     "ALTER OPERATOR %s ( { %s | NONE } , %s )\n" +
     "    SET ( {  RESTRICT = { %s | NONE }\n" +
     "           | JOIN = { %s | NONE }\n" +
-    "         } [, ... ] )",
+    "           | COMMUTATOR = %s\n" +
+    "           | NEGATOR = %s\n" +
+    "           | HASHES\n" +
+    "           | MERGES\n" +
+    "          } [, ... ] )",
     _("name"),
     _("left_type"),
     _("right_type"),
@@ -9322,7 +9328,9 @@ function sql_help_ALTER_OPERATOR(buf) {
     _("left_type"),
     _("right_type"),
     _("res_proc"),
-    _("join_proc"));
+    _("join_proc"),
+    _("com_op"),
+    _("neg_op"));
 }
 
 function sql_help_ALTER_OPERATOR_CLASS(buf) {
@@ -9687,7 +9695,7 @@ function sql_help_ALTER_STATISTICS(buf) {
     "ALTER STATISTICS %s OWNER TO { %s | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n" +
     "ALTER STATISTICS %s RENAME TO %s\n" +
     "ALTER STATISTICS %s SET SCHEMA %s\n" +
-    "ALTER STATISTICS %s SET STATISTICS %s",
+    "ALTER STATISTICS %s SET STATISTICS { %s | DEFAULT }",
     _("name"),
     _("new_owner"),
     _("name"),
@@ -9781,11 +9789,12 @@ function sql_help_ALTER_TABLE(buf) {
     "    ALTER [ COLUMN ] %s SET DEFAULT %s\n" +
     "    ALTER [ COLUMN ] %s DROP DEFAULT\n" +
     "    ALTER [ COLUMN ] %s { SET | DROP } NOT NULL\n" +
+    "    ALTER [ COLUMN ] %s SET EXPRESSION AS ( %s )\n" +
     "    ALTER [ COLUMN ] %s DROP EXPRESSION [ IF EXISTS ]\n" +
     "    ALTER [ COLUMN ] %s ADD GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( %s ) ]\n" +
     "    ALTER [ COLUMN ] %s { SET GENERATED { ALWAYS | BY DEFAULT } | SET %s | RESTART [ [ WITH ] %s ] } [...]\n" +
     "    ALTER [ COLUMN ] %s DROP IDENTITY [ IF EXISTS ]\n" +
-    "    ALTER [ COLUMN ] %s SET STATISTICS %s\n" +
+    "    ALTER [ COLUMN ] %s SET STATISTICS { %s | DEFAULT }\n" +
     "    ALTER [ COLUMN ] %s SET ( %s = %s [, ... ] )\n" +
     "    ALTER [ COLUMN ] %s RESET ( %s [, ... ] )\n" +
     "    ALTER [ COLUMN ] %s SET STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }\n" +
@@ -9810,7 +9819,7 @@ function sql_help_ALTER_TABLE(buf) {
     "    CLUSTER ON %s\n" +
     "    SET WITHOUT CLUSTER\n" +
     "    SET WITHOUT OIDS\n" +
-    "    SET ACCESS METHOD %s\n" +
+    "    SET ACCESS METHOD { %s | DEFAULT }\n" +
     "    SET TABLESPACE %s\n" +
     "    SET { LOGGED | UNLOGGED }\n" +
     "    SET ( %s [= %s] [, ... ] )\n" +
@@ -9848,7 +9857,6 @@ function sql_help_ALTER_TABLE(buf) {
     "\n" +
     "[ CONSTRAINT %s ]\n" +
     "{ CHECK ( %s ) [ NO INHERIT ] |\n" +
-    "  NOT NULL %s [ NO INHERIT ] |\n" +
     "  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( %s [, ... ] ) %s |\n" +
     "  PRIMARY KEY ( %s [, ... ] ) %s |\n" +
     "  EXCLUDE [ USING %s ] ( %s WITH %s [, ... ] ) %s [ WHERE ( %s ) ] |\n" +
@@ -9870,7 +9878,7 @@ function sql_help_ALTER_TABLE(buf) {
     "\n" +
     "%s\n" +
     "\n" +
-    "{ %s | ( %s ) } [ %s ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n" +
+    "{ %s | ( %s ) } [ COLLATE %s ] [ %s [ ( %s = %s [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n" +
     "\n" +
     "%s\n" +
     "\n" +
@@ -9909,6 +9917,8 @@ function sql_help_ALTER_TABLE(buf) {
     _("expression"),
     _("column_name"),
     _("column_name"),
+    _("column_name"),
+    _("expression"),
     _("column_name"),
     _("column_name"),
     _("sequence_options"),
@@ -9972,7 +9982,6 @@ function sql_help_ALTER_TABLE(buf) {
     _("constraint_name"),
     _("expression"),
     _("column_name"),
-    _("column_name"),
     _("index_parameters"),
     _("column_name"),
     _("index_parameters"),
@@ -9997,7 +10006,10 @@ function sql_help_ALTER_TABLE(buf) {
     _("exclude_element in an EXCLUDE constraint is:"),
     _("column_name"),
     _("expression"),
+    _("collation"),
     _("opclass"),
+    _("opclass_parameter"),
+    _("value"),
     _("referential_action in a FOREIGN KEY/REFERENCES constraint is:"),
     _("column_name"),
     _("column_name"));
@@ -10485,9 +10497,11 @@ function sql_help_COPY(buf) {
     "    QUOTE '%s'\n" +
     "    ESCAPE '%s'\n" +
     "    FORCE_QUOTE { ( %s [, ...] ) | * }\n" +
-    "    FORCE_NOT_NULL ( %s [, ...] )\n" +
-    "    FORCE_NULL ( %s [, ...] )\n" +
-    "    ENCODING '%s'",
+    "    FORCE_NOT_NULL { ( %s [, ...] ) | * }\n" +
+    "    FORCE_NULL { ( %s [, ...] ) | * }\n" +
+    "    ON_ERROR %s\n" +
+    "    ENCODING '%s'\n" +
+    "    LOG_VERBOSITY %s",
     _("table_name"),
     _("column_name"),
     _("filename"),
@@ -10512,7 +10526,9 @@ function sql_help_COPY(buf) {
     _("column_name"),
     _("column_name"),
     _("column_name"),
-    _("encoding_name"));
+    _("error_action"),
+    _("encoding_name"),
+    _("verbosity"));
 }
 
 function sql_help_CREATE_ACCESS_METHOD(buf) {
@@ -10701,10 +10717,11 @@ function sql_help_CREATE_DATABASE(buf) {
     "    [ WITH ] [ OWNER [=] %s ]\n" +
     "           [ TEMPLATE [=] %s ]\n" +
     "           [ ENCODING [=] %s ]\n" +
-    "           [ STRATEGY [=] %s ] ]\n" +
+    "           [ STRATEGY [=] %s ]\n" +
     "           [ LOCALE [=] %s ]\n" +
     "           [ LC_COLLATE [=] %s ]\n" +
     "           [ LC_CTYPE [=] %s ]\n" +
+    "           [ BUILTIN_LOCALE [=] %s ]\n" +
     "           [ ICU_LOCALE [=] %s ]\n" +
     "           [ ICU_RULES [=] %s ]\n" +
     "           [ LOCALE_PROVIDER [=] %s ]\n" +
@@ -10722,6 +10739,7 @@ function sql_help_CREATE_DATABASE(buf) {
     _("locale"),
     _("lc_collate"),
     _("lc_ctype"),
+    _("builtin_locale"),
     _("icu_locale"),
     _("icu_rules"),
     _("locale_provider"),
@@ -10748,8 +10766,8 @@ function sql_help_CREATE_DOMAIN(buf) {
     _("data_type"),
     _("collation"),
     _("expression"),
-    _("constraint"),
-    _("where constraint is:"),
+    _("domain_constraint"),
+		_("where domain_constraint is:"),
     _("constraint_name"),
     _("expression"));
 }
@@ -11137,10 +11155,8 @@ function sql_help_CREATE_ROLE(buf) {
     "    | [ ENCRYPTED ] PASSWORD '%s' | PASSWORD NULL\n" +
     "    | VALID UNTIL '%s'\n" +
     "    | IN ROLE %s [, ...]\n" +
-    "    | IN GROUP %s [, ...]\n" +
     "    | ROLE %s [, ...]\n" +
     "    | ADMIN %s [, ...]\n" +
-    "    | USER %s [, ...]\n" +
     "    | SYSID %s",
     _("name"),
     _("option"),
@@ -11148,8 +11164,6 @@ function sql_help_CREATE_ROLE(buf) {
     _("connlimit"),
     _("password"),
     _("timestamp"),
-    _("role_name"),
-    _("role_name"),
     _("role_name"),
     _("role_name"),
     _("role_name"),
@@ -11325,7 +11339,6 @@ function sql_help_CREATE_TABLE(buf) {
     "\n" +
     "[ CONSTRAINT %s ]\n" +
     "{ CHECK ( %s ) [ NO INHERIT ] |\n" +
-    "  NOT NULL %s [ NO INHERIT ] |\n" +
     "  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( %s [, ... ] ) %s |\n" +
     "  PRIMARY KEY ( %s [, ... ] ) %s |\n" +
     "  EXCLUDE [ USING %s ] ( %s WITH %s [, ... ] ) %s [ WHERE ( %s ) ] |\n" +
@@ -11352,7 +11365,7 @@ function sql_help_CREATE_TABLE(buf) {
     "\n" +
     "%s\n" +
     "\n" +
-    "{ %s | ( %s ) } [ %s ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n" +
+    "{ %s | ( %s ) } [ COLLATE %s ] [ %s [ ( %s = %s [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n" +
     "\n" +
     "%s\n" +
     "\n" +
@@ -11418,7 +11431,6 @@ function sql_help_CREATE_TABLE(buf) {
     _("constraint_name"),
     _("expression"),
     _("column_name"),
-    _("column_name"),
     _("index_parameters"),
     _("column_name"),
     _("index_parameters"),
@@ -11447,7 +11459,10 @@ function sql_help_CREATE_TABLE(buf) {
     _("exclude_element in an EXCLUDE constraint is:"),
     _("column_name"),
     _("expression"),
+    _("collation"),
     _("opclass"),
+    _("opclass_parameter"),
+    _("value"),
     _("referential_action in a FOREIGN KEY/REFERENCES constraint is:"),
     _("column_name"),
     _("column_name"));
@@ -11734,7 +11749,7 @@ function sql_help_DELETE(buf) {
     "DELETE FROM [ ONLY ] %s [ * ] [ [ AS ] %s ]\n" +
     "    [ USING %s [, ...] ]\n" +
     "    [ WHERE %s | WHERE CURRENT OF %s ]\n" +
-    "    [ RETURNING * | %s [ [ AS ] %s ] [, ...] ]",
+    "    [ RETURNING { * | %s [ [ AS ] %s ] } [, ...] ]",
     _("with_query"),
     _("table_name"),
     _("alias"),
@@ -12084,13 +12099,16 @@ function sql_help_EXPLAIN(buf) {
     "    SETTINGS [ %s ]\n" +
     "    GENERIC_PLAN [ %s ]\n" +
     "    BUFFERS [ %s ]\n" +
+    "    SERIALIZE [ { NONE | TEXT | BINARY } ]\n" +
     "    WAL [ %s ]\n" +
     "    TIMING [ %s ]\n" +
     "    SUMMARY [ %s ]\n" +
+    "    MEMORY [ %s ]\n" +
     "    FORMAT { TEXT | XML | JSON | YAML }",
     _("option"),
     _("statement"),
     _("where option can be one of:"),
+    _("boolean"),
     _("boolean"),
     _("boolean"),
     _("boolean"),
@@ -12134,7 +12152,7 @@ function sql_help_FETCH(buf) {
 
 function sql_help_GRANT(buf) {
   appendPQExpBuffer(buf,
-    "GRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER }\n" +
+    "GRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n" +
     "    [, ...] | ALL [ PRIVILEGES ] }\n" +
     "    ON { [ TABLE ] %s [, ...]\n" +
     "         | ALL TABLES IN SCHEMA %s [, ...] }\n" +
@@ -12300,7 +12318,7 @@ function sql_help_INSERT(buf) {
     "    [ OVERRIDING { SYSTEM | USER } VALUE ]\n" +
     "    { DEFAULT VALUES | VALUES ( { %s | DEFAULT } [, ...] ) [, ...] | %s }\n" +
     "    [ ON CONFLICT [ %s ] %s ]\n" +
-    "    [ RETURNING * | %s [ [ AS ] %s ] [, ...] ]\n" +
+    "    [ RETURNING { * | %s [ [ AS ] %s ] } [, ...] ]\n" +
     "\n" +
     "%s\n" +
     "\n" +
@@ -12373,6 +12391,7 @@ function sql_help_MERGE(buf) {
     "MERGE INTO [ ONLY ] %s [ * ] [ [ AS ] %s ]\n" +
     "USING %s ON %s\n" +
     "%s [...]\n" +
+    "[ RETURNING { * | %s [ [ AS ] %s ] } [, ...] ]\n" +
     "\n" +
     "%s\n" +
     "\n" +
@@ -12381,7 +12400,8 @@ function sql_help_MERGE(buf) {
     "%s\n" +
     "\n" +
     "{ WHEN MATCHED [ AND %s ] THEN { %s | %s | DO NOTHING } |\n" +
-    "  WHEN NOT MATCHED [ AND %s ] THEN { %s | DO NOTHING } }\n" +
+    "  WHEN NOT MATCHED BY SOURCE [ AND %s ] THEN { %s | %s | DO NOTHING } |\n" +
+    "  WHEN NOT MATCHED [ BY TARGET ] [ AND %s ] THEN { %s | DO NOTHING } }\n" +
     "\n" +
     "%s\n" +
     "\n" +
@@ -12392,7 +12412,9 @@ function sql_help_MERGE(buf) {
     "%s\n" +
     "\n" +
     "UPDATE SET { %s = { %s | DEFAULT } |\n" +
-    "             ( %s [, ...] ) = ( { %s | DEFAULT } [, ...] ) } [, ...]\n" +
+    "             ( %s [, ...] ) = [ ROW ] ( { %s | DEFAULT } [, ...] ) |\n" +
+    "             ( %s [, ...] ) = ( %s )\n" +
+    "           } [, ...]\n" +
     "\n" +
     "%s\n" +
     "\n" +
@@ -12403,11 +12425,16 @@ function sql_help_MERGE(buf) {
     _("data_source"),
     _("join_condition"),
     _("when_clause"),
+    _("output_expression"),
+    _("output_name"),
     _("where data_source is:"),
     _("source_table_name"),
     _("source_query"),
     _("source_alias"),
     _("and when_clause is:"),
+    _("condition"),
+    _("merge_update"),
+    _("merge_delete"),
     _("condition"),
     _("merge_update"),
     _("merge_delete"),
@@ -12421,7 +12448,10 @@ function sql_help_MERGE(buf) {
     _("expression"),
     _("column_name"),
     _("expression"),
+    _("column_name"),
+    _("sub-SELECT"),
     _("and merge_delete is:"));
+
 }
 
 function sql_help_MOVE(buf) {
@@ -12526,7 +12556,7 @@ function sql_help_RESET(buf) {
 function sql_help_REVOKE(buf) {
   appendPQExpBuffer(buf,
     "REVOKE [ GRANT OPTION FOR ]\n" +
-    "    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER }\n" +
+    "    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n" +
     "    [, ...] | ALL [ PRIVILEGES ] }\n" +
     "    ON { [ TABLE ] %s [, ...]\n" +
     "         | ALL TABLES IN SCHEMA %s [, ...] }\n" +
@@ -12731,7 +12761,7 @@ function sql_help_SECURITY_LABEL(buf) {
     "  DATABASE %s |\n" +
     "  DOMAIN %s |\n" +
     "  EVENT TRIGGER %s |\n" +
-    "  FOREIGN TABLE %s\n" +
+    "  FOREIGN TABLE %s |\n" +
     "  FUNCTION %s [ ( [ [ %s ] [ %s ] %s [, ...] ] ) ] |\n" +
     "  LARGE OBJECT %s |\n" +
     "  MATERIALIZED VIEW %s |\n" +
@@ -12803,7 +12833,7 @@ function sql_help_SELECT(buf) {
   appendPQExpBuffer(buf,
     "[ WITH [ RECURSIVE ] %s [, ...] ]\n" +
     "SELECT [ ALL | DISTINCT [ ON ( %s [, ...] ) ] ]\n" +
-    "    [ * | %s [ [ AS ] %s ] [, ...] ]\n" +
+    "    [ { * | %s [ [ AS ] %s ] } [, ...] ]\n" +
     "    [ FROM %s [, ...] ]\n" +
     "    [ WHERE %s ]\n" +
     "    [ GROUP BY [ ALL | DISTINCT ] %s [, ...] ]\n" +
@@ -12843,7 +12873,7 @@ function sql_help_SELECT(buf) {
     "\n" +
     "%s\n" +
     "\n" +
-    "    %s [ ( %s [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( %s | %s | %s | %s | %s )\n" +
+    "    %s [ ( %s [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( %s | %s | %s | %s | %s | %s )\n" +
     "        [ SEARCH { BREADTH | DEPTH } FIRST BY %s [, ...] SET %s ]\n" +
     "        [ CYCLE %s [, ...] SET %s [ TO %s DEFAULT %s ] USING %s ]\n" +
     "\n" +
@@ -12864,7 +12894,7 @@ function sql_help_SELECT(buf) {
     _("count"),
     _("start"),
     _("count"),
-    _("table_name"),
+    _("from_reference"),
     _("where from_item can be one of:"),
     _("table_name"),
     _("alias"),
@@ -12921,6 +12951,7 @@ function sql_help_SELECT(buf) {
     _("insert"),
     _("update"),
     _("delete"),
+    _("merge"),
     _("column_name"),
     _("search_seq_col_name"),
     _("column_name"),
@@ -12935,7 +12966,7 @@ function sql_help_SELECT_INTO(buf) {
   appendPQExpBuffer(buf,
     "[ WITH [ RECURSIVE ] %s [, ...] ]\n" +
     "SELECT [ ALL | DISTINCT [ ON ( %s [, ...] ) ] ]\n" +
-    "    * | %s [ [ AS ] %s ] [, ...]\n" +
+    "    [ { * | %s [ [ AS ] %s ] } [, ...] ]\n" +
     "    INTO [ TEMPORARY | TEMP | UNLOGGED ] [ TABLE ] %s\n" +
     "    [ FROM %s [, ...] ]\n" +
     "    [ WHERE %s ]\n" +
@@ -13042,7 +13073,7 @@ function sql_help_TABLE(buf) {
   appendPQExpBuffer(buf,
     "[ WITH [ RECURSIVE ] %s [, ...] ]\n" +
     "SELECT [ ALL | DISTINCT [ ON ( %s [, ...] ) ] ]\n" +
-    "    [ * | %s [ [ AS ] %s ] [, ...] ]\n" +
+    "    [ { * | %s [ [ AS ] %s ] } [, ...] ]\n" +
     "    [ FROM %s [, ...] ]\n" +
     "    [ WHERE %s ]\n" +
     "    [ GROUP BY [ ALL | DISTINCT ] %s [, ...] ]\n" +
@@ -13082,7 +13113,7 @@ function sql_help_TABLE(buf) {
     "\n" +
     "%s\n" +
     "\n" +
-    "    %s [ ( %s [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( %s | %s | %s | %s | %s )\n" +
+    "    %s [ ( %s [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( %s | %s | %s | %s | %s | %s )\n" +
     "        [ SEARCH { BREADTH | DEPTH } FIRST BY %s [, ...] SET %s ]\n" +
     "        [ CYCLE %s [, ...] SET %s [ TO %s DEFAULT %s ] USING %s ]\n" +
     "\n" +
@@ -13103,7 +13134,7 @@ function sql_help_TABLE(buf) {
     _("count"),
     _("start"),
     _("count"),
-    _("table_name"),
+    _("from_reference"),
     _("where from_item can be one of:"),
     _("table_name"),
     _("alias"),
@@ -13160,6 +13191,7 @@ function sql_help_TABLE(buf) {
     _("insert"),
     _("update"),
     _("delete"),
+    _("merge"),
     _("column_name"),
     _("search_seq_col_name"),
     _("column_name"),
@@ -13193,7 +13225,7 @@ function sql_help_UPDATE(buf) {
     "        } [, ...]\n" +
     "    [ FROM %s [, ...] ]\n" +
     "    [ WHERE %s | WHERE CURRENT OF %s ]\n" +
-    "    [ RETURNING * | %s [ [ AS ] %s ] [, ...] ]",
+    "    [ RETURNING { * | %s [ [ AS ] %s ] } [, ...] ]",
     _("with_query"),
     _("table_name"),
     _("alias"),
@@ -13274,7 +13306,7 @@ function sql_help_WITH(buf) {
   appendPQExpBuffer(buf,
     "[ WITH [ RECURSIVE ] %s [, ...] ]\n" +
     "SELECT [ ALL | DISTINCT [ ON ( %s [, ...] ) ] ]\n" +
-    "    [ * | %s [ [ AS ] %s ] [, ...] ]\n" +
+    "    [ { * | %s [ [ AS ] %s ] } [, ...] ]\n" +
     "    [ FROM %s [, ...] ]\n" +
     "    [ WHERE %s ]\n" +
     "    [ GROUP BY [ ALL | DISTINCT ] %s [, ...] ]\n" +
@@ -13314,7 +13346,7 @@ function sql_help_WITH(buf) {
     "\n" +
     "%s\n" +
     "\n" +
-    "    %s [ ( %s [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( %s | %s | %s | %s | %s )\n" +
+    "    %s [ ( %s [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( %s | %s | %s | %s | %s | %s )\n" +
     "        [ SEARCH { BREADTH | DEPTH } FIRST BY %s [, ...] SET %s ]\n" +
     "        [ CYCLE %s [, ...] SET %s [ TO %s DEFAULT %s ] USING %s ]\n" +
     "\n" +
@@ -13335,7 +13367,7 @@ function sql_help_WITH(buf) {
     _("count"),
     _("start"),
     _("count"),
-    _("table_name"),
+    _("from_reference"),
     _("where from_item can be one of:"),
     _("table_name"),
     _("alias"),
@@ -13392,6 +13424,7 @@ function sql_help_WITH(buf) {
     _("insert"),
     _("update"),
     _("delete"),
+    _("merge"),
     _("column_name"),
     _("search_seq_col_name"),
     _("column_name"),

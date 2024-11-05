@@ -2,7 +2,7 @@
 
 psql's `\d` (describe) family of commands ported to JavaScript.
 
-* From the Postgres REL_17_STABLE branch, we take `exec_command_d`, `exec_command_list` and `exec_command_sf_sv` from `command.c`, and all of `describe.c` and `sql_help.c`, from `src/bin/psql` (note that `sql_help.c` is generated during compilation of psql: you need to run `./configure` in the Postgres repo root followed by `make` in `src/bin/psql`).
+* From Postgres REL_17_0, we take `exec_command_d`, `exec_command_list` and `exec_command_sf_sv` from `command.c`, and all of `describe.c` and `sql_help.c`, from `src/bin/psql` (note that `sql_help.c` is generated during compilation of psql: you need to run `./configure` in the Postgres repo root followed by `make` in `src/bin/psql`).
 * We use plenty of RegExp search-and-replace to turn this C code into valid JS syntax.
 * We implement some C library functions, such as `strlen` and `strchr`, and some Postgres support functions, such as `printTable` and `printQuery`, in JavaScript.
 * We write tests to catch (and then fix) problems, mostly related to pointer arithmetic, pointer dereferencing, and pointer output parameters.
@@ -63,7 +63,6 @@ In case of failure, the tests halt and a `psql.txt` and `local.txt` are written,
 
 To make the tests work on your machine, you'll need to create a test database (see below) and update the DB connection strings in the `test` command in `package.json`.
 
-To match output, psql should be compiled from Postgres commit `7f3b41ce48a58f090da94dbcc737483c217ce9c3`.
 
 ### Database
 

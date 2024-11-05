@@ -60,8 +60,7 @@ function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sversion 
     outputFn = () => void 0;
   }
   function throwIfCancelled() {
-    if (cancel_pressed)
-      throw new Error("cancelled");
+    if (cancel_pressed) throw new Error("cancelled");
   }
   async function main() {
     const match = cmd.match(/^\\([?hdzsl]\S*)(.*)/);
@@ -83,15 +82,13 @@ function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sversion 
         return false;
       } else {
         let matches = helpSearch === "*" ? helpIndex : helpIndex.filter((arr) => arr[0] === helpSearch);
-        if (matches.length === 0)
-          matches = helpIndex.filter((arr) => arr[0].startsWith(helpSearch));
+        if (matches.length === 0) matches = helpIndex.filter((arr) => arr[0].startsWith(helpSearch));
         if (matches.length === 0) {
           const searchWords = helpSearch.split(" ");
           for (let i = searchWords.length; i > 0; i--) {
             const indexTerm = searchWords.slice(0, i).join(" ");
             matches = helpIndex.filter((arr) => arr[0].startsWith(indexTerm));
-            if (matches.length > 0)
-              break;
+            if (matches.length > 0) break;
           }
         }
         if (matches.length === 0) {
@@ -120,8 +117,7 @@ URL: ${docsURLTemplate(index[2])}
     }
     const PSQLexec = async (sql, suppressEcho = false) => {
       throwIfCancelled();
-      if (echoHidden && !suppressEcho)
-        outputFn(`/******** QUERY *********/
+      if (echoHidden && !suppressEcho) outputFn(`/******** QUERY *********/
 ${sql}
 /************************/`);
       const result = await runQuery(sql);
@@ -153,13 +149,10 @@ ${sql}
         }
       };
       const scan_state = [remaining, 0], result = await (matchedCommand[0] === "d" ? exec_command_d(scan_state, true, matchedCommand) : matchedCommand[0] === "s" ? matchedCommand[1] === "f" || matchedCommand[1] === "v" ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === "f") : PSQL_CMD_UNKNOWN : matchedCommand[0] === "l" ? exec_command_list(scan_state, true, matchedCommand) : PSQL_CMD_UNKNOWN);
-      if (result === PSQL_CMD_UNKNOWN)
-        outputFn(`invalid command \\${matchedCommand}`);
+      if (result === PSQL_CMD_UNKNOWN) outputFn(`invalid command \\${matchedCommand}`);
       let arg, warnings = [];
-      while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true))
-        warnings.push(sprintf('\\%s: extra argument "%s" ignored', matchedCommand, arg));
-      if (warnings.length > 0)
-        outputFn(warnings.join("\n"));
+      while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(sprintf('\\%s: extra argument "%s" ignored', matchedCommand, arg));
+      if (warnings.length > 0) outputFn(warnings.join("\n"));
     } catch (err) {
       outputFn("ERROR:  " + err.message);
       return cancel_pressed ? null : false;
@@ -188,8 +181,7 @@ ${sql}
         dotcnt
       );
       dotcnt = dotcnt.value;
-      if (added_clause)
-        added_clause.value = added;
+      if (added_clause) added_clause.value = added;
       if (dotcnt >= maxparts) {
         pg_log_error(
           "improper qualified name (too many dotted names): %s",
@@ -220,8 +212,7 @@ ${sql}
         /* struct */
       };
       let added_clause = false;
-      if (!dotcnt)
-        dotcnt = {};
+      if (!dotcnt) dotcnt = {};
       dotcnt.value = 0;
       if (pattern == NULL) {
         if (visibilityrule) {
@@ -465,8 +456,7 @@ ${sql}
         }
       }
       if (opt.footers) {
-        for (let footer of opt.footers)
-          printTableAddFooter(cont, footer);
+        for (let footer of opt.footers) printTableAddFooter(cont, footer);
       }
       printTable(cont, fout, is_pager, flog);
     }
@@ -481,28 +471,24 @@ ${sql}
       content.aligns = [];
     }
     function printTableAddHeader(content, header, translate, align) {
-      if (translate)
-        header = _(header);
+      if (translate) header = _(header);
       content.headers.push(header);
       content.header = header;
       content.aligns.push(align);
       content.align = align;
     }
     function printTableAddCell(content, cell, translate, mustfree) {
-      if (translate)
-        cell = _(cell);
+      if (translate) cell = _(cell);
       content.cells.push(cell);
       content.cell = cell;
     }
     function printTableAddFooter(content, footer) {
-      if (content.footers == NULL)
-        content.footers = [];
+      if (content.footers == NULL) content.footers = [];
       content.footers.push(footer);
       content.footer = footer;
     }
     function printTableSetFooter(content, footer) {
-      if (content.footers)
-        content.footers.pop();
+      if (content.footers) content.footers.pop();
       printTableAddFooter(content, footer);
     }
     function printTable(cont, fout, is_pager, flog) {
@@ -643,6 +629,11 @@ ${sql}
             let reloptions = PQgetvalue(res, 0, 4);
             let checkoption = PQgetvalue(res, 0, 5);
             switch (relkind[0]) {
+              /*
+                    case RELKIND_MATVIEW:
+                      appendPQExpBufferStr(buf, "CREATE OR REPLACE MATERIALIZED VIEW ");
+                      break;
+              */
               case RELKIND_VIEW:
                 appendPQExpBufferStr(buf, "CREATE OR REPLACE VIEW ");
                 break;
@@ -768,13 +759,11 @@ ${sql}
       else if (!(rawid[0] >= "a" && rawid[0] <= "z" || rawid[0] == "_"))
         need_quotes = true;
       else {
-        if (/[^a-z0-9_]/.test(rawid))
-          need_quotes = true;
+        if (/[^a-z0-9_]/.test(rawid)) need_quotes = true;
       }
       if (!need_quotes) {
         let kw = (/* @__PURE__ */ new Set(["all", "analyse", "analyze", "and", "any", "array", "as", "asc", "asymmetric", "authorization", "between", "bigint", "binary", "bit", "boolean", "both", "case", "cast", "char", "character", "check", "coalesce", "collate", "collation", "column", "concurrently", "constraint", "create", "cross", "current_catalog", "current_date", "current_role", "current_schema", "current_time", "current_timestamp", "current_user", "dec", "decimal", "default", "deferrable", "desc", "distinct", "do", "else", "end", "except", "exists", "extract", "false", "fetch", "float", "for", "foreign", "freeze", "from", "full", "grant", "greatest", "group", "grouping", "having", "ilike", "in", "initially", "inner", "inout", "int", "integer", "intersect", "interval", "into", "is", "isnull", "join", "json", "json_array", "json_arrayagg", "json_object", "json_objectagg", "json_scalar", "json_serialize", "lateral", "leading", "least", "left", "like", "limit", "localtime", "localtimestamp", "national", "natural", "nchar", "none", "normalize", "not", "notnull", "null", "nullif", "numeric", "offset", "on", "only", "or", "order", "out", "outer", "overlaps", "overlay", "placing", "position", "precision", "primary", "real", "references", "returning", "right", "row", "select", "session_user", "setof", "similar", "smallint", "some", "substring", "symmetric", "system_user", "table", "tablesample", "then", "time", "timestamp", "to", "trailing", "treat", "trim", "true", "union", "unique", "user", "using", "values", "varchar", "variadic", "verbose", "when", "where", "window", "with", "xmlattributes", "xmlconcat", "xmlelement", "xmlexists", "xmlforest", "xmlnamespaces", "xmlparse", "xmlpi", "xmlroot", "xmlserialize", "xmltable"])).has(rawid);
-        if (kw)
-          need_quotes = true;
+        if (kw) need_quotes = true;
       }
       if (!need_quotes) {
         appendPQExpBufferStr(id_return, rawid);
@@ -1103,7 +1092,7 @@ ${sql}
       if (pset.sversion >= 15e4)
         appendPQExpBuffer(
           buf,
-          `  CASE d.datlocprovider WHEN 'c' THEN 'libc' WHEN 'i' THEN 'icu' END AS "%s",
+          `  CASE d.datlocprovider WHEN 'b' THEN 'builtin' WHEN 'c' THEN 'libc' WHEN 'i' THEN 'icu' END AS "%s",
 `,
           gettext_noop("Locale Provider")
         );
@@ -1120,17 +1109,23 @@ ${sql}
         gettext_noop("Collate"),
         gettext_noop("Ctype")
       );
-      if (pset.sversion >= 15e4)
+      if (pset.sversion >= 17e4)
+        appendPQExpBuffer(
+          buf,
+          '  d.datlocale as "%s",\n',
+          gettext_noop("Locale")
+        );
+      else if (pset.sversion >= 15e4)
         appendPQExpBuffer(
           buf,
           '  d.daticulocale as "%s",\n',
-          gettext_noop("ICU Locale")
+          gettext_noop("Locale")
         );
       else
         appendPQExpBuffer(
           buf,
           '  NULL as "%s",\n',
-          gettext_noop("ICU Locale")
+          gettext_noop("Locale")
         );
       if (pset.sversion >= 16e4)
         appendPQExpBuffer(
@@ -3273,7 +3268,7 @@ FROM pg_catalog.pg_operator o
                 PQgetvalue(result, i, 4),
                 PQgetvalue(result, i, 1)
               );
-              if (strcmp(PQgetvalue(result, i, 8), "-1") != 0)
+              if (!PQgetisnull(result, i, 8) && strcmp(PQgetvalue(result, i, 8), "-1") != 0)
                 appendPQExpBuffer(
                   buf,
                   "; STATISTICS %s",
@@ -3447,33 +3442,6 @@ FROM pg_catalog.pg_operator o
                 " WHERE %s",
                 PQgetvalue(result, i, 1)
               );
-            printTableAddFooter(cont, buf.data);
-          }
-        }
-        if (verbose) {
-          printfPQExpBuffer(
-            buf,
-            "SELECT co.conname, at.attname, co.connoinherit, co.conislocal,\nco.coninhcount <> 0\nFROM pg_catalog.pg_constraint co JOIN\npg_catalog.pg_attribute at ON\n(at.attnum = co.conkey[1])\nWHERE co.contype = 'n' AND\nco.conrelid = '%s'::pg_catalog.regclass AND\nat.attrelid = '%s'::pg_catalog.regclass\nORDER BY at.attnum",
-            oid,
-            oid
-          );
-          result = await PSQLexec(buf.data);
-          if (!result)
-            return retval;
-          else
-            tuples = PQntuples(result);
-          if (tuples > 0)
-            printTableAddFooter(cont, _("Not-null constraints:"));
-          for (i = 0; i < tuples; i++) {
-            let islocal = PQgetvalue(result, i, 3)[0] == "t";
-            let inherited = PQgetvalue(result, i, 4)[0] == "t";
-            printfPQExpBuffer(
-              buf,
-              '    "%s" NOT NULL "%s"%s',
-              PQgetvalue(result, i, 0),
-              PQgetvalue(result, i, 1),
-              PQgetvalue(result, i, 2)[0] == "t" ? " NO INHERIT" : islocal && inherited ? _(" (local, inherited)") : inherited ? _(" (inherited)") : ""
-            );
             printTableAddFooter(cont, buf.data);
           }
         }
@@ -4482,7 +4450,7 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
        CASE WHEN t.typnotnull THEN 'not null' END as "%s",
        t.typdefault as "%s",
        pg_catalog.array_to_string(ARRAY(
-         SELECT pg_catalog.pg_get_constraintdef(r.oid, true) FROM pg_catalog.pg_constraint r WHERE t.oid = r.contypid
+         SELECT pg_catalog.pg_get_constraintdef(r.oid, true) FROM pg_catalog.pg_constraint r WHERE t.oid = r.contypid AND r.contype = 'c' ORDER BY r.conname
        ), ' ') as "%s"`,
         gettext_noop("Schema"),
         gettext_noop("Name"),
@@ -4947,7 +4915,7 @@ END AS "%s" `,
       if (pset.sversion >= 1e5)
         appendPQExpBuffer(
           buf,
-          `  CASE c.collprovider WHEN 'd' THEN 'default' WHEN 'c' THEN 'libc' WHEN 'i' THEN 'icu' END AS "%s",
+          `  CASE c.collprovider WHEN 'd' THEN 'default' WHEN 'b' THEN 'builtin' WHEN 'c' THEN 'libc' WHEN 'i' THEN 'icu' END AS "%s",
 `,
           gettext_noop("Provider")
         );
@@ -4964,17 +4932,23 @@ END AS "%s" `,
         gettext_noop("Collate"),
         gettext_noop("Ctype")
       );
-      if (pset.sversion >= 15e4)
+      if (pset.sversion >= 17e4)
+        appendPQExpBuffer(
+          buf,
+          '  c.colllocale AS "%s",\n',
+          gettext_noop("Locale")
+        );
+      else if (pset.sversion >= 15e4)
         appendPQExpBuffer(
           buf,
           '  c.colliculocale AS "%s",\n',
-          gettext_noop("ICU Locale")
+          gettext_noop("Locale")
         );
       else
         appendPQExpBuffer(
           buf,
           '  c.collcollate AS "%s",\n',
-          gettext_noop("ICU Locale")
+          gettext_noop("Locale")
         );
       if (pset.sversion >= 16e4)
         appendPQExpBuffer(
@@ -6264,6 +6238,7 @@ ORDER BY 1;`,
         false,
         false,
         false,
+        false,
         false
       ];
       if (pset.sversion < 1e5) {
@@ -6328,6 +6303,12 @@ ORDER BY 1;`,
             gettext_noop("Password required"),
             gettext_noop("Run as owner?")
           );
+        if (pset.sversion >= 17e4)
+          appendPQExpBuffer(
+            buf,
+            ', subfailover AS "%s"\n',
+            gettext_noop("Failover")
+          );
         appendPQExpBuffer(
           buf,
           ',  subsynccommit AS "%s"\n,  subconninfo AS "%s"\n',
@@ -6374,7 +6355,9 @@ ORDER BY 1;`,
     function printACLColumn(buf, colname) {
       appendPQExpBuffer(
         buf,
-        `pg_catalog.array_to_string(%s, E'\\n') AS "%s"`,
+        `CASE WHEN pg_catalog.cardinality(%s) = 0 THEN '%s' ELSE pg_catalog.array_to_string(%s, E'\\n') END AS "%s"`,
+        colname,
+        gettext_noop("(none)"),
         colname,
         gettext_noop("Access privileges")
       );
@@ -6787,46 +6770,38 @@ ORDER BY oid`,
 }
 function pad(str, len, align, pre = "", post = "") {
   const spaces = Math.max(0, len - strlen(str));
-  if (align === "r")
-    return pre + " ".repeat(spaces) + str + post;
-  if (align === "c")
-    return pre + " ".repeat(Math.floor(spaces / 2)) + str + " ".repeat(Math.ceil(spaces / 2)) + post;
+  if (align === "r") return pre + " ".repeat(spaces) + str + post;
+  if (align === "c") return pre + " ".repeat(Math.floor(spaces / 2)) + str + " ".repeat(Math.ceil(spaces / 2)) + post;
   return pre + str + " ".repeat(spaces) + post;
 }
 function byN(arr, n) {
   let i = 0;
   const len = arr.length;
   const result = [];
-  while (i < len)
-    result.push(arr.slice(i, i += n));
+  while (i < len) result.push(arr.slice(i, i += n));
   return result;
 }
 function linesInfo(str) {
   let pos = -1, prevPos = 0, count = 1, longest = 0;
   while ((pos = str.indexOf("\n", pos + 1)) !== -1) {
-    if (pos - prevPos > longest)
-      longest = pos - prevPos;
+    if (pos - prevPos > longest) longest = pos - prevPos;
     prevPos = pos + 1;
     count++;
   }
-  if (str.length - prevPos > longest)
-    longest = str.length - prevPos;
+  if (str.length - prevPos > longest) longest = str.length - prevPos;
   return { count, longest };
 }
 function htmlEscape(str, convertWhitespace) {
   str = str.replace(/[<>&'"]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" })[m]);
-  if (convertWhitespace)
-    str = str.replace(/ /g, "&nbsp;").replace(/\n/g, "<br />");
+  if (convertWhitespace) str = str.replace(/ /g, "&nbsp;").replace(/\n/g, "<br />");
   return str;
 }
 function tableToString(td, escape) {
   const { ncolumns, nrows, aligns } = td, allCellsLinesInfo = [...td.headers, ...td.cells].map(linesInfo), { colWidths, rowHeights } = allCellsLinesInfo.reduce((memo, cellInfo, i) => {
     const row = Math.floor(i / td.ncolumns);
     const col = i % td.ncolumns;
-    if (cellInfo.longest > memo.colWidths[col])
-      memo.colWidths[col] = cellInfo.longest;
-    if (cellInfo.count > memo.rowHeights[row])
-      memo.rowHeights[row] = cellInfo.count;
+    if (cellInfo.longest > memo.colWidths[col]) memo.colWidths[col] = cellInfo.longest;
+    if (cellInfo.count > memo.rowHeights[row]) memo.rowHeights[row] = cellInfo.count;
     return memo;
   }, {
     colWidths: new Array(ncolumns).fill(0),
@@ -6838,8 +6813,7 @@ function tableToString(td, escape) {
     if (rowIndex === 1) {
       return td.headers.map((header, i) => "-".repeat(colWidths[i % ncolumns] + 2)).join("+");
     }
-    if (rowIndex > 1)
-      rowIndex--;
+    if (rowIndex > 1) rowIndex--;
     const rowLines = row.map((cell) => cell.split("\n"));
     return new Array(rowHeights[rowIndex]).fill("").map((empty, rowLineIndex) => rowLines.map((cellLine, colIndex) => pad(
       cellLine[rowLineIndex] ?? "",
@@ -6852,14 +6826,12 @@ function tableToString(td, escape) {
 (${nrows} row${nrows === 1 ? "" : "s"})` : "";
   let result = `${title}
 ${table}${footers}`;
-  if (escape)
-    result = htmlEscape(result);
+  if (escape) result = htmlEscape(result);
   return result;
 }
 function tableToHtml(td) {
   let result = `<table><tr><th valign="top" style="text-align: center;" colspan="${td.ncolumns}">${htmlEscape(td.title)}</th></tr><tr>`;
-  for (let h of td.headers)
-    result += `<th valign="top" style="text-align: center;">${htmlEscape(h)}</th>`;
+  for (let h of td.headers) result += `<th valign="top" style="text-align: center;">${htmlEscape(h)}</th>`;
   result += "</tr>";
   for (let row of byN(td.cells, td.ncolumns)) {
     result += `<tr>` + row.map((cell, i) => `<td valign="top" style="text-align: ${td.aligns[i] === "c" ? "center" : td.aligns[i] === "r" ? "right" : "left"}">${htmlEscape(cell).replace(/\n/g, "<br>")}</td>`).join("\n") + "</tr>";
@@ -6878,8 +6850,7 @@ function tableToHtml(td) {
   return result;
 }
 function Assert(cond) {
-  if (!cond)
-    throw new Error(`Assertion failed (value: ${cond})`);
+  if (!cond) throw new Error(`Assertion failed (value: ${cond})`);
 }
 var gettext_noop = noop;
 var pg_strdup = noop;
@@ -6893,12 +6864,9 @@ function strlen(str) {
   return str.length;
 }
 function strncmp(s1, s2, n) {
-  if (typeof s1 !== "string" || typeof s2 !== "string")
-    throw new Error("Not a string");
-  if (s1.length > n)
-    s1 = s1.slice(0, n);
-  if (s2.length > n)
-    s2 = s2.slice(0, n);
+  if (typeof s1 !== "string" || typeof s2 !== "string") throw new Error("Not a string");
+  if (s1.length > n) s1 = s1.slice(0, n);
+  if (s2.length > n) s2 = s2.slice(0, n);
   return s1 < s2 ? -1 : s1 > s2 ? 1 : 0;
 }
 function strcmp(s1, s2) {
@@ -6906,9 +6874,7 @@ function strcmp(s1, s2) {
 }
 function strspn(str, chrs) {
   const len = strlen(str);
-  for (let i = 0; i < len; i++)
-    if (chrs.indexOf(str[i]) === -1)
-      return i;
+  for (let i = 0; i < len; i++) if (chrs.indexOf(str[i]) === -1) return i;
   return len;
 }
 function atoi(str) {
@@ -6986,8 +6952,7 @@ function sprintf(template, ...values) {
     result += template.slice(chrIndex, nextChrIndex);
     chrIndex = nextChrIndex + 1;
     let pcChr = template[chrIndex++];
-    if (pcChr === "%")
-      result += "%";
+    if (pcChr === "%") result += "%";
     if (pcChr === "*") {
       padTo = parseInt(values[valuesIndex++], 10);
       pcChr = template[chrIndex++];
@@ -7003,11 +6968,9 @@ function sprintf(template, ...values) {
     if (pcChr === "s" || pcChr === "c" || pcChr === "d" || pcChr === "u") {
       const ins = String(values[valuesIndex++]);
       const padBy = padTo - ins.length;
-      if (padLeft === false && padBy > 0)
-        result += " ".repeat(padBy);
+      if (padLeft === false && padBy > 0) result += " ".repeat(padBy);
       result += ins;
-      if (padLeft === true && padBy > 0)
-        result += " ".repeat(padBy);
+      if (padLeft === true && padBy > 0) result += " ".repeat(padBy);
     }
   }
   result += template.slice(chrIndex);
@@ -7015,20 +6978,16 @@ function sprintf(template, ...values) {
 }
 var psprintf = sprintf;
 function PQdb(conn) {
-  if (!conn)
-    return NULL;
+  if (!conn) return NULL;
   return conn.dbName;
 }
 function PQserverVersion(conn) {
-  if (!conn)
-    return 0;
-  if (conn.status === CONNECTION_BAD)
-    return 0;
+  if (!conn) return 0;
+  if (conn.status === CONNECTION_BAD) return 0;
   return conn.sversion;
 }
 function PQclientEncoding(conn) {
-  if (!conn || conn.status != CONNECTION_OK)
-    return -1;
+  if (!conn || conn.status != CONNECTION_OK) return -1;
   return conn.client_encoding;
 }
 function PQntuples(res) {
@@ -7056,10 +7015,8 @@ function PQfnumber(res, field_name) {
   let optr;
   let i;
   let len;
-  if (!res)
-    return -1;
-  if (field_name == NULL || field_name[0] == NULL)
-    return -1;
+  if (!res) return -1;
+  if (field_name == NULL || field_name[0] == NULL) return -1;
   in_quotes = false;
   optr = "";
   for (iptr = 0, len = strlen(field_name); iptr < len; iptr++) {
@@ -7115,19 +7072,15 @@ function formatPGVersionNumber(version_number, include_minor, buf, buflen) {
   return buf;
 }
 function psql_scan_slash_option(scan_state, type, quote, semicolon) {
-  if (type !== OT_NORMAL && type !== OT_WHOLE_LINE)
-    throw new Error(`scan type ${type} not implemented`);
-  if (quote !== NULL)
-    throw new Error("cannot return quote type");
+  if (type !== OT_NORMAL && type !== OT_WHOLE_LINE) throw new Error(`scan type ${type} not implemented`);
+  if (quote !== NULL) throw new Error("cannot return quote type");
   const quoteStack = [];
   const resultRe = semicolon ? /^(.*);*$/ : /^(.*)$/;
   let chr;
   for (; ; ) {
     chr = scan_state[0][scan_state[1]];
-    if (chr == NULL)
-      return NULL;
-    if (!isWhitespace(chr))
-      break;
+    if (chr == NULL) return NULL;
+    if (!isWhitespace(chr)) break;
     scan_state[1]++;
   }
   if (type === OT_WHOLE_LINE) {
@@ -7137,17 +7090,13 @@ function psql_scan_slash_option(scan_state, type, quote, semicolon) {
   for (; ; ) {
     chr = scan_state[0][scan_state[1]++];
     if (chr == NULL) {
-      if (quoteStack.length > 0)
-        return NULL;
+      if (quoteStack.length > 0) return NULL;
       return result.match(resultRe)[1];
     }
     if (isQuote(chr)) {
-      if (chr === quoteStack[quoteStack.length - 1])
-        quoteStack.pop();
-      else
-        quoteStack.push(chr);
-      if (chr === '"')
-        result += chr;
+      if (chr === quoteStack[quoteStack.length - 1]) quoteStack.pop();
+      else quoteStack.push(chr);
+      if (chr === '"') result += chr;
     } else {
       if (quoteStack.length === 0 && isWhitespace(chr)) {
         return result.match(resultRe)[1];
@@ -7496,7 +7445,7 @@ function sql_help_ALTER_DATABASE(buf) {
 function sql_help_ALTER_DEFAULT_PRIVILEGES(buf) {
   appendPQExpBuffer(
     buf,
-    "ALTER DEFAULT PRIVILEGES\n    [ FOR { ROLE | USER } %s [, ...] ]\n    [ IN SCHEMA %s [, ...] ]\n    %s\n\n%s\n\nGRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON TABLES\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SEQUENCES\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { FUNCTIONS | ROUTINES }\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPES\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { USAGE | CREATE | ALL [ PRIVILEGES ] }\n    ON SCHEMAS\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON TABLES\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SEQUENCES\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { FUNCTIONS | ROUTINES }\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPES\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | CREATE | ALL [ PRIVILEGES ] }\n    ON SCHEMAS\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]",
+    "ALTER DEFAULT PRIVILEGES\n    [ FOR { ROLE | USER } %s [, ...] ]\n    [ IN SCHEMA %s [, ...] ]\n    %s\n\n%s\n\nGRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON TABLES\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SEQUENCES\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { FUNCTIONS | ROUTINES }\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPES\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { USAGE | CREATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMAS\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON TABLES\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SEQUENCES\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { FUNCTIONS | ROUTINES }\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPES\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | CREATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMAS\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]",
     _("target_role"),
     _("schema_name"),
     _("abbreviated_grant_or_revoke"),
@@ -7821,7 +7770,7 @@ function sql_help_ALTER_MATERIALIZED_VIEW(buf) {
 function sql_help_ALTER_OPERATOR(buf) {
   appendPQExpBuffer(
     buf,
-    "ALTER OPERATOR %s ( { %s | NONE } , %s )\n    OWNER TO { %s | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n\nALTER OPERATOR %s ( { %s | NONE } , %s )\n    SET SCHEMA %s\n\nALTER OPERATOR %s ( { %s | NONE } , %s )\n    SET ( {  RESTRICT = { %s | NONE }\n           | JOIN = { %s | NONE }\n         } [, ... ] )",
+    "ALTER OPERATOR %s ( { %s | NONE } , %s )\n    OWNER TO { %s | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n\nALTER OPERATOR %s ( { %s | NONE } , %s )\n    SET SCHEMA %s\n\nALTER OPERATOR %s ( { %s | NONE } , %s )\n    SET ( {  RESTRICT = { %s | NONE }\n           | JOIN = { %s | NONE }\n           | COMMUTATOR = %s\n           | NEGATOR = %s\n           | HASHES\n           | MERGES\n          } [, ... ] )",
     _("name"),
     _("left_type"),
     _("right_type"),
@@ -7834,7 +7783,9 @@ function sql_help_ALTER_OPERATOR(buf) {
     _("left_type"),
     _("right_type"),
     _("res_proc"),
-    _("join_proc")
+    _("join_proc"),
+    _("com_op"),
+    _("neg_op")
   );
 }
 function sql_help_ALTER_OPERATOR_CLASS(buf) {
@@ -8086,7 +8037,7 @@ function sql_help_ALTER_SERVER(buf) {
 function sql_help_ALTER_STATISTICS(buf) {
   appendPQExpBuffer(
     buf,
-    "ALTER STATISTICS %s OWNER TO { %s | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER STATISTICS %s RENAME TO %s\nALTER STATISTICS %s SET SCHEMA %s\nALTER STATISTICS %s SET STATISTICS %s",
+    "ALTER STATISTICS %s OWNER TO { %s | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER STATISTICS %s RENAME TO %s\nALTER STATISTICS %s SET SCHEMA %s\nALTER STATISTICS %s SET STATISTICS { %s | DEFAULT }",
     _("name"),
     _("new_owner"),
     _("name"),
@@ -8145,7 +8096,7 @@ function sql_help_ALTER_SYSTEM(buf) {
 function sql_help_ALTER_TABLE(buf) {
   appendPQExpBuffer(
     buf,
-    "ALTER TABLE [ IF EXISTS ] [ ONLY ] %s [ * ]\n    %s [, ... ]\nALTER TABLE [ IF EXISTS ] [ ONLY ] %s [ * ]\n    RENAME [ COLUMN ] %s TO %s\nALTER TABLE [ IF EXISTS ] [ ONLY ] %s [ * ]\n    RENAME CONSTRAINT %s TO %s\nALTER TABLE [ IF EXISTS ] %s\n    RENAME TO %s\nALTER TABLE [ IF EXISTS ] %s\n    SET SCHEMA %s\nALTER TABLE ALL IN TABLESPACE %s [ OWNED BY %s [, ... ] ]\n    SET TABLESPACE %s [ NOWAIT ]\nALTER TABLE [ IF EXISTS ] %s\n    ATTACH PARTITION %s { FOR VALUES %s | DEFAULT }\nALTER TABLE [ IF EXISTS ] %s\n    DETACH PARTITION %s [ CONCURRENTLY | FINALIZE ]\n\n%s\n\n    ADD [ COLUMN ] [ IF NOT EXISTS ] %s %s [ COLLATE %s ] [ %s [ ... ] ]\n    DROP [ COLUMN ] [ IF EXISTS ] %s [ RESTRICT | CASCADE ]\n    ALTER [ COLUMN ] %s [ SET DATA ] TYPE %s [ COLLATE %s ] [ USING %s ]\n    ALTER [ COLUMN ] %s SET DEFAULT %s\n    ALTER [ COLUMN ] %s DROP DEFAULT\n    ALTER [ COLUMN ] %s { SET | DROP } NOT NULL\n    ALTER [ COLUMN ] %s DROP EXPRESSION [ IF EXISTS ]\n    ALTER [ COLUMN ] %s ADD GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( %s ) ]\n    ALTER [ COLUMN ] %s { SET GENERATED { ALWAYS | BY DEFAULT } | SET %s | RESTART [ [ WITH ] %s ] } [...]\n    ALTER [ COLUMN ] %s DROP IDENTITY [ IF EXISTS ]\n    ALTER [ COLUMN ] %s SET STATISTICS %s\n    ALTER [ COLUMN ] %s SET ( %s = %s [, ... ] )\n    ALTER [ COLUMN ] %s RESET ( %s [, ... ] )\n    ALTER [ COLUMN ] %s SET STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }\n    ALTER [ COLUMN ] %s SET COMPRESSION %s\n    ADD %s [ NOT VALID ]\n    ADD %s\n    ALTER CONSTRAINT %s [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n    VALIDATE CONSTRAINT %s\n    DROP CONSTRAINT [ IF EXISTS ]  %s [ RESTRICT | CASCADE ]\n    DISABLE TRIGGER [ %s | ALL | USER ]\n    ENABLE TRIGGER [ %s | ALL | USER ]\n    ENABLE REPLICA TRIGGER %s\n    ENABLE ALWAYS TRIGGER %s\n    DISABLE RULE %s\n    ENABLE RULE %s\n    ENABLE REPLICA RULE %s\n    ENABLE ALWAYS RULE %s\n    DISABLE ROW LEVEL SECURITY\n    ENABLE ROW LEVEL SECURITY\n    FORCE ROW LEVEL SECURITY\n    NO FORCE ROW LEVEL SECURITY\n    CLUSTER ON %s\n    SET WITHOUT CLUSTER\n    SET WITHOUT OIDS\n    SET ACCESS METHOD %s\n    SET TABLESPACE %s\n    SET { LOGGED | UNLOGGED }\n    SET ( %s [= %s] [, ... ] )\n    RESET ( %s [, ... ] )\n    INHERIT %s\n    NO INHERIT %s\n    OF %s\n    NOT OF\n    OWNER TO { %s | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n    REPLICA IDENTITY { DEFAULT | USING INDEX %s | FULL | NOTHING }\n\n%s\n\nIN ( %s [, ...] ) |\nFROM ( { %s | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { %s | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS %s, REMAINDER %s )\n\n%s\n\n[ CONSTRAINT %s ]\n{ NOT NULL |\n  NULL |\n  CHECK ( %s ) [ NO INHERIT ] |\n  DEFAULT %s |\n  GENERATED ALWAYS AS ( %s ) STORED |\n  GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( %s ) ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] %s |\n  PRIMARY KEY %s |\n  REFERENCES %s [ ( %s ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]\n    [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ CHECK ( %s ) [ NO INHERIT ] |\n  NOT NULL %s [ NO INHERIT ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( %s [, ... ] ) %s |\n  PRIMARY KEY ( %s [, ... ] ) %s |\n  EXCLUDE [ USING %s ] ( %s WITH %s [, ... ] ) %s [ WHERE ( %s ) ] |\n  FOREIGN KEY ( %s [, ... ] ) REFERENCES %s [ ( %s [, ... ] ) ]\n    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n    [ CONSTRAINT %s ]\n    { UNIQUE | PRIMARY KEY } USING INDEX %s\n    [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n[ INCLUDE ( %s [, ... ] ) ]\n[ WITH ( %s [= %s] [, ... ] ) ]\n[ USING INDEX TABLESPACE %s ]\n\n%s\n\n{ %s | ( %s ) } [ %s ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n\n%s\n\n{ NO ACTION | RESTRICT | CASCADE | SET NULL [ ( %s [, ... ] ) ] | SET DEFAULT [ ( %s [, ... ] ) ] }",
+    "ALTER TABLE [ IF EXISTS ] [ ONLY ] %s [ * ]\n    %s [, ... ]\nALTER TABLE [ IF EXISTS ] [ ONLY ] %s [ * ]\n    RENAME [ COLUMN ] %s TO %s\nALTER TABLE [ IF EXISTS ] [ ONLY ] %s [ * ]\n    RENAME CONSTRAINT %s TO %s\nALTER TABLE [ IF EXISTS ] %s\n    RENAME TO %s\nALTER TABLE [ IF EXISTS ] %s\n    SET SCHEMA %s\nALTER TABLE ALL IN TABLESPACE %s [ OWNED BY %s [, ... ] ]\n    SET TABLESPACE %s [ NOWAIT ]\nALTER TABLE [ IF EXISTS ] %s\n    ATTACH PARTITION %s { FOR VALUES %s | DEFAULT }\nALTER TABLE [ IF EXISTS ] %s\n    DETACH PARTITION %s [ CONCURRENTLY | FINALIZE ]\n\n%s\n\n    ADD [ COLUMN ] [ IF NOT EXISTS ] %s %s [ COLLATE %s ] [ %s [ ... ] ]\n    DROP [ COLUMN ] [ IF EXISTS ] %s [ RESTRICT | CASCADE ]\n    ALTER [ COLUMN ] %s [ SET DATA ] TYPE %s [ COLLATE %s ] [ USING %s ]\n    ALTER [ COLUMN ] %s SET DEFAULT %s\n    ALTER [ COLUMN ] %s DROP DEFAULT\n    ALTER [ COLUMN ] %s { SET | DROP } NOT NULL\n    ALTER [ COLUMN ] %s SET EXPRESSION AS ( %s )\n    ALTER [ COLUMN ] %s DROP EXPRESSION [ IF EXISTS ]\n    ALTER [ COLUMN ] %s ADD GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( %s ) ]\n    ALTER [ COLUMN ] %s { SET GENERATED { ALWAYS | BY DEFAULT } | SET %s | RESTART [ [ WITH ] %s ] } [...]\n    ALTER [ COLUMN ] %s DROP IDENTITY [ IF EXISTS ]\n    ALTER [ COLUMN ] %s SET STATISTICS { %s | DEFAULT }\n    ALTER [ COLUMN ] %s SET ( %s = %s [, ... ] )\n    ALTER [ COLUMN ] %s RESET ( %s [, ... ] )\n    ALTER [ COLUMN ] %s SET STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }\n    ALTER [ COLUMN ] %s SET COMPRESSION %s\n    ADD %s [ NOT VALID ]\n    ADD %s\n    ALTER CONSTRAINT %s [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n    VALIDATE CONSTRAINT %s\n    DROP CONSTRAINT [ IF EXISTS ]  %s [ RESTRICT | CASCADE ]\n    DISABLE TRIGGER [ %s | ALL | USER ]\n    ENABLE TRIGGER [ %s | ALL | USER ]\n    ENABLE REPLICA TRIGGER %s\n    ENABLE ALWAYS TRIGGER %s\n    DISABLE RULE %s\n    ENABLE RULE %s\n    ENABLE REPLICA RULE %s\n    ENABLE ALWAYS RULE %s\n    DISABLE ROW LEVEL SECURITY\n    ENABLE ROW LEVEL SECURITY\n    FORCE ROW LEVEL SECURITY\n    NO FORCE ROW LEVEL SECURITY\n    CLUSTER ON %s\n    SET WITHOUT CLUSTER\n    SET WITHOUT OIDS\n    SET ACCESS METHOD { %s | DEFAULT }\n    SET TABLESPACE %s\n    SET { LOGGED | UNLOGGED }\n    SET ( %s [= %s] [, ... ] )\n    RESET ( %s [, ... ] )\n    INHERIT %s\n    NO INHERIT %s\n    OF %s\n    NOT OF\n    OWNER TO { %s | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n    REPLICA IDENTITY { DEFAULT | USING INDEX %s | FULL | NOTHING }\n\n%s\n\nIN ( %s [, ...] ) |\nFROM ( { %s | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { %s | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS %s, REMAINDER %s )\n\n%s\n\n[ CONSTRAINT %s ]\n{ NOT NULL |\n  NULL |\n  CHECK ( %s ) [ NO INHERIT ] |\n  DEFAULT %s |\n  GENERATED ALWAYS AS ( %s ) STORED |\n  GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( %s ) ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] %s |\n  PRIMARY KEY %s |\n  REFERENCES %s [ ( %s ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]\n    [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ CHECK ( %s ) [ NO INHERIT ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( %s [, ... ] ) %s |\n  PRIMARY KEY ( %s [, ... ] ) %s |\n  EXCLUDE [ USING %s ] ( %s WITH %s [, ... ] ) %s [ WHERE ( %s ) ] |\n  FOREIGN KEY ( %s [, ... ] ) REFERENCES %s [ ( %s [, ... ] ) ]\n    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n    [ CONSTRAINT %s ]\n    { UNIQUE | PRIMARY KEY } USING INDEX %s\n    [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n[ INCLUDE ( %s [, ... ] ) ]\n[ WITH ( %s [= %s] [, ... ] ) ]\n[ USING INDEX TABLESPACE %s ]\n\n%s\n\n{ %s | ( %s ) } [ COLLATE %s ] [ %s [ ( %s = %s [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n\n%s\n\n{ NO ACTION | RESTRICT | CASCADE | SET NULL [ ( %s [, ... ] ) ] | SET DEFAULT [ ( %s [, ... ] ) ] }",
     _("name"),
     _("action"),
     _("name"),
@@ -8180,6 +8131,8 @@ function sql_help_ALTER_TABLE(buf) {
     _("expression"),
     _("column_name"),
     _("column_name"),
+    _("column_name"),
+    _("expression"),
     _("column_name"),
     _("column_name"),
     _("sequence_options"),
@@ -8243,7 +8196,6 @@ function sql_help_ALTER_TABLE(buf) {
     _("constraint_name"),
     _("expression"),
     _("column_name"),
-    _("column_name"),
     _("index_parameters"),
     _("column_name"),
     _("index_parameters"),
@@ -8268,7 +8220,10 @@ function sql_help_ALTER_TABLE(buf) {
     _("exclude_element in an EXCLUDE constraint is:"),
     _("column_name"),
     _("expression"),
+    _("collation"),
     _("opclass"),
+    _("opclass_parameter"),
+    _("value"),
     _("referential_action in a FOREIGN KEY/REFERENCES constraint is:"),
     _("column_name"),
     _("column_name")
@@ -8613,7 +8568,7 @@ function sql_help_COMMIT_PREPARED(buf) {
 function sql_help_COPY(buf) {
   appendPQExpBuffer(
     buf,
-    "COPY %s [ ( %s [, ...] ) ]\n    FROM { '%s' | PROGRAM '%s' | STDIN }\n    [ [ WITH ] ( %s [, ...] ) ]\n    [ WHERE %s ]\n\nCOPY { %s [ ( %s [, ...] ) ] | ( %s ) }\n    TO { '%s' | PROGRAM '%s' | STDOUT }\n    [ [ WITH ] ( %s [, ...] ) ]\n\n%s\n\n    FORMAT %s\n    FREEZE [ %s ]\n    DELIMITER '%s'\n    NULL '%s'\n    DEFAULT '%s'\n    HEADER [ %s | MATCH ]\n    QUOTE '%s'\n    ESCAPE '%s'\n    FORCE_QUOTE { ( %s [, ...] ) | * }\n    FORCE_NOT_NULL ( %s [, ...] )\n    FORCE_NULL ( %s [, ...] )\n    ENCODING '%s'",
+    "COPY %s [ ( %s [, ...] ) ]\n    FROM { '%s' | PROGRAM '%s' | STDIN }\n    [ [ WITH ] ( %s [, ...] ) ]\n    [ WHERE %s ]\n\nCOPY { %s [ ( %s [, ...] ) ] | ( %s ) }\n    TO { '%s' | PROGRAM '%s' | STDOUT }\n    [ [ WITH ] ( %s [, ...] ) ]\n\n%s\n\n    FORMAT %s\n    FREEZE [ %s ]\n    DELIMITER '%s'\n    NULL '%s'\n    DEFAULT '%s'\n    HEADER [ %s | MATCH ]\n    QUOTE '%s'\n    ESCAPE '%s'\n    FORCE_QUOTE { ( %s [, ...] ) | * }\n    FORCE_NOT_NULL { ( %s [, ...] ) | * }\n    FORCE_NULL { ( %s [, ...] ) | * }\n    ON_ERROR %s\n    ENCODING '%s'\n    LOG_VERBOSITY %s",
     _("table_name"),
     _("column_name"),
     _("filename"),
@@ -8638,7 +8593,9 @@ function sql_help_COPY(buf) {
     _("column_name"),
     _("column_name"),
     _("column_name"),
-    _("encoding_name")
+    _("error_action"),
+    _("encoding_name"),
+    _("verbosity")
   );
 }
 function sql_help_CREATE_ACCESS_METHOD(buf) {
@@ -8748,7 +8705,7 @@ function sql_help_CREATE_CONVERSION(buf) {
 function sql_help_CREATE_DATABASE(buf) {
   appendPQExpBuffer(
     buf,
-    "CREATE DATABASE %s\n    [ WITH ] [ OWNER [=] %s ]\n           [ TEMPLATE [=] %s ]\n           [ ENCODING [=] %s ]\n           [ STRATEGY [=] %s ] ]\n           [ LOCALE [=] %s ]\n           [ LC_COLLATE [=] %s ]\n           [ LC_CTYPE [=] %s ]\n           [ ICU_LOCALE [=] %s ]\n           [ ICU_RULES [=] %s ]\n           [ LOCALE_PROVIDER [=] %s ]\n           [ COLLATION_VERSION = %s ]\n           [ TABLESPACE [=] %s ]\n           [ ALLOW_CONNECTIONS [=] %s ]\n           [ CONNECTION LIMIT [=] %s ]\n           [ IS_TEMPLATE [=] %s ]\n           [ OID [=] %s ]",
+    "CREATE DATABASE %s\n    [ WITH ] [ OWNER [=] %s ]\n           [ TEMPLATE [=] %s ]\n           [ ENCODING [=] %s ]\n           [ STRATEGY [=] %s ]\n           [ LOCALE [=] %s ]\n           [ LC_COLLATE [=] %s ]\n           [ LC_CTYPE [=] %s ]\n           [ BUILTIN_LOCALE [=] %s ]\n           [ ICU_LOCALE [=] %s ]\n           [ ICU_RULES [=] %s ]\n           [ LOCALE_PROVIDER [=] %s ]\n           [ COLLATION_VERSION = %s ]\n           [ TABLESPACE [=] %s ]\n           [ ALLOW_CONNECTIONS [=] %s ]\n           [ CONNECTION LIMIT [=] %s ]\n           [ IS_TEMPLATE [=] %s ]\n           [ OID [=] %s ]",
     _("name"),
     _("user_name"),
     _("template"),
@@ -8757,6 +8714,7 @@ function sql_help_CREATE_DATABASE(buf) {
     _("locale"),
     _("lc_collate"),
     _("lc_ctype"),
+    _("builtin_locale"),
     _("icu_locale"),
     _("icu_rules"),
     _("locale_provider"),
@@ -8776,8 +8734,8 @@ function sql_help_CREATE_DOMAIN(buf) {
     _("data_type"),
     _("collation"),
     _("expression"),
-    _("constraint"),
-    _("where constraint is:"),
+    _("domain_constraint"),
+    _("where domain_constraint is:"),
     _("constraint_name"),
     _("expression")
   );
@@ -9034,15 +8992,13 @@ function sql_help_CREATE_PUBLICATION(buf) {
 function sql_help_CREATE_ROLE(buf) {
   appendPQExpBuffer(
     buf,
-    "CREATE ROLE %s [ [ WITH ] %s [ ... ] ]\n\n%s\n\n      SUPERUSER | NOSUPERUSER\n    | CREATEDB | NOCREATEDB\n    | CREATEROLE | NOCREATEROLE\n    | INHERIT | NOINHERIT\n    | LOGIN | NOLOGIN\n    | REPLICATION | NOREPLICATION\n    | BYPASSRLS | NOBYPASSRLS\n    | CONNECTION LIMIT %s\n    | [ ENCRYPTED ] PASSWORD '%s' | PASSWORD NULL\n    | VALID UNTIL '%s'\n    | IN ROLE %s [, ...]\n    | IN GROUP %s [, ...]\n    | ROLE %s [, ...]\n    | ADMIN %s [, ...]\n    | USER %s [, ...]\n    | SYSID %s",
+    "CREATE ROLE %s [ [ WITH ] %s [ ... ] ]\n\n%s\n\n      SUPERUSER | NOSUPERUSER\n    | CREATEDB | NOCREATEDB\n    | CREATEROLE | NOCREATEROLE\n    | INHERIT | NOINHERIT\n    | LOGIN | NOLOGIN\n    | REPLICATION | NOREPLICATION\n    | BYPASSRLS | NOBYPASSRLS\n    | CONNECTION LIMIT %s\n    | [ ENCRYPTED ] PASSWORD '%s' | PASSWORD NULL\n    | VALID UNTIL '%s'\n    | IN ROLE %s [, ...]\n    | ROLE %s [, ...]\n    | ADMIN %s [, ...]\n    | SYSID %s",
     _("name"),
     _("option"),
     _("where option can be:"),
     _("connlimit"),
     _("password"),
     _("timestamp"),
-    _("role_name"),
-    _("role_name"),
     _("role_name"),
     _("role_name"),
     _("role_name"),
@@ -9136,7 +9092,7 @@ function sql_help_CREATE_SUBSCRIPTION(buf) {
 function sql_help_CREATE_TABLE(buf) {
   appendPQExpBuffer(
     buf,
-    "CREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE [ IF NOT EXISTS ] %s ( [\n  { %s %s [ STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT } ] [ COMPRESSION %s ] [ COLLATE %s ] [ %s [ ... ] ]\n    | %s\n    | LIKE %s [ %s ... ] }\n    [, ... ]\n] )\n[ INHERITS ( %s [, ... ] ) ]\n[ PARTITION BY { RANGE | LIST | HASH } ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ... ] ) ]\n[ USING %s ]\n[ WITH ( %s [= %s] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE %s ]\n\nCREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE [ IF NOT EXISTS ] %s\n    OF %s [ (\n  { %s [ WITH OPTIONS ] [ %s [ ... ] ]\n    | %s }\n    [, ... ]\n) ]\n[ PARTITION BY { RANGE | LIST | HASH } ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ... ] ) ]\n[ USING %s ]\n[ WITH ( %s [= %s] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE %s ]\n\nCREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE [ IF NOT EXISTS ] %s\n    PARTITION OF %s [ (\n  { %s [ WITH OPTIONS ] [ %s [ ... ] ]\n    | %s }\n    [, ... ]\n) ] { FOR VALUES %s | DEFAULT }\n[ PARTITION BY { RANGE | LIST | HASH } ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ... ] ) ]\n[ USING %s ]\n[ WITH ( %s [= %s] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE %s ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ NOT NULL |\n  NULL |\n  CHECK ( %s ) [ NO INHERIT ] |\n  DEFAULT %s |\n  GENERATED ALWAYS AS ( %s ) STORED |\n  GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( %s ) ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] %s |\n  PRIMARY KEY %s |\n  REFERENCES %s [ ( %s ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]\n    [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ CHECK ( %s ) [ NO INHERIT ] |\n  NOT NULL %s [ NO INHERIT ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( %s [, ... ] ) %s |\n  PRIMARY KEY ( %s [, ... ] ) %s |\n  EXCLUDE [ USING %s ] ( %s WITH %s [, ... ] ) %s [ WHERE ( %s ) ] |\n  FOREIGN KEY ( %s [, ... ] ) REFERENCES %s [ ( %s [, ... ] ) ]\n    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n{ INCLUDING | EXCLUDING } { COMMENTS | COMPRESSION | CONSTRAINTS | DEFAULTS | GENERATED | IDENTITY | INDEXES | STATISTICS | STORAGE | ALL }\n\n%s\n\nIN ( %s [, ...] ) |\nFROM ( { %s | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { %s | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS %s, REMAINDER %s )\n\n%s\n\n[ INCLUDE ( %s [, ... ] ) ]\n[ WITH ( %s [= %s] [, ... ] ) ]\n[ USING INDEX TABLESPACE %s ]\n\n%s\n\n{ %s | ( %s ) } [ %s ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n\n%s\n\n{ NO ACTION | RESTRICT | CASCADE | SET NULL [ ( %s [, ... ] ) ] | SET DEFAULT [ ( %s [, ... ] ) ] }",
+    "CREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE [ IF NOT EXISTS ] %s ( [\n  { %s %s [ STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT } ] [ COMPRESSION %s ] [ COLLATE %s ] [ %s [ ... ] ]\n    | %s\n    | LIKE %s [ %s ... ] }\n    [, ... ]\n] )\n[ INHERITS ( %s [, ... ] ) ]\n[ PARTITION BY { RANGE | LIST | HASH } ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ... ] ) ]\n[ USING %s ]\n[ WITH ( %s [= %s] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE %s ]\n\nCREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE [ IF NOT EXISTS ] %s\n    OF %s [ (\n  { %s [ WITH OPTIONS ] [ %s [ ... ] ]\n    | %s }\n    [, ... ]\n) ]\n[ PARTITION BY { RANGE | LIST | HASH } ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ... ] ) ]\n[ USING %s ]\n[ WITH ( %s [= %s] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE %s ]\n\nCREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE [ IF NOT EXISTS ] %s\n    PARTITION OF %s [ (\n  { %s [ WITH OPTIONS ] [ %s [ ... ] ]\n    | %s }\n    [, ... ]\n) ] { FOR VALUES %s | DEFAULT }\n[ PARTITION BY { RANGE | LIST | HASH } ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ... ] ) ]\n[ USING %s ]\n[ WITH ( %s [= %s] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE %s ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ NOT NULL |\n  NULL |\n  CHECK ( %s ) [ NO INHERIT ] |\n  DEFAULT %s |\n  GENERATED ALWAYS AS ( %s ) STORED |\n  GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( %s ) ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] %s |\n  PRIMARY KEY %s |\n  REFERENCES %s [ ( %s ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]\n    [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ CHECK ( %s ) [ NO INHERIT ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( %s [, ... ] ) %s |\n  PRIMARY KEY ( %s [, ... ] ) %s |\n  EXCLUDE [ USING %s ] ( %s WITH %s [, ... ] ) %s [ WHERE ( %s ) ] |\n  FOREIGN KEY ( %s [, ... ] ) REFERENCES %s [ ( %s [, ... ] ) ]\n    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n{ INCLUDING | EXCLUDING } { COMMENTS | COMPRESSION | CONSTRAINTS | DEFAULTS | GENERATED | IDENTITY | INDEXES | STATISTICS | STORAGE | ALL }\n\n%s\n\nIN ( %s [, ...] ) |\nFROM ( { %s | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { %s | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS %s, REMAINDER %s )\n\n%s\n\n[ INCLUDE ( %s [, ... ] ) ]\n[ WITH ( %s [= %s] [, ... ] ) ]\n[ USING INDEX TABLESPACE %s ]\n\n%s\n\n{ %s | ( %s ) } [ COLLATE %s ] [ %s [ ( %s = %s [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n\n%s\n\n{ NO ACTION | RESTRICT | CASCADE | SET NULL [ ( %s [, ... ] ) ] | SET DEFAULT [ ( %s [, ... ] ) ] }",
     _("table_name"),
     _("column_name"),
     _("data_type"),
@@ -9198,7 +9154,6 @@ function sql_help_CREATE_TABLE(buf) {
     _("constraint_name"),
     _("expression"),
     _("column_name"),
-    _("column_name"),
     _("index_parameters"),
     _("column_name"),
     _("index_parameters"),
@@ -9227,7 +9182,10 @@ function sql_help_CREATE_TABLE(buf) {
     _("exclude_element in an EXCLUDE constraint is:"),
     _("column_name"),
     _("expression"),
+    _("collation"),
     _("opclass"),
+    _("opclass_parameter"),
+    _("value"),
     _("referential_action in a FOREIGN KEY/REFERENCES constraint is:"),
     _("column_name"),
     _("column_name")
@@ -9421,7 +9379,7 @@ function sql_help_DECLARE(buf) {
 function sql_help_DELETE(buf) {
   appendPQExpBuffer(
     buf,
-    "[ WITH [ RECURSIVE ] %s [, ...] ]\nDELETE FROM [ ONLY ] %s [ * ] [ [ AS ] %s ]\n    [ USING %s [, ...] ]\n    [ WHERE %s | WHERE CURRENT OF %s ]\n    [ RETURNING * | %s [ [ AS ] %s ] [, ...] ]",
+    "[ WITH [ RECURSIVE ] %s [, ...] ]\nDELETE FROM [ ONLY ] %s [ * ] [ [ AS ] %s ]\n    [ USING %s [, ...] ]\n    [ WHERE %s | WHERE CURRENT OF %s ]\n    [ RETURNING { * | %s [ [ AS ] %s ] } [, ...] ]",
     _("with_query"),
     _("table_name"),
     _("alias"),
@@ -9796,10 +9754,11 @@ function sql_help_EXECUTE(buf) {
 function sql_help_EXPLAIN(buf) {
   appendPQExpBuffer(
     buf,
-    "EXPLAIN [ ( %s [, ...] ) ] %s\n\n%s\n\n    ANALYZE [ %s ]\n    VERBOSE [ %s ]\n    COSTS [ %s ]\n    SETTINGS [ %s ]\n    GENERIC_PLAN [ %s ]\n    BUFFERS [ %s ]\n    WAL [ %s ]\n    TIMING [ %s ]\n    SUMMARY [ %s ]\n    FORMAT { TEXT | XML | JSON | YAML }",
+    "EXPLAIN [ ( %s [, ...] ) ] %s\n\n%s\n\n    ANALYZE [ %s ]\n    VERBOSE [ %s ]\n    COSTS [ %s ]\n    SETTINGS [ %s ]\n    GENERIC_PLAN [ %s ]\n    BUFFERS [ %s ]\n    SERIALIZE [ { NONE | TEXT | BINARY } ]\n    WAL [ %s ]\n    TIMING [ %s ]\n    SUMMARY [ %s ]\n    MEMORY [ %s ]\n    FORMAT { TEXT | XML | JSON | YAML }",
     _("option"),
     _("statement"),
     _("where option can be one of:"),
+    _("boolean"),
     _("boolean"),
     _("boolean"),
     _("boolean"),
@@ -9828,7 +9787,7 @@ function sql_help_FETCH(buf) {
 function sql_help_GRANT(buf) {
   appendPQExpBuffer(
     buf,
-    "GRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { [ TABLE ] %s [, ...]\n         | ALL TABLES IN SCHEMA %s [, ...] }\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { { SELECT | INSERT | UPDATE | REFERENCES } ( %s [, ...] )\n    [, ...] | ALL [ PRIVILEGES ] ( %s [, ...] ) }\n    ON [ TABLE ] %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { SEQUENCE %s [, ...]\n         | ALL SEQUENCES IN SCHEMA %s [, ...] }\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { { CREATE | CONNECT | TEMPORARY | TEMP } [, ...] | ALL [ PRIVILEGES ] }\n    ON DATABASE %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON DOMAIN %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN DATA WRAPPER %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN SERVER %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { { FUNCTION | PROCEDURE | ROUTINE } %s [ ( [ [ %s ] [ %s ] %s [, ...] ] ) ] [, ...]\n         | ALL { FUNCTIONS | PROCEDURES | ROUTINES } IN SCHEMA %s [, ...] }\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON LANGUAGE %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { { SELECT | UPDATE } [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECT %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { { SET | ALTER SYSTEM } [, ... ] | ALL [ PRIVILEGES ] }\n    ON PARAMETER %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { { CREATE | USAGE } [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMA %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { CREATE | ALL [ PRIVILEGES ] }\n    ON TABLESPACE %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPE %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT %s [, ...] TO %s [, ...]\n    [ WITH { ADMIN | INHERIT | SET } { OPTION | TRUE | FALSE } ]\n    [ GRANTED BY %s ]\n\n%s\n\n    [ GROUP ] %s\n  | PUBLIC\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER",
+    "GRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { [ TABLE ] %s [, ...]\n         | ALL TABLES IN SCHEMA %s [, ...] }\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { { SELECT | INSERT | UPDATE | REFERENCES } ( %s [, ...] )\n    [, ...] | ALL [ PRIVILEGES ] ( %s [, ...] ) }\n    ON [ TABLE ] %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { SEQUENCE %s [, ...]\n         | ALL SEQUENCES IN SCHEMA %s [, ...] }\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { { CREATE | CONNECT | TEMPORARY | TEMP } [, ...] | ALL [ PRIVILEGES ] }\n    ON DATABASE %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON DOMAIN %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN DATA WRAPPER %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN SERVER %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { { FUNCTION | PROCEDURE | ROUTINE } %s [ ( [ [ %s ] [ %s ] %s [, ...] ] ) ] [, ...]\n         | ALL { FUNCTIONS | PROCEDURES | ROUTINES } IN SCHEMA %s [, ...] }\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON LANGUAGE %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { { SELECT | UPDATE } [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECT %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { { SET | ALTER SYSTEM } [, ... ] | ALL [ PRIVILEGES ] }\n    ON PARAMETER %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { { CREATE | USAGE } [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMA %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { CREATE | ALL [ PRIVILEGES ] }\n    ON TABLESPACE %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPE %s [, ...]\n    TO %s [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY %s ]\n\nGRANT %s [, ...] TO %s [, ...]\n    [ WITH { ADMIN | INHERIT | SET } { OPTION | TRUE | FALSE } ]\n    [ GRANTED BY %s ]\n\n%s\n\n    [ GROUP ] %s\n  | PUBLIC\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER",
     _("table_name"),
     _("schema_name"),
     _("role_specification"),
@@ -9901,7 +9860,7 @@ function sql_help_IMPORT_FOREIGN_SCHEMA(buf) {
 function sql_help_INSERT(buf) {
   appendPQExpBuffer(
     buf,
-    "[ WITH [ RECURSIVE ] %s [, ...] ]\nINSERT INTO %s [ AS %s ] [ ( %s [, ...] ) ]\n    [ OVERRIDING { SYSTEM | USER } VALUE ]\n    { DEFAULT VALUES | VALUES ( { %s | DEFAULT } [, ...] ) [, ...] | %s }\n    [ ON CONFLICT [ %s ] %s ]\n    [ RETURNING * | %s [ [ AS ] %s ] [, ...] ]\n\n%s\n\n    ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ...] ) [ WHERE %s ]\n    ON CONSTRAINT %s\n\n%s\n\n    DO NOTHING\n    DO UPDATE SET { %s = { %s | DEFAULT } |\n                    ( %s [, ...] ) = [ ROW ] ( { %s | DEFAULT } [, ...] ) |\n                    ( %s [, ...] ) = ( %s )\n                  } [, ...]\n              [ WHERE %s ]",
+    "[ WITH [ RECURSIVE ] %s [, ...] ]\nINSERT INTO %s [ AS %s ] [ ( %s [, ...] ) ]\n    [ OVERRIDING { SYSTEM | USER } VALUE ]\n    { DEFAULT VALUES | VALUES ( { %s | DEFAULT } [, ...] ) [, ...] | %s }\n    [ ON CONFLICT [ %s ] %s ]\n    [ RETURNING { * | %s [ [ AS ] %s ] } [, ...] ]\n\n%s\n\n    ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ...] ) [ WHERE %s ]\n    ON CONSTRAINT %s\n\n%s\n\n    DO NOTHING\n    DO UPDATE SET { %s = { %s | DEFAULT } |\n                    ( %s [, ...] ) = [ ROW ] ( { %s | DEFAULT } [, ...] ) |\n                    ( %s [, ...] ) = ( %s )\n                  } [, ...]\n              [ WHERE %s ]",
     _("with_query"),
     _("table_name"),
     _("alias"),
@@ -9955,18 +9914,23 @@ function sql_help_LOCK(buf) {
 function sql_help_MERGE(buf) {
   appendPQExpBuffer(
     buf,
-    "[ WITH %s [, ...] ]\nMERGE INTO [ ONLY ] %s [ * ] [ [ AS ] %s ]\nUSING %s ON %s\n%s [...]\n\n%s\n\n{ [ ONLY ] %s [ * ] | ( %s ) } [ [ AS ] %s ]\n\n%s\n\n{ WHEN MATCHED [ AND %s ] THEN { %s | %s | DO NOTHING } |\n  WHEN NOT MATCHED [ AND %s ] THEN { %s | DO NOTHING } }\n\n%s\n\nINSERT [( %s [, ...] )]\n[ OVERRIDING { SYSTEM | USER } VALUE ]\n{ VALUES ( { %s | DEFAULT } [, ...] ) | DEFAULT VALUES }\n\n%s\n\nUPDATE SET { %s = { %s | DEFAULT } |\n             ( %s [, ...] ) = ( { %s | DEFAULT } [, ...] ) } [, ...]\n\n%s\n\nDELETE",
+    "[ WITH %s [, ...] ]\nMERGE INTO [ ONLY ] %s [ * ] [ [ AS ] %s ]\nUSING %s ON %s\n%s [...]\n[ RETURNING { * | %s [ [ AS ] %s ] } [, ...] ]\n\n%s\n\n{ [ ONLY ] %s [ * ] | ( %s ) } [ [ AS ] %s ]\n\n%s\n\n{ WHEN MATCHED [ AND %s ] THEN { %s | %s | DO NOTHING } |\n  WHEN NOT MATCHED BY SOURCE [ AND %s ] THEN { %s | %s | DO NOTHING } |\n  WHEN NOT MATCHED [ BY TARGET ] [ AND %s ] THEN { %s | DO NOTHING } }\n\n%s\n\nINSERT [( %s [, ...] )]\n[ OVERRIDING { SYSTEM | USER } VALUE ]\n{ VALUES ( { %s | DEFAULT } [, ...] ) | DEFAULT VALUES }\n\n%s\n\nUPDATE SET { %s = { %s | DEFAULT } |\n             ( %s [, ...] ) = [ ROW ] ( { %s | DEFAULT } [, ...] ) |\n             ( %s [, ...] ) = ( %s )\n           } [, ...]\n\n%s\n\nDELETE",
     _("with_query"),
     _("target_table_name"),
     _("target_alias"),
     _("data_source"),
     _("join_condition"),
     _("when_clause"),
+    _("output_expression"),
+    _("output_name"),
     _("where data_source is:"),
     _("source_table_name"),
     _("source_query"),
     _("source_alias"),
     _("and when_clause is:"),
+    _("condition"),
+    _("merge_update"),
+    _("merge_delete"),
     _("condition"),
     _("merge_update"),
     _("merge_delete"),
@@ -9980,6 +9944,8 @@ function sql_help_MERGE(buf) {
     _("expression"),
     _("column_name"),
     _("expression"),
+    _("column_name"),
+    _("sub-SELECT"),
     _("and merge_delete is:")
   );
 }
@@ -10067,7 +10033,7 @@ function sql_help_RESET(buf) {
 function sql_help_REVOKE(buf) {
   appendPQExpBuffer(
     buf,
-    "REVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { [ TABLE ] %s [, ...]\n         | ALL TABLES IN SCHEMA %s [, ...] }\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | REFERENCES } ( %s [, ...] )\n    [, ...] | ALL [ PRIVILEGES ] ( %s [, ...] ) }\n    ON [ TABLE ] %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { SEQUENCE %s [, ...]\n         | ALL SEQUENCES IN SCHEMA %s [, ...] }\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { CREATE | CONNECT | TEMPORARY | TEMP } [, ...] | ALL [ PRIVILEGES ] }\n    ON DATABASE %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON DOMAIN %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN DATA WRAPPER %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN SERVER %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { { FUNCTION | PROCEDURE | ROUTINE } %s [ ( [ [ %s ] [ %s ] %s [, ...] ] ) ] [, ...]\n         | ALL { FUNCTIONS | PROCEDURES | ROUTINES } IN SCHEMA %s [, ...] }\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON LANGUAGE %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | UPDATE } [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECT %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SET | ALTER SYSTEM } [, ...] | ALL [ PRIVILEGES ] }\n    ON PARAMETER %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { CREATE | USAGE } [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMA %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { CREATE | ALL [ PRIVILEGES ] }\n    ON TABLESPACE %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPE %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ { ADMIN | INHERIT | SET } OPTION FOR ]\n    %s [, ...] FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\n%s\n\n    [ GROUP ] %s\n  | PUBLIC\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER",
+    "REVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { [ TABLE ] %s [, ...]\n         | ALL TABLES IN SCHEMA %s [, ...] }\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | REFERENCES } ( %s [, ...] )\n    [, ...] | ALL [ PRIVILEGES ] ( %s [, ...] ) }\n    ON [ TABLE ] %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { SEQUENCE %s [, ...]\n         | ALL SEQUENCES IN SCHEMA %s [, ...] }\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { CREATE | CONNECT | TEMPORARY | TEMP } [, ...] | ALL [ PRIVILEGES ] }\n    ON DATABASE %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON DOMAIN %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN DATA WRAPPER %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN SERVER %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { { FUNCTION | PROCEDURE | ROUTINE } %s [ ( [ [ %s ] [ %s ] %s [, ...] ] ) ] [, ...]\n         | ALL { FUNCTIONS | PROCEDURES | ROUTINES } IN SCHEMA %s [, ...] }\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON LANGUAGE %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | UPDATE } [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECT %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SET | ALTER SYSTEM } [, ...] | ALL [ PRIVILEGES ] }\n    ON PARAMETER %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { CREATE | USAGE } [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMA %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { CREATE | ALL [ PRIVILEGES ] }\n    ON TABLESPACE %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPE %s [, ...]\n    FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ { ADMIN | INHERIT | SET } OPTION FOR ]\n    %s [, ...] FROM %s [, ...]\n    [ GRANTED BY %s ]\n    [ CASCADE | RESTRICT ]\n\n%s\n\n    [ GROUP ] %s\n  | PUBLIC\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER",
     _("table_name"),
     _("schema_name"),
     _("role_specification"),
@@ -10155,7 +10121,7 @@ function sql_help_SAVEPOINT(buf) {
 function sql_help_SECURITY_LABEL(buf) {
   appendPQExpBuffer(
     buf,
-    "SECURITY LABEL [ FOR %s ] ON\n{\n  TABLE %s |\n  COLUMN %s.%s |\n  AGGREGATE %s ( %s ) |\n  DATABASE %s |\n  DOMAIN %s |\n  EVENT TRIGGER %s |\n  FOREIGN TABLE %s\n  FUNCTION %s [ ( [ [ %s ] [ %s ] %s [, ...] ] ) ] |\n  LARGE OBJECT %s |\n  MATERIALIZED VIEW %s |\n  [ PROCEDURAL ] LANGUAGE %s |\n  PROCEDURE %s [ ( [ [ %s ] [ %s ] %s [, ...] ] ) ] |\n  PUBLICATION %s |\n  ROLE %s |\n  ROUTINE %s [ ( [ [ %s ] [ %s ] %s [, ...] ] ) ] |\n  SCHEMA %s |\n  SEQUENCE %s |\n  SUBSCRIPTION %s |\n  TABLESPACE %s |\n  TYPE %s |\n  VIEW %s\n} IS { %s | NULL }\n\n%s\n\n* |\n[ %s ] [ %s ] %s [ , ... ] |\n[ [ %s ] [ %s ] %s [ , ... ] ] ORDER BY [ %s ] [ %s ] %s [ , ... ]",
+    "SECURITY LABEL [ FOR %s ] ON\n{\n  TABLE %s |\n  COLUMN %s.%s |\n  AGGREGATE %s ( %s ) |\n  DATABASE %s |\n  DOMAIN %s |\n  EVENT TRIGGER %s |\n  FOREIGN TABLE %s |\n  FUNCTION %s [ ( [ [ %s ] [ %s ] %s [, ...] ] ) ] |\n  LARGE OBJECT %s |\n  MATERIALIZED VIEW %s |\n  [ PROCEDURAL ] LANGUAGE %s |\n  PROCEDURE %s [ ( [ [ %s ] [ %s ] %s [, ...] ] ) ] |\n  PUBLICATION %s |\n  ROLE %s |\n  ROUTINE %s [ ( [ [ %s ] [ %s ] %s [, ...] ] ) ] |\n  SCHEMA %s |\n  SEQUENCE %s |\n  SUBSCRIPTION %s |\n  TABLESPACE %s |\n  TYPE %s |\n  VIEW %s\n} IS { %s | NULL }\n\n%s\n\n* |\n[ %s ] [ %s ] %s [ , ... ] |\n[ [ %s ] [ %s ] %s [ , ... ] ] ORDER BY [ %s ] [ %s ] %s [ , ... ]",
     _("provider"),
     _("object_name"),
     _("table_name"),
@@ -10205,7 +10171,7 @@ function sql_help_SECURITY_LABEL(buf) {
 function sql_help_SELECT(buf) {
   appendPQExpBuffer(
     buf,
-    "[ WITH [ RECURSIVE ] %s [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( %s [, ...] ) ] ]\n    [ * | %s [ [ AS ] %s ] [, ...] ]\n    [ FROM %s [, ...] ]\n    [ WHERE %s ]\n    [ GROUP BY [ ALL | DISTINCT ] %s [, ...] ]\n    [ HAVING %s ]\n    [ WINDOW %s AS ( %s ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] %s ]\n    [ ORDER BY %s [ ASC | DESC | USING %s ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { %s | ALL } ]\n    [ OFFSET %s [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ %s ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF %s [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]\n\n%s\n\n    [ ONLY ] %s [ * ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n                [ TABLESAMPLE %s ( %s [, ...] ) [ REPEATABLE ( %s ) ] ]\n    [ LATERAL ] ( %s ) [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    %s [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    [ LATERAL ] %s ( [ %s [, ...] ] )\n                [ WITH ORDINALITY ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    [ LATERAL ] %s ( [ %s [, ...] ] ) [ AS ] %s ( %s [, ...] )\n    [ LATERAL ] %s ( [ %s [, ...] ] ) AS ( %s [, ...] )\n    [ LATERAL ] ROWS FROM( %s ( [ %s [, ...] ] ) [ AS ( %s [, ...] ) ] [, ...] )\n                [ WITH ORDINALITY ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    %s %s %s { ON %s | USING ( %s [, ...] ) [ AS %s ] }\n    %s NATURAL %s %s\n    %s CROSS JOIN %s\n\n%s\n\n    ( )\n    %s\n    ( %s [, ...] )\n    ROLLUP ( { %s | ( %s [, ...] ) } [, ...] )\n    CUBE ( { %s | ( %s [, ...] ) } [, ...] )\n    GROUPING SETS ( %s [, ...] )\n\n%s\n\n    %s [ ( %s [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( %s | %s | %s | %s | %s )\n        [ SEARCH { BREADTH | DEPTH } FIRST BY %s [, ...] SET %s ]\n        [ CYCLE %s [, ...] SET %s [ TO %s DEFAULT %s ] USING %s ]\n\nTABLE [ ONLY ] %s [ * ]",
+    "[ WITH [ RECURSIVE ] %s [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( %s [, ...] ) ] ]\n    [ { * | %s [ [ AS ] %s ] } [, ...] ]\n    [ FROM %s [, ...] ]\n    [ WHERE %s ]\n    [ GROUP BY [ ALL | DISTINCT ] %s [, ...] ]\n    [ HAVING %s ]\n    [ WINDOW %s AS ( %s ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] %s ]\n    [ ORDER BY %s [ ASC | DESC | USING %s ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { %s | ALL } ]\n    [ OFFSET %s [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ %s ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF %s [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]\n\n%s\n\n    [ ONLY ] %s [ * ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n                [ TABLESAMPLE %s ( %s [, ...] ) [ REPEATABLE ( %s ) ] ]\n    [ LATERAL ] ( %s ) [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    %s [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    [ LATERAL ] %s ( [ %s [, ...] ] )\n                [ WITH ORDINALITY ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    [ LATERAL ] %s ( [ %s [, ...] ] ) [ AS ] %s ( %s [, ...] )\n    [ LATERAL ] %s ( [ %s [, ...] ] ) AS ( %s [, ...] )\n    [ LATERAL ] ROWS FROM( %s ( [ %s [, ...] ] ) [ AS ( %s [, ...] ) ] [, ...] )\n                [ WITH ORDINALITY ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    %s %s %s { ON %s | USING ( %s [, ...] ) [ AS %s ] }\n    %s NATURAL %s %s\n    %s CROSS JOIN %s\n\n%s\n\n    ( )\n    %s\n    ( %s [, ...] )\n    ROLLUP ( { %s | ( %s [, ...] ) } [, ...] )\n    CUBE ( { %s | ( %s [, ...] ) } [, ...] )\n    GROUPING SETS ( %s [, ...] )\n\n%s\n\n    %s [ ( %s [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( %s | %s | %s | %s | %s | %s )\n        [ SEARCH { BREADTH | DEPTH } FIRST BY %s [, ...] SET %s ]\n        [ CYCLE %s [, ...] SET %s [ TO %s DEFAULT %s ] USING %s ]\n\nTABLE [ ONLY ] %s [ * ]",
     _("with_query"),
     _("expression"),
     _("expression"),
@@ -10222,7 +10188,7 @@ function sql_help_SELECT(buf) {
     _("count"),
     _("start"),
     _("count"),
-    _("table_name"),
+    _("from_reference"),
     _("where from_item can be one of:"),
     _("table_name"),
     _("alias"),
@@ -10279,6 +10245,7 @@ function sql_help_SELECT(buf) {
     _("insert"),
     _("update"),
     _("delete"),
+    _("merge"),
     _("column_name"),
     _("search_seq_col_name"),
     _("column_name"),
@@ -10292,7 +10259,7 @@ function sql_help_SELECT(buf) {
 function sql_help_SELECT_INTO(buf) {
   appendPQExpBuffer(
     buf,
-    "[ WITH [ RECURSIVE ] %s [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( %s [, ...] ) ] ]\n    * | %s [ [ AS ] %s ] [, ...]\n    INTO [ TEMPORARY | TEMP | UNLOGGED ] [ TABLE ] %s\n    [ FROM %s [, ...] ]\n    [ WHERE %s ]\n    [ GROUP BY %s [, ...] ]\n    [ HAVING %s ]\n    [ WINDOW %s AS ( %s ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] %s ]\n    [ ORDER BY %s [ ASC | DESC | USING %s ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { %s | ALL } ]\n    [ OFFSET %s [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ %s ] { ROW | ROWS } ONLY ]\n    [ FOR { UPDATE | SHARE } [ OF %s [, ...] ] [ NOWAIT ] [...] ]",
+    "[ WITH [ RECURSIVE ] %s [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( %s [, ...] ) ] ]\n    [ { * | %s [ [ AS ] %s ] } [, ...] ]\n    INTO [ TEMPORARY | TEMP | UNLOGGED ] [ TABLE ] %s\n    [ FROM %s [, ...] ]\n    [ WHERE %s ]\n    [ GROUP BY %s [, ...] ]\n    [ HAVING %s ]\n    [ WINDOW %s AS ( %s ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] %s ]\n    [ ORDER BY %s [ ASC | DESC | USING %s ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { %s | ALL } ]\n    [ OFFSET %s [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ %s ] { ROW | ROWS } ONLY ]\n    [ FOR { UPDATE | SHARE } [ OF %s [, ...] ] [ NOWAIT ] [...] ]",
     _("with_query"),
     _("expression"),
     _("expression"),
@@ -10373,7 +10340,7 @@ function sql_help_START_TRANSACTION(buf) {
 function sql_help_TABLE(buf) {
   appendPQExpBuffer(
     buf,
-    "[ WITH [ RECURSIVE ] %s [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( %s [, ...] ) ] ]\n    [ * | %s [ [ AS ] %s ] [, ...] ]\n    [ FROM %s [, ...] ]\n    [ WHERE %s ]\n    [ GROUP BY [ ALL | DISTINCT ] %s [, ...] ]\n    [ HAVING %s ]\n    [ WINDOW %s AS ( %s ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] %s ]\n    [ ORDER BY %s [ ASC | DESC | USING %s ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { %s | ALL } ]\n    [ OFFSET %s [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ %s ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF %s [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]\n\n%s\n\n    [ ONLY ] %s [ * ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n                [ TABLESAMPLE %s ( %s [, ...] ) [ REPEATABLE ( %s ) ] ]\n    [ LATERAL ] ( %s ) [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    %s [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    [ LATERAL ] %s ( [ %s [, ...] ] )\n                [ WITH ORDINALITY ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    [ LATERAL ] %s ( [ %s [, ...] ] ) [ AS ] %s ( %s [, ...] )\n    [ LATERAL ] %s ( [ %s [, ...] ] ) AS ( %s [, ...] )\n    [ LATERAL ] ROWS FROM( %s ( [ %s [, ...] ] ) [ AS ( %s [, ...] ) ] [, ...] )\n                [ WITH ORDINALITY ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    %s %s %s { ON %s | USING ( %s [, ...] ) [ AS %s ] }\n    %s NATURAL %s %s\n    %s CROSS JOIN %s\n\n%s\n\n    ( )\n    %s\n    ( %s [, ...] )\n    ROLLUP ( { %s | ( %s [, ...] ) } [, ...] )\n    CUBE ( { %s | ( %s [, ...] ) } [, ...] )\n    GROUPING SETS ( %s [, ...] )\n\n%s\n\n    %s [ ( %s [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( %s | %s | %s | %s | %s )\n        [ SEARCH { BREADTH | DEPTH } FIRST BY %s [, ...] SET %s ]\n        [ CYCLE %s [, ...] SET %s [ TO %s DEFAULT %s ] USING %s ]\n\nTABLE [ ONLY ] %s [ * ]",
+    "[ WITH [ RECURSIVE ] %s [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( %s [, ...] ) ] ]\n    [ { * | %s [ [ AS ] %s ] } [, ...] ]\n    [ FROM %s [, ...] ]\n    [ WHERE %s ]\n    [ GROUP BY [ ALL | DISTINCT ] %s [, ...] ]\n    [ HAVING %s ]\n    [ WINDOW %s AS ( %s ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] %s ]\n    [ ORDER BY %s [ ASC | DESC | USING %s ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { %s | ALL } ]\n    [ OFFSET %s [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ %s ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF %s [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]\n\n%s\n\n    [ ONLY ] %s [ * ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n                [ TABLESAMPLE %s ( %s [, ...] ) [ REPEATABLE ( %s ) ] ]\n    [ LATERAL ] ( %s ) [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    %s [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    [ LATERAL ] %s ( [ %s [, ...] ] )\n                [ WITH ORDINALITY ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    [ LATERAL ] %s ( [ %s [, ...] ] ) [ AS ] %s ( %s [, ...] )\n    [ LATERAL ] %s ( [ %s [, ...] ] ) AS ( %s [, ...] )\n    [ LATERAL ] ROWS FROM( %s ( [ %s [, ...] ] ) [ AS ( %s [, ...] ) ] [, ...] )\n                [ WITH ORDINALITY ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    %s %s %s { ON %s | USING ( %s [, ...] ) [ AS %s ] }\n    %s NATURAL %s %s\n    %s CROSS JOIN %s\n\n%s\n\n    ( )\n    %s\n    ( %s [, ...] )\n    ROLLUP ( { %s | ( %s [, ...] ) } [, ...] )\n    CUBE ( { %s | ( %s [, ...] ) } [, ...] )\n    GROUPING SETS ( %s [, ...] )\n\n%s\n\n    %s [ ( %s [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( %s | %s | %s | %s | %s | %s )\n        [ SEARCH { BREADTH | DEPTH } FIRST BY %s [, ...] SET %s ]\n        [ CYCLE %s [, ...] SET %s [ TO %s DEFAULT %s ] USING %s ]\n\nTABLE [ ONLY ] %s [ * ]",
     _("with_query"),
     _("expression"),
     _("expression"),
@@ -10390,7 +10357,7 @@ function sql_help_TABLE(buf) {
     _("count"),
     _("start"),
     _("count"),
-    _("table_name"),
+    _("from_reference"),
     _("where from_item can be one of:"),
     _("table_name"),
     _("alias"),
@@ -10447,6 +10414,7 @@ function sql_help_TABLE(buf) {
     _("insert"),
     _("update"),
     _("delete"),
+    _("merge"),
     _("column_name"),
     _("search_seq_col_name"),
     _("column_name"),
@@ -10474,7 +10442,7 @@ function sql_help_UNLISTEN(buf) {
 function sql_help_UPDATE(buf) {
   appendPQExpBuffer(
     buf,
-    "[ WITH [ RECURSIVE ] %s [, ...] ]\nUPDATE [ ONLY ] %s [ * ] [ [ AS ] %s ]\n    SET { %s = { %s | DEFAULT } |\n          ( %s [, ...] ) = [ ROW ] ( { %s | DEFAULT } [, ...] ) |\n          ( %s [, ...] ) = ( %s )\n        } [, ...]\n    [ FROM %s [, ...] ]\n    [ WHERE %s | WHERE CURRENT OF %s ]\n    [ RETURNING * | %s [ [ AS ] %s ] [, ...] ]",
+    "[ WITH [ RECURSIVE ] %s [, ...] ]\nUPDATE [ ONLY ] %s [ * ] [ [ AS ] %s ]\n    SET { %s = { %s | DEFAULT } |\n          ( %s [, ...] ) = [ ROW ] ( { %s | DEFAULT } [, ...] ) |\n          ( %s [, ...] ) = ( %s )\n        } [, ...]\n    [ FROM %s [, ...] ]\n    [ WHERE %s | WHERE CURRENT OF %s ]\n    [ RETURNING { * | %s [ [ AS ] %s ] } [, ...] ]",
     _("with_query"),
     _("table_name"),
     _("alias"),
@@ -10531,7 +10499,7 @@ function sql_help_VALUES(buf) {
 function sql_help_WITH(buf) {
   appendPQExpBuffer(
     buf,
-    "[ WITH [ RECURSIVE ] %s [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( %s [, ...] ) ] ]\n    [ * | %s [ [ AS ] %s ] [, ...] ]\n    [ FROM %s [, ...] ]\n    [ WHERE %s ]\n    [ GROUP BY [ ALL | DISTINCT ] %s [, ...] ]\n    [ HAVING %s ]\n    [ WINDOW %s AS ( %s ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] %s ]\n    [ ORDER BY %s [ ASC | DESC | USING %s ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { %s | ALL } ]\n    [ OFFSET %s [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ %s ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF %s [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]\n\n%s\n\n    [ ONLY ] %s [ * ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n                [ TABLESAMPLE %s ( %s [, ...] ) [ REPEATABLE ( %s ) ] ]\n    [ LATERAL ] ( %s ) [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    %s [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    [ LATERAL ] %s ( [ %s [, ...] ] )\n                [ WITH ORDINALITY ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    [ LATERAL ] %s ( [ %s [, ...] ] ) [ AS ] %s ( %s [, ...] )\n    [ LATERAL ] %s ( [ %s [, ...] ] ) AS ( %s [, ...] )\n    [ LATERAL ] ROWS FROM( %s ( [ %s [, ...] ] ) [ AS ( %s [, ...] ) ] [, ...] )\n                [ WITH ORDINALITY ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    %s %s %s { ON %s | USING ( %s [, ...] ) [ AS %s ] }\n    %s NATURAL %s %s\n    %s CROSS JOIN %s\n\n%s\n\n    ( )\n    %s\n    ( %s [, ...] )\n    ROLLUP ( { %s | ( %s [, ...] ) } [, ...] )\n    CUBE ( { %s | ( %s [, ...] ) } [, ...] )\n    GROUPING SETS ( %s [, ...] )\n\n%s\n\n    %s [ ( %s [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( %s | %s | %s | %s | %s )\n        [ SEARCH { BREADTH | DEPTH } FIRST BY %s [, ...] SET %s ]\n        [ CYCLE %s [, ...] SET %s [ TO %s DEFAULT %s ] USING %s ]\n\nTABLE [ ONLY ] %s [ * ]",
+    "[ WITH [ RECURSIVE ] %s [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( %s [, ...] ) ] ]\n    [ { * | %s [ [ AS ] %s ] } [, ...] ]\n    [ FROM %s [, ...] ]\n    [ WHERE %s ]\n    [ GROUP BY [ ALL | DISTINCT ] %s [, ...] ]\n    [ HAVING %s ]\n    [ WINDOW %s AS ( %s ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] %s ]\n    [ ORDER BY %s [ ASC | DESC | USING %s ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { %s | ALL } ]\n    [ OFFSET %s [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ %s ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF %s [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]\n\n%s\n\n    [ ONLY ] %s [ * ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n                [ TABLESAMPLE %s ( %s [, ...] ) [ REPEATABLE ( %s ) ] ]\n    [ LATERAL ] ( %s ) [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    %s [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    [ LATERAL ] %s ( [ %s [, ...] ] )\n                [ WITH ORDINALITY ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    [ LATERAL ] %s ( [ %s [, ...] ] ) [ AS ] %s ( %s [, ...] )\n    [ LATERAL ] %s ( [ %s [, ...] ] ) AS ( %s [, ...] )\n    [ LATERAL ] ROWS FROM( %s ( [ %s [, ...] ] ) [ AS ( %s [, ...] ) ] [, ...] )\n                [ WITH ORDINALITY ] [ [ AS ] %s [ ( %s [, ...] ) ] ]\n    %s %s %s { ON %s | USING ( %s [, ...] ) [ AS %s ] }\n    %s NATURAL %s %s\n    %s CROSS JOIN %s\n\n%s\n\n    ( )\n    %s\n    ( %s [, ...] )\n    ROLLUP ( { %s | ( %s [, ...] ) } [, ...] )\n    CUBE ( { %s | ( %s [, ...] ) } [, ...] )\n    GROUPING SETS ( %s [, ...] )\n\n%s\n\n    %s [ ( %s [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( %s | %s | %s | %s | %s | %s )\n        [ SEARCH { BREADTH | DEPTH } FIRST BY %s [, ...] SET %s ]\n        [ CYCLE %s [, ...] SET %s [ TO %s DEFAULT %s ] USING %s ]\n\nTABLE [ ONLY ] %s [ * ]",
     _("with_query"),
     _("expression"),
     _("expression"),
@@ -10548,7 +10516,7 @@ function sql_help_WITH(buf) {
     _("count"),
     _("start"),
     _("count"),
-    _("table_name"),
+    _("from_reference"),
     _("where from_item can be one of:"),
     _("table_name"),
     _("alias"),
@@ -10605,6 +10573,7 @@ function sql_help_WITH(buf) {
     _("insert"),
     _("update"),
     _("delete"),
+    _("merge"),
     _("column_name"),
     _("search_seq_col_name"),
     _("column_name"),
@@ -10664,15 +10633,13 @@ async function go() {
         headers
       });
       const json = await response.json();
-      if (response.status === 200)
-        return json;
+      if (response.status === 200) return json;
       const jsonMsg = json.message, msgMatch = jsonMsg.match(/ERROR: (.*?)\n/), errMsg = msgMatch ? msgMatch[1] : jsonMsg;
       throw new Error(errMsg);
     };
     let outputEl = document.querySelector("#output");
     outputEl.innerHTML = "";
-    if (!htmlOutput)
-      outputEl = outputEl.appendChild(document.createElement("pre"));
+    if (!htmlOutput) outputEl = outputEl.appendChild(document.createElement("pre"));
     let firstOutput = true;
     const outputFn = htmlOutput ? (x) => outputEl.innerHTML += describeDataToHtml(x) : (x) => {
       outputEl.innerHTML += (firstOutput ? "" : "\n\n") + describeDataToString(x, true);
@@ -10681,8 +10648,7 @@ async function go() {
     const { promise, cancel } = describe(cmd, dbName, queryFn, outputFn, echoHidden);
     cancelFn = cancel;
     const status = await promise;
-    if (status !== null)
-      end();
+    if (status !== null) end();
   } else {
     cancelFn();
     end();
@@ -10690,8 +10656,7 @@ async function go() {
 }
 window.addEventListener("load", () => {
   const saveData = sessionStorage.getItem("form");
-  if (!saveData)
-    return;
+  if (!saveData) return;
   const { connectionString, cmd, echoHidden, htmlOutput } = JSON.parse(saveData);
   document.querySelector("#dburl").value = connectionString;
   document.querySelector("#sql").value = cmd;
@@ -10702,13 +10667,11 @@ var goBtn = document.querySelector("#gobtn");
 var goBtnUsualTitle = goBtn.value;
 goBtn.addEventListener("click", go);
 document.querySelector("#sql").addEventListener("keyup", (e) => {
-  if (e.key === "Enter")
-    go();
+  if (e.key === "Enter") go();
   e.preventDefault();
 });
 document.querySelector("#examples").addEventListener("click", (e) => {
-  if (e.target.nodeName === "A")
-    document.querySelector("#sql").value = e.target.textContent;
+  if (e.target.nodeName === "A") document.querySelector("#sql").value = e.target.textContent;
   e.preventDefault();
 });
 var spinner = document.querySelector("#spinner");

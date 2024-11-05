@@ -100,8 +100,7 @@ for (let test of tests) {
   const localOutput = localOutputArr.map(x => describeDataToString(x)).join('\n\n');
 
   const stdPsqlOutput = psqlOutput
-    // in case an older v17 release is compared: https://github.com/postgres/postgres/commit/923a71584fd7efb5302cb8bf5a5bd417b531123f
-    .replace(/pg_catalog\.cardinality\(([^)]+)\) = 0/g, 'pg_catalog.array_length($1, 1) = 0')
+    .replace(/\/docs\/17\//g, '/docs/current/')
     .replace(/ +$/gm, '').trim();
 
   const stdLocalOutput = localOutput.replace(/ +$/gm, '').trim();
