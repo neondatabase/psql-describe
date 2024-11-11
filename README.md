@@ -57,11 +57,11 @@ This function HTML-escapes string items, and formats object items as HTML tables
 
 ## Tests
 
-The tests compare this software's output against `psql` for the commands in `test/tests.txt`. Output is expected to be character-for-character identical, except for differences in trailing space at the end of lines.
+The tests compare this software's output against `psql` (release 17.0) for the commands in `test/tests.txt`. Output should be character-for-character identical, except for differences in trailing whitespace.
 
 In case of failure, the tests halt and a `psql.txt` and `local.txt` are written, which you can then `diff`.
 
-To make the tests work on your machine, you'll need to create a test database (see below) and update the DB connection strings in the `test` command in `package.json`.
+To make the tests work on your machine, you'll need to create a test database (see below), and probably update the DB connection strings in the `test` command in `package.json`.
 
 
 ### Database
@@ -73,3 +73,7 @@ curl https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-schema.
 curl https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-data.sql | psql psqldescribe
 psql psqldescribe < test/test-pagila-additions.sql
 ```
+
+## License
+
+This package is released under the [Postgres license](LICENSE).
