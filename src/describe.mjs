@@ -201,7 +201,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
                 PSQL_CMD_UNKNOWN
         );
 
-      if (strchr(matchedCommand, 'x') !== NULL && !matchedCommand.startsWith('dx')) {
+      if ((matchedCommand.startsWith('dx') ? matchedCommand.slice(2) : matchedCommand).indexOf('x') !== -1) {
         outputFn('Note: expanded output using x is not supported');
       }
 

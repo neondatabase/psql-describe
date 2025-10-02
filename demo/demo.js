@@ -153,7 +153,7 @@ ${sql}
         }
       };
       const scan_state = [remaining, 0], result = await (matchedCommand[0] === "d" ? exec_command_d(scan_state, true, matchedCommand) : matchedCommand[0] === "s" ? matchedCommand[1] === "f" || matchedCommand[1] === "v" ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === "f") : PSQL_CMD_UNKNOWN : matchedCommand[0] === "l" ? exec_command_list(scan_state, true, matchedCommand) : PSQL_CMD_UNKNOWN);
-      if (strchr(matchedCommand, "x") !== NULL && !matchedCommand.startsWith("dx")) {
+      if ((matchedCommand.startsWith("dx") ? matchedCommand.slice(2) : matchedCommand).indexOf("x") !== -1) {
         outputFn("Note: expanded output using x is not supported");
       }
       if (result === PSQL_CMD_UNKNOWN) outputFn(`invalid command \\${matchedCommand}`);
