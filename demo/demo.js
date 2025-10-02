@@ -23,9 +23,11 @@ var DEFACLOBJ_SEQUENCE = "S";
 var DEFACLOBJ_FUNCTION = "f";
 var DEFACLOBJ_TYPE = "T";
 var DEFACLOBJ_NAMESPACE = "n";
+var DEFACLOBJ_LARGEOBJECT = "L";
 var ATTRIBUTE_IDENTITY_ALWAYS = "a";
 var ATTRIBUTE_IDENTITY_BY_DEFAULT = "d";
 var ATTRIBUTE_GENERATED_STORED = "s";
+var ATTRIBUTE_GENERATED_VIRTUAL = "v";
 var RELKIND_RELATION = "r";
 var RELKIND_INDEX = "i";
 var RELKIND_SEQUENCE = "S";
@@ -36,6 +38,8 @@ var RELKIND_COMPOSITE_TYPE = "c";
 var RELKIND_FOREIGN_TABLE = "f";
 var RELKIND_PARTITIONED_TABLE = "p";
 var RELKIND_PARTITIONED_INDEX = "I";
+var PUBLISH_GENCOLS_NONE = "n";
+var PUBLISH_GENCOLS_STORED = "s";
 var INT8OID = 20;
 var INT2OID = 21;
 var INT4OID = 23;
@@ -53,7 +57,7 @@ function describeDataToString(item) {
 function describeDataToHtml(item) {
   return typeof item === "string" ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item);
 }
-function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sversion = null, std_strings = 1, docsURLTemplate = (id) => `https://www.postgresql.org/docs/current/${id}.html`) {
+function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sversion = null, std_strings = 1, docsURLTemplate = (id) => `https://www.postgresql.org/docs/18/${id}.html`) {
   let cancel_pressed = false;
   function cancel() {
     cancel_pressed = true;
@@ -149,6 +153,9 @@ ${sql}
         }
       };
       const scan_state = [remaining, 0], result = await (matchedCommand[0] === "d" ? exec_command_d(scan_state, true, matchedCommand) : matchedCommand[0] === "s" ? matchedCommand[1] === "f" || matchedCommand[1] === "v" ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === "f") : PSQL_CMD_UNKNOWN : matchedCommand[0] === "l" ? exec_command_list(scan_state, true, matchedCommand) : PSQL_CMD_UNKNOWN);
+      if ((matchedCommand.startsWith("dx") ? matchedCommand.slice(2) : matchedCommand).indexOf("x") !== -1) {
+        outputFn("Note: expanded output using x is not supported");
+      }
       if (result === PSQL_CMD_UNKNOWN) outputFn(`invalid command \\${matchedCommand}`);
       let arg, warnings = [];
       while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(sprintf('\\%s: extra argument "%s" ignored', matchedCommand, arg));
@@ -1385,6 +1392,7 @@ WHERE p.proisagg
       return true;
     }
     async function describeFunctions(functypes, func_pattern, arg_patterns, num_arg_patterns, verbose, showSystem) {
+      let df_options = "anptwSx+";
       let showAggregate = strchr(functypes, "a") != NULL;
       let showNormal = strchr(functypes, "n") != NULL;
       let showProcedure = strchr(functypes, "p") != NULL;
@@ -1396,10 +1404,10 @@ WHERE p.proisagg
       };
       let res;
       let myopt = pset.popt;
-      let translate_columns = [false, false, false, false, true, true, true, false, true, false, false, false, false];
-      let translate_columns_pre_96 = [false, false, false, false, true, true, false, true, false, false, false, false];
-      if (strlen(functypes) != strspn(functypes, "anptwS+")) {
-        pg_log_error("\\df only takes [anptwS+] as options");
+      let translate_columns = [false, false, false, false, true, true, true, false, true, true, false, false, false, false];
+      let translate_columns_pre_96 = [false, false, false, false, true, true, false, true, true, false, false, false, false];
+      if (strlen(functypes) != strspn(functypes, df_options)) {
+        pg_log_error(`\\df only takes [${df_options}] as options`);
         return true;
       }
       if (showProcedure && pset.sversion < 11e4) {
@@ -1500,11 +1508,15 @@ WHERE p.proisagg
           buf,
           `,
  pg_catalog.pg_get_userbyid(p.proowner) as "%s",
- CASE WHEN prosecdef THEN '%s' ELSE '%s' END AS "%s"`,
+ CASE WHEN prosecdef THEN '%s' ELSE '%s' END AS "%s",
+ CASE WHEN p.proleakproof THEN '%s' ELSE '%s' END as "%s"`,
           gettext_noop("Owner"),
           gettext_noop("definer"),
           gettext_noop("invoker"),
-          gettext_noop("Security")
+          gettext_noop("Security"),
+          gettext_noop("yes"),
+          gettext_noop("no"),
+          gettext_noop("Leakproof?")
         );
         appendPQExpBufferStr(buf, ",\n ");
         printACLColumn(buf, "p.proacl");
@@ -1830,6 +1842,7 @@ WHERE p.proisagg
       };
       let res;
       let myopt = pset.popt;
+      let translate_columns = [false, false, false, false, false, false, true, false];
       initPQExpBuffer(buf);
       printfPQExpBuffer(
         buf,
@@ -1848,8 +1861,13 @@ WHERE p.proisagg
       if (verbose)
         appendPQExpBuffer(
           buf,
-          '  o.oprcode AS "%s",\n',
-          gettext_noop("Function")
+          `  o.oprcode AS "%s",
+  CASE WHEN p.proleakproof THEN '%s' ELSE '%s' END AS "%s",
+`,
+          gettext_noop("Function"),
+          gettext_noop("yes"),
+          gettext_noop("no"),
+          gettext_noop("Leakproof?")
         );
       appendPQExpBuffer(
         buf,
@@ -1872,6 +1890,11 @@ FROM pg_catalog.pg_operator o
           "     LEFT JOIN pg_catalog.pg_type t0 ON t0.oid = o.oprright\n     LEFT JOIN pg_catalog.pg_namespace nt0 ON nt0.oid = t0.typnamespace\n"
         );
       }
+      if (verbose)
+        appendPQExpBufferStr(
+          buf,
+          "     LEFT JOIN pg_catalog.pg_proc p ON p.oid = o.oprcode\n"
+        );
       if (!showSystem && !oper_pattern)
         appendPQExpBufferStr(buf, "WHERE n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
@@ -1923,6 +1946,8 @@ FROM pg_catalog.pg_operator o
       myopt.nullPrint = NULL;
       myopt.title = _("List of operators");
       myopt.translate_header = true;
+      myopt.translate_columns = translate_columns;
+      myopt.n_translate_columns = lengthof(translate_columns);
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
@@ -2069,7 +2094,7 @@ FROM pg_catalog.pg_operator o
         buf,
         `SELECT pg_catalog.pg_get_userbyid(d.defaclrole) AS "%s",
   n.nspname AS "%s",
-  CASE d.defaclobjtype WHEN '%c' THEN '%s' WHEN '%c' THEN '%s' WHEN '%c' THEN '%s' WHEN '%c' THEN '%s' WHEN '%c' THEN '%s' END AS "%s",
+  CASE d.defaclobjtype     WHEN '%c' THEN '%s' WHEN '%c' THEN '%s' WHEN '%c' THEN '%s'    WHEN '%c' THEN '%s' WHEN '%c' THEN '%s' WHEN '%c' THEN '%s' END AS "%s",
   `,
         gettext_noop("Owner"),
         gettext_noop("Schema"),
@@ -2083,6 +2108,8 @@ FROM pg_catalog.pg_operator o
         gettext_noop("type"),
         DEFACLOBJ_NAMESPACE,
         gettext_noop("schema"),
+        DEFACLOBJ_LARGEOBJECT,
+        gettext_noop("large object"),
         gettext_noop("Type")
       );
       printACLColumn(buf, "d.defaclacl");
@@ -2613,20 +2640,12 @@ FROM pg_catalog.pg_operator o
           );
           break;
         case RELKIND_MATVIEW:
-          if (tableinfo.relpersistence == "u")
-            printfPQExpBuffer(
-              title,
-              _('Unlogged materialized view "%s.%s"'),
-              schemaname,
-              relationname
-            );
-          else
-            printfPQExpBuffer(
-              title,
-              _('Materialized view "%s.%s"'),
-              schemaname,
-              relationname
-            );
+          printfPQExpBuffer(
+            title,
+            _('Materialized view "%s.%s"'),
+            schemaname,
+            relationname
+          );
           break;
         case RELKIND_INDEX:
           if (tableinfo.relpersistence == "u")
@@ -2760,6 +2779,12 @@ FROM pg_catalog.pg_operator o
           else if (generated[0] == ATTRIBUTE_GENERATED_STORED) {
             default_str = psprintf(
               "generated always as (%s) stored",
+              PQgetvalue(res, i, attrdef_col)
+            );
+            mustfree = true;
+          } else if (generated[0] == ATTRIBUTE_GENERATED_VIRTUAL) {
+            default_str = psprintf(
+              "generated always as (%s)",
               PQgetvalue(res, i, attrdef_col)
             );
             mustfree = true;
@@ -2981,6 +3006,10 @@ FROM pg_catalog.pg_operator o
           else
             appendPQExpBufferStr(buf, ", false AS indisreplident");
           appendPQExpBufferStr(buf, ", c2.reltablespace");
+          if (pset.sversion >= 18e4)
+            appendPQExpBufferStr(buf, ", con.conperiod");
+          else
+            appendPQExpBufferStr(buf, ", false AS conperiod");
           appendPQExpBuffer(
             buf,
             "\nFROM pg_catalog.pg_class c, pg_catalog.pg_class c2, pg_catalog.pg_index i\n  LEFT JOIN pg_catalog.pg_constraint con ON (conrelid = i.indrelid AND conindid = i.indexrelid AND contype IN ('p','u','x'))\nWHERE c.oid = '%s' AND c.oid = i.indrelid AND i.indexrelid = c2.oid\nORDER BY i.indisprimary DESC, c2.relname;",
@@ -2999,7 +3028,7 @@ FROM pg_catalog.pg_operator o
                 '    "%s"',
                 PQgetvalue(result, i, 0)
               );
-              if (strcmp(PQgetvalue(result, i, 7), "x") == 0) {
+              if (strcmp(PQgetvalue(result, i, 7), "x") == 0 || strcmp(PQgetvalue(result, i, 12), "t") == 0) {
                 appendPQExpBuffer(
                   buf,
                   " %s",
@@ -3066,76 +3095,33 @@ FROM pg_catalog.pg_operator o
             }
           }
         }
-        if (tableinfo.hastriggers || tableinfo.relkind == RELKIND_PARTITIONED_TABLE) {
-          if (pset.sversion >= 12e4 && (tableinfo.ispartition || tableinfo.relkind == RELKIND_PARTITIONED_TABLE)) {
-            printfPQExpBuffer(
-              buf,
-              "SELECT conrelid = '%s'::pg_catalog.regclass AS sametable,\n       conname,\n       pg_catalog.pg_get_constraintdef(oid, true) AS condef,\n       conrelid::pg_catalog.regclass AS ontable\n  FROM pg_catalog.pg_constraint,\n       pg_catalog.pg_partition_ancestors('%s')\n WHERE conrelid = relid AND contype = 'f' AND conparentid = 0\nORDER BY sametable DESC, conname;",
-              oid,
-              oid
-            );
-          } else {
-            printfPQExpBuffer(
-              buf,
-              "SELECT true as sametable, conname,\n  pg_catalog.pg_get_constraintdef(r.oid, true) as condef,\n  conrelid::pg_catalog.regclass AS ontable\nFROM pg_catalog.pg_constraint r\nWHERE r.conrelid = '%s' AND r.contype = 'f'\n",
-              oid
-            );
-            if (pset.sversion >= 12e4)
-              appendPQExpBufferStr(buf, "     AND conparentid = 0\n");
-            appendPQExpBufferStr(buf, "ORDER BY conname");
-          }
-          result = await PSQLexec(buf.data);
-          if (!result)
-            return retval;
-          else
-            tuples = PQntuples(result);
-          if (tuples > 0) {
-            let i_sametable = PQfnumber(result, "sametable"), i_conname = PQfnumber(result, "conname"), i_condef = PQfnumber(result, "condef"), i_ontable = PQfnumber(result, "ontable");
-            printTableAddFooter(cont, _("Foreign-key constraints:"));
-            for (i = 0; i < tuples; i++) {
-              if (strcmp(PQgetvalue(result, i, i_sametable), "f") == 0)
-                printfPQExpBuffer(
-                  buf,
-                  '    TABLE "%s" CONSTRAINT "%s" %s',
-                  PQgetvalue(result, i, i_ontable),
-                  PQgetvalue(result, i, i_conname),
-                  PQgetvalue(result, i, i_condef)
-                );
-              else
-                printfPQExpBuffer(
-                  buf,
-                  '    "%s" %s',
-                  PQgetvalue(result, i, i_conname),
-                  PQgetvalue(result, i, i_condef)
-                );
-              printTableAddFooter(cont, buf.data);
-            }
-          }
+        if (pset.sversion >= 12e4 && (tableinfo.ispartition || tableinfo.relkind == RELKIND_PARTITIONED_TABLE)) {
+          printfPQExpBuffer(
+            buf,
+            "SELECT conrelid = '%s'::pg_catalog.regclass AS sametable,\n       conname,\n       pg_catalog.pg_get_constraintdef(oid, true) AS condef,\n       conrelid::pg_catalog.regclass AS ontable\n  FROM pg_catalog.pg_constraint,\n       pg_catalog.pg_partition_ancestors('%s')\n WHERE conrelid = relid AND contype = 'f' AND conparentid = 0\nORDER BY sametable DESC, conname;",
+            oid,
+            oid
+          );
+        } else {
+          printfPQExpBuffer(
+            buf,
+            "SELECT true as sametable, conname,\n  pg_catalog.pg_get_constraintdef(r.oid, true) as condef,\n  conrelid::pg_catalog.regclass AS ontable\nFROM pg_catalog.pg_constraint r\nWHERE r.conrelid = '%s' AND r.contype = 'f'\n",
+            oid
+          );
+          if (pset.sversion >= 12e4)
+            appendPQExpBufferStr(buf, "     AND conparentid = 0\n");
+          appendPQExpBufferStr(buf, "ORDER BY conname");
         }
-        if (tableinfo.hastriggers || tableinfo.relkind == RELKIND_PARTITIONED_TABLE) {
-          if (pset.sversion >= 12e4) {
-            printfPQExpBuffer(
-              buf,
-              "SELECT conname, conrelid::pg_catalog.regclass AS ontable,\n       pg_catalog.pg_get_constraintdef(oid, true) AS condef\n  FROM pg_catalog.pg_constraint c\n WHERE confrelid IN (SELECT pg_catalog.pg_partition_ancestors('%s')\n                     UNION ALL VALUES ('%s'::pg_catalog.regclass))\n       AND contype = 'f' AND conparentid = 0\nORDER BY conname;",
-              oid,
-              oid
-            );
-          } else {
-            printfPQExpBuffer(
-              buf,
-              "SELECT conname, conrelid::pg_catalog.regclass AS ontable,\n       pg_catalog.pg_get_constraintdef(oid, true) AS condef\n  FROM pg_catalog.pg_constraint\n WHERE confrelid = %s AND contype = 'f'\nORDER BY conname;",
-              oid
-            );
-          }
-          result = await PSQLexec(buf.data);
-          if (!result)
-            return retval;
-          else
-            tuples = PQntuples(result);
-          if (tuples > 0) {
-            let i_conname = PQfnumber(result, "conname"), i_ontable = PQfnumber(result, "ontable"), i_condef = PQfnumber(result, "condef");
-            printTableAddFooter(cont, _("Referenced by:"));
-            for (i = 0; i < tuples; i++) {
+        result = await PSQLexec(buf.data);
+        if (!result)
+          return retval;
+        else
+          tuples = PQntuples(result);
+        if (tuples > 0) {
+          let i_sametable = PQfnumber(result, "sametable"), i_conname = PQfnumber(result, "conname"), i_condef = PQfnumber(result, "condef"), i_ontable = PQfnumber(result, "ontable");
+          printTableAddFooter(cont, _("Foreign-key constraints:"));
+          for (i = 0; i < tuples; i++) {
+            if (strcmp(PQgetvalue(result, i, i_sametable), "f") == 0)
               printfPQExpBuffer(
                 buf,
                 '    TABLE "%s" CONSTRAINT "%s" %s',
@@ -3143,8 +3129,47 @@ FROM pg_catalog.pg_operator o
                 PQgetvalue(result, i, i_conname),
                 PQgetvalue(result, i, i_condef)
               );
-              printTableAddFooter(cont, buf.data);
-            }
+            else
+              printfPQExpBuffer(
+                buf,
+                '    "%s" %s',
+                PQgetvalue(result, i, i_conname),
+                PQgetvalue(result, i, i_condef)
+              );
+            printTableAddFooter(cont, buf.data);
+          }
+        }
+        if (pset.sversion >= 12e4) {
+          printfPQExpBuffer(
+            buf,
+            "SELECT conname, conrelid::pg_catalog.regclass AS ontable,\n       pg_catalog.pg_get_constraintdef(oid, true) AS condef\n  FROM pg_catalog.pg_constraint c\n WHERE confrelid IN (SELECT pg_catalog.pg_partition_ancestors('%s')\n                     UNION ALL VALUES ('%s'::pg_catalog.regclass))\n       AND contype = 'f' AND conparentid = 0\nORDER BY conname;",
+            oid,
+            oid
+          );
+        } else {
+          printfPQExpBuffer(
+            buf,
+            "SELECT conname, conrelid::pg_catalog.regclass AS ontable,\n       pg_catalog.pg_get_constraintdef(oid, true) AS condef\n  FROM pg_catalog.pg_constraint\n WHERE confrelid = %s AND contype = 'f'\nORDER BY conname;",
+            oid
+          );
+        }
+        result = await PSQLexec(buf.data);
+        if (!result)
+          return retval;
+        else
+          tuples = PQntuples(result);
+        if (tuples > 0) {
+          let i_conname = PQfnumber(result, "conname"), i_ontable = PQfnumber(result, "ontable"), i_condef = PQfnumber(result, "condef");
+          printTableAddFooter(cont, _("Referenced by:"));
+          for (i = 0; i < tuples; i++) {
+            printfPQExpBuffer(
+              buf,
+              '    TABLE "%s" CONSTRAINT "%s" %s',
+              PQgetvalue(result, i, i_ontable),
+              PQgetvalue(result, i, i_conname),
+              PQgetvalue(result, i, i_condef)
+            );
+            printTableAddFooter(cont, buf.data);
           }
         }
         if (pset.sversion >= 90500) {
@@ -3442,6 +3467,34 @@ FROM pg_catalog.pg_operator o
                 " WHERE %s",
                 PQgetvalue(result, i, 1)
               );
+            printTableAddFooter(cont, buf.data);
+          }
+        }
+        if (verbose) {
+          printfPQExpBuffer(
+            buf,
+            "SELECT c.conname, a.attname, c.connoinherit,\n  c.conislocal, c.coninhcount <> 0,\n  c.convalidated\nFROM pg_catalog.pg_constraint c JOIN\n  pg_catalog.pg_attribute a ON\n    (a.attrelid = c.conrelid AND a.attnum = c.conkey[1])\nWHERE c.contype = 'n' AND\n  c.conrelid = '%s'::pg_catalog.regclass\nORDER BY a.attnum",
+            oid
+          );
+          result = await PSQLexec(buf.data);
+          if (!result)
+            return retval;
+          else
+            tuples = PQntuples(result);
+          if (tuples > 0)
+            printTableAddFooter(cont, _("Not-null constraints:"));
+          for (i = 0; i < tuples; i++) {
+            let islocal = PQgetvalue(result, i, 3)[0] == "t";
+            let inherited = PQgetvalue(result, i, 4)[0] == "t";
+            let validated = PQgetvalue(result, i, 5)[0] == "t";
+            printfPQExpBuffer(
+              buf,
+              '    "%s" NOT NULL "%s"%s%s',
+              PQgetvalue(result, i, 0),
+              PQgetvalue(result, i, 1),
+              PQgetvalue(result, i, 2)[0] == "t" ? " NO INHERIT" : islocal && inherited ? _(" (local, inherited)") : inherited ? _(" (inherited)") : "",
+              !validated ? " NOT VALID" : ""
+            );
             printTableAddFooter(cont, buf.data);
           }
         }
@@ -4047,6 +4100,7 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       let showMatViews = strchr(tabtypes, "m") != NULL;
       let showSeq = strchr(tabtypes, "s") != NULL;
       let showForeign = strchr(tabtypes, "E") != NULL;
+      let ntypes;
       let buf = {
         /* struct */
       };
@@ -4054,7 +4108,8 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       let myopt = pset.popt;
       let cols_so_far;
       let translate_columns = [false, false, true, false, false, false, false, false, false];
-      if (!(showTables || showIndexes || showViews || showMatViews || showSeq || showForeign))
+      ntypes = showTables + showIndexes + showViews + showMatViews + showSeq + showForeign;
+      if (ntypes == 0)
         showTables = showViews = showMatViews = showSeq = showForeign = true;
       initPQExpBuffer(buf);
       printfPQExpBuffer(
@@ -4188,16 +4243,68 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       if (!res)
         return false;
       if (PQntuples(res) == 0 && !pset.quiet) {
-        if (pattern)
-          pg_log_error(
-            'Did not find any relation named "%s".',
-            pattern
-          );
-        else
-          pg_log_error("Did not find any relations.");
+        if (pattern) {
+          if (ntypes != 1)
+            pg_log_error(
+              'Did not find any relations named "%s".',
+              pattern
+            );
+          else if (showTables)
+            pg_log_error(
+              'Did not find any tables named "%s".',
+              pattern
+            );
+          else if (showIndexes)
+            pg_log_error(
+              'Did not find any indexes named "%s".',
+              pattern
+            );
+          else if (showViews)
+            pg_log_error(
+              'Did not find any views named "%s".',
+              pattern
+            );
+          else if (showMatViews)
+            pg_log_error(
+              'Did not find any materialized views named "%s".',
+              pattern
+            );
+          else if (showSeq)
+            pg_log_error(
+              'Did not find any sequences named "%s".',
+              pattern
+            );
+          else if (showForeign)
+            pg_log_error(
+              'Did not find any foreign tables named "%s".',
+              pattern
+            );
+          else
+            pg_log_error_internal(
+              'Did not find any ??? named "%s".',
+              pattern
+            );
+        } else {
+          if (ntypes != 1)
+            pg_log_error("Did not find any relations.");
+          else if (showTables)
+            pg_log_error("Did not find any tables.");
+          else if (showIndexes)
+            pg_log_error("Did not find any indexes.");
+          else if (showViews)
+            pg_log_error("Did not find any views.");
+          else if (showMatViews)
+            pg_log_error("Did not find any materialized views.");
+          else if (showSeq)
+            pg_log_error("Did not find any sequences.");
+          else if (showForeign)
+            pg_log_error("Did not find any foreign tables.");
+          else
+            pg_log_error_internal("Did not find any ??? relations.");
+        }
       } else {
         myopt.nullPrint = NULL;
-        myopt.title = _("List of relations");
+        myopt.title = ntypes != 1 ? _("List of relations") : showTables ? _("List of tables") : showIndexes ? _("List of indexes") : showViews ? _("List of views") : showMatViews ? _("List of materialized views") : showSeq ? _("List of sequences") : showForeign ? _("List of foreign tables") : "List of ???";
         myopt.translate_header = true;
         myopt.translate_columns = translate_columns;
         myopt.n_translate_columns = lengthof(translate_columns);
@@ -4217,7 +4324,7 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       };
       let res;
       let myopt = pset.popt;
-      let translate_columns = [false, false, false, false, false, false, false, false, false];
+      let translate_columns = [false, false, false, false, false, false, false, false, false, false];
       let tabletitle;
       let mixed_output = false;
       if (pset.sversion < 1e5) {
@@ -4275,6 +4382,11 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
           gettext_noop("Table")
         );
       if (verbose) {
+        appendPQExpBuffer(
+          buf,
+          ',\n  am.amname as "%s"',
+          gettext_noop("Access method")
+        );
         if (showNested) {
           appendPQExpBuffer(
             buf,
@@ -4314,6 +4426,10 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
           "\n     LEFT JOIN pg_catalog.pg_inherits inh ON c.oid = inh.inhrelid"
         );
       if (verbose) {
+        appendPQExpBufferStr(
+          buf,
+          "\n     LEFT JOIN pg_catalog.pg_am am ON c.relam = am.oid"
+        );
         if (pset.sversion < 12e4) {
           appendPQExpBufferStr(
             buf,
@@ -4811,7 +4927,7 @@ END AS "%s" `,
       };
       let res;
       let myopt = pset.popt;
-      let translate_columns = [false, false, false, true, false];
+      let translate_columns = [false, false, false, true, true, false];
       initPQExpBuffer(buf);
       printfPQExpBuffer(
         buf,
@@ -4846,7 +4962,14 @@ END AS "%s" `,
       if (verbose)
         appendPQExpBuffer(
           buf,
-          ',\n       d.description AS "%s"',
+          `,
+       CASE WHEN p.proleakproof THEN '%s'
+            ELSE '%s'
+       END AS "%s",
+       d.description AS "%s"`,
+          gettext_noop("yes"),
+          gettext_noop("no"),
+          gettext_noop("Leakproof?"),
           gettext_noop("Description")
         );
       appendPQExpBufferStr(
@@ -5841,11 +5964,12 @@ ORDER BY 1;`,
       initPQExpBuffer(buf);
       printfPQExpBuffer(
         buf,
-        `SELECT e.extname AS "%s", e.extversion AS "%s", n.nspname AS "%s", c.description AS "%s"
-FROM pg_catalog.pg_extension e LEFT JOIN pg_catalog.pg_namespace n ON n.oid = e.extnamespace LEFT JOIN pg_catalog.pg_description c ON c.objoid = e.oid AND c.classoid = 'pg_catalog.pg_extension'::pg_catalog.regclass
+        `SELECT e.extname AS "%s", e.extversion AS "%s", ae.default_version AS "%s",n.nspname AS "%s", d.description AS "%s"
+FROM pg_catalog.pg_extension e LEFT JOIN pg_catalog.pg_namespace n ON n.oid = e.extnamespace LEFT JOIN pg_catalog.pg_description d ON d.objoid = e.oid AND d.classoid = 'pg_catalog.pg_extension'::pg_catalog.regclass LEFT JOIN pg_catalog.pg_available_extensions() ae(name, default_version, comment) ON ae.name = e.extname
 `,
         gettext_noop("Name"),
         gettext_noop("Version"),
+        gettext_noop("Default version"),
         gettext_noop("Schema"),
         gettext_noop("Description")
       );
@@ -5964,7 +6088,7 @@ ORDER BY 1;`,
       };
       let res;
       let myopt = pset.popt;
-      let translate_columns = [false, false, false, false, false, false, false, false];
+      let translate_columns = [false, false, false, false, false, false, false, false, false];
       if (pset.sversion < 1e5) {
         let sverbuf;
         pg_log_error(
@@ -5995,6 +6119,18 @@ ORDER BY 1;`,
           ',\n  pubtruncate AS "%s"',
           gettext_noop("Truncates")
         );
+      if (pset.sversion >= 18e4)
+        appendPQExpBuffer(
+          buf,
+          `,
+ (CASE pubgencols
+    WHEN '%c' THEN 'none'
+    WHEN '%c' THEN 'stored'
+   END) AS "%s"`,
+          PUBLISH_GENCOLS_NONE,
+          PUBLISH_GENCOLS_STORED,
+          gettext_noop("Generated columns")
+        );
       if (pset.sversion >= 13e4)
         appendPQExpBuffer(
           buf,
@@ -6023,7 +6159,6 @@ ORDER BY 1;`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
       myopt.title = _("List of publications");
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
@@ -6068,6 +6203,7 @@ ORDER BY 1;`,
       let i;
       let res;
       let has_pubtruncate;
+      let has_pubgencols;
       let has_pubviaroot;
       let title = {
         /* struct */
@@ -6089,6 +6225,7 @@ ORDER BY 1;`,
         return true;
       }
       has_pubtruncate = pset.sversion >= 11e4;
+      has_pubgencols = pset.sversion >= 18e4;
       has_pubviaroot = pset.sversion >= 13e4;
       initPQExpBuffer(buf);
       printfPQExpBuffer(
@@ -6100,10 +6237,37 @@ ORDER BY 1;`,
           buf,
           ", pubtruncate"
         );
+      else
+        appendPQExpBufferStr(
+          buf,
+          ", false AS pubtruncate"
+        );
+      if (has_pubgencols)
+        appendPQExpBuffer(
+          buf,
+          `, (CASE pubgencols
+    WHEN '%c' THEN 'none'
+    WHEN '%c' THEN 'stored'
+   END) AS "%s"
+`,
+          PUBLISH_GENCOLS_NONE,
+          PUBLISH_GENCOLS_STORED,
+          gettext_noop("Generated columns")
+        );
+      else
+        appendPQExpBufferStr(
+          buf,
+          ", 'none' AS pubgencols"
+        );
       if (has_pubviaroot)
         appendPQExpBufferStr(
           buf,
           ", pubviaroot"
+        );
+      else
+        appendPQExpBufferStr(
+          buf,
+          ", false AS pubviaroot"
         );
       appendPQExpBufferStr(
         buf,
@@ -6150,6 +6314,8 @@ ORDER BY 1;`,
         let myopt = pset.popt.topt;
         if (has_pubtruncate)
           ncols++;
+        if (has_pubgencols)
+          ncols++;
         if (has_pubviaroot)
           ncols++;
         initPQExpBuffer(title);
@@ -6162,6 +6328,8 @@ ORDER BY 1;`,
         printTableAddHeader(cont, gettext_noop("Deletes"), true, align);
         if (has_pubtruncate)
           printTableAddHeader(cont, gettext_noop("Truncates"), true, align);
+        if (has_pubgencols)
+          printTableAddHeader(cont, gettext_noop("Generated columns"), true, align);
         if (has_pubviaroot)
           printTableAddHeader(cont, gettext_noop("Via root"), true, align);
         printTableAddCell(cont, PQgetvalue(res, i, 2), false, false);
@@ -6171,8 +6339,10 @@ ORDER BY 1;`,
         printTableAddCell(cont, PQgetvalue(res, i, 6), false, false);
         if (has_pubtruncate)
           printTableAddCell(cont, PQgetvalue(res, i, 7), false, false);
-        if (has_pubviaroot)
+        if (has_pubgencols)
           printTableAddCell(cont, PQgetvalue(res, i, 8), false, false);
+        if (has_pubviaroot)
+          printTableAddCell(cont, PQgetvalue(res, i, 9), false, false);
         if (!puballtables) {
           printfPQExpBuffer(
             buf,
@@ -6355,7 +6525,7 @@ ORDER BY 1;`,
     function printACLColumn(buf, colname) {
       appendPQExpBuffer(
         buf,
-        `CASE WHEN pg_catalog.cardinality(%s) = 0 THEN '%s' ELSE pg_catalog.array_to_string(%s, E'\\n') END AS "%s"`,
+        `CASE WHEN pg_catalog.array_length(%s, 1) = 0 THEN '%s' ELSE pg_catalog.array_to_string(%s, E'\\n') END AS "%s"`,
         colname,
         gettext_noop("(none)"),
         colname,
@@ -6558,7 +6728,7 @@ ORDER BY 1;`,
       let res;
       let myopt = pset.popt;
       let have_where = false;
-      let translate_columns = [false, false, false, false, false, false];
+      let translate_columns = [false, false, false, false, false, false, true];
       initPQExpBuffer(buf);
       printfPQExpBuffer(
         buf,
@@ -6587,8 +6757,16 @@ ORDER BY 1;`,
       if (verbose)
         appendPQExpBuffer(
           buf,
-          ', ofs.opfname AS "%s"\n',
-          gettext_noop("Sort opfamily")
+          `, ofs.opfname AS "%s",
+  CASE
+    WHEN p.proleakproof THEN '%s'
+    ELSE '%s'
+  END AS "%s"
+`,
+          gettext_noop("Sort opfamily"),
+          gettext_noop("yes"),
+          gettext_noop("no"),
+          gettext_noop("Leakproof?")
         );
       appendPQExpBufferStr(
         buf,
@@ -6597,7 +6775,7 @@ ORDER BY 1;`,
       if (verbose)
         appendPQExpBufferStr(
           buf,
-          "  LEFT JOIN pg_catalog.pg_opfamily ofs ON ofs.oid = o.amopsortfamily\n"
+          "  LEFT JOIN pg_catalog.pg_opfamily ofs ON ofs.oid = o.amopsortfamily\n  LEFT JOIN pg_catalog.pg_operator op ON op.oid = o.amopopr\n  LEFT JOIN pg_catalog.pg_proc p ON p.oid = op.oprcode\n"
         );
       if (access_method_pattern) {
         have_where = { value: have_where };
@@ -7445,11 +7623,13 @@ function sql_help_ALTER_DATABASE(buf) {
 function sql_help_ALTER_DEFAULT_PRIVILEGES(buf) {
   appendPQExpBuffer(
     buf,
-    "ALTER DEFAULT PRIVILEGES\n    [ FOR { ROLE | USER } %s [, ...] ]\n    [ IN SCHEMA %s [, ...] ]\n    %s\n\n%s\n\nGRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON TABLES\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SEQUENCES\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { FUNCTIONS | ROUTINES }\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPES\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { USAGE | CREATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMAS\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON TABLES\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SEQUENCES\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { FUNCTIONS | ROUTINES }\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPES\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | CREATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMAS\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]",
+    "ALTER DEFAULT PRIVILEGES\n    [ FOR { ROLE | USER } %s [, ...] ]\n    [ IN SCHEMA %s [, ...] ]\n    %s\n\n%s\n\nGRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON TABLES\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SEQUENCES\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { FUNCTIONS | ROUTINES }\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPES\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { USAGE | CREATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMAS\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECTS\n    TO { [ GROUP ] %s | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON TABLES\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SEQUENCES\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { FUNCTIONS | ROUTINES }\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPES\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | CREATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMAS\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECTS\n    FROM { [ GROUP ] %s | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]",
     _("target_role"),
     _("schema_name"),
     _("abbreviated_grant_or_revoke"),
     _("where abbreviated_grant_or_revoke is one of:"),
+    _("role_name"),
+    _("role_name"),
     _("role_name"),
     _("role_name"),
     _("role_name"),
@@ -7465,7 +7645,7 @@ function sql_help_ALTER_DEFAULT_PRIVILEGES(buf) {
 function sql_help_ALTER_DOMAIN(buf) {
   appendPQExpBuffer(
     buf,
-    "ALTER DOMAIN %s\n    { SET DEFAULT %s | DROP DEFAULT }\nALTER DOMAIN %s\n    { SET | DROP } NOT NULL\nALTER DOMAIN %s\n    ADD %s [ NOT VALID ]\nALTER DOMAIN %s\n    DROP CONSTRAINT [ IF EXISTS ] %s [ RESTRICT | CASCADE ]\nALTER DOMAIN %s\n     RENAME CONSTRAINT %s TO %s\nALTER DOMAIN %s\n    VALIDATE CONSTRAINT %s\nALTER DOMAIN %s\n    OWNER TO { %s | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER DOMAIN %s\n    RENAME TO %s\nALTER DOMAIN %s\n    SET SCHEMA %s",
+    "ALTER DOMAIN %s\n    { SET DEFAULT %s | DROP DEFAULT }\nALTER DOMAIN %s\n    { SET | DROP } NOT NULL\nALTER DOMAIN %s\n    ADD %s [ NOT VALID ]\nALTER DOMAIN %s\n    DROP CONSTRAINT [ IF EXISTS ] %s [ RESTRICT | CASCADE ]\nALTER DOMAIN %s\n     RENAME CONSTRAINT %s TO %s\nALTER DOMAIN %s\n    VALIDATE CONSTRAINT %s\nALTER DOMAIN %s\n    OWNER TO { %s | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER DOMAIN %s\n    RENAME TO %s\nALTER DOMAIN %s\n    SET SCHEMA %s\n\n%s\n\n[ CONSTRAINT %s ]\n{ NOT NULL | CHECK (%s) }",
     _("name"),
     _("expression"),
     _("name"),
@@ -7483,7 +7663,10 @@ function sql_help_ALTER_DOMAIN(buf) {
     _("name"),
     _("new_name"),
     _("name"),
-    _("new_schema")
+    _("new_schema"),
+    _("where domain_constraint is:"),
+    _("constraint_name"),
+    _("expression")
   );
 }
 function sql_help_ALTER_EVENT_TRIGGER(buf) {
@@ -8000,7 +8183,7 @@ function sql_help_ALTER_SCHEMA(buf) {
 function sql_help_ALTER_SEQUENCE(buf) {
   appendPQExpBuffer(
     buf,
-    "ALTER SEQUENCE [ IF EXISTS ] %s\n    [ AS %s ]\n    [ INCREMENT [ BY ] %s ]\n    [ MINVALUE %s | NO MINVALUE ] [ MAXVALUE %s | NO MAXVALUE ]\n    [ START [ WITH ] %s ]\n    [ RESTART [ [ WITH ] %s ] ]\n    [ CACHE %s ] [ [ NO ] CYCLE ]\n    [ OWNED BY { %s.%s | NONE } ]\nALTER SEQUENCE [ IF EXISTS ] %s SET { LOGGED | UNLOGGED }\nALTER SEQUENCE [ IF EXISTS ] %s OWNER TO { %s | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER SEQUENCE [ IF EXISTS ] %s RENAME TO %s\nALTER SEQUENCE [ IF EXISTS ] %s SET SCHEMA %s",
+    "ALTER SEQUENCE [ IF EXISTS ] %s\n    [ AS %s ]\n    [ INCREMENT [ BY ] %s ]\n    [ MINVALUE %s | NO MINVALUE ] [ MAXVALUE %s | NO MAXVALUE ]\n    [ [ NO ] CYCLE ]\n    [ START [ WITH ] %s ]\n    [ RESTART [ [ WITH ] %s ] ]\n    [ CACHE %s ]\n    [ OWNED BY { %s.%s | NONE } ]\nALTER SEQUENCE [ IF EXISTS ] %s SET { LOGGED | UNLOGGED }\nALTER SEQUENCE [ IF EXISTS ] %s OWNER TO { %s | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER SEQUENCE [ IF EXISTS ] %s RENAME TO %s\nALTER SEQUENCE [ IF EXISTS ] %s SET SCHEMA %s",
     _("name"),
     _("data_type"),
     _("increment"),
@@ -8086,9 +8269,8 @@ function sql_help_ALTER_SUBSCRIPTION(buf) {
 function sql_help_ALTER_SYSTEM(buf) {
   appendPQExpBuffer(
     buf,
-    "ALTER SYSTEM SET %s { TO | = } { %s | '%s' | DEFAULT }\n\nALTER SYSTEM RESET %s\nALTER SYSTEM RESET ALL",
+    "ALTER SYSTEM SET %s { TO | = } { %s [, ...] | DEFAULT }\n\nALTER SYSTEM RESET %s\nALTER SYSTEM RESET ALL",
     _("configuration_parameter"),
-    _("value"),
     _("value"),
     _("configuration_parameter")
   );
@@ -8096,7 +8278,7 @@ function sql_help_ALTER_SYSTEM(buf) {
 function sql_help_ALTER_TABLE(buf) {
   appendPQExpBuffer(
     buf,
-    "ALTER TABLE [ IF EXISTS ] [ ONLY ] %s [ * ]\n    %s [, ... ]\nALTER TABLE [ IF EXISTS ] [ ONLY ] %s [ * ]\n    RENAME [ COLUMN ] %s TO %s\nALTER TABLE [ IF EXISTS ] [ ONLY ] %s [ * ]\n    RENAME CONSTRAINT %s TO %s\nALTER TABLE [ IF EXISTS ] %s\n    RENAME TO %s\nALTER TABLE [ IF EXISTS ] %s\n    SET SCHEMA %s\nALTER TABLE ALL IN TABLESPACE %s [ OWNED BY %s [, ... ] ]\n    SET TABLESPACE %s [ NOWAIT ]\nALTER TABLE [ IF EXISTS ] %s\n    ATTACH PARTITION %s { FOR VALUES %s | DEFAULT }\nALTER TABLE [ IF EXISTS ] %s\n    DETACH PARTITION %s [ CONCURRENTLY | FINALIZE ]\n\n%s\n\n    ADD [ COLUMN ] [ IF NOT EXISTS ] %s %s [ COLLATE %s ] [ %s [ ... ] ]\n    DROP [ COLUMN ] [ IF EXISTS ] %s [ RESTRICT | CASCADE ]\n    ALTER [ COLUMN ] %s [ SET DATA ] TYPE %s [ COLLATE %s ] [ USING %s ]\n    ALTER [ COLUMN ] %s SET DEFAULT %s\n    ALTER [ COLUMN ] %s DROP DEFAULT\n    ALTER [ COLUMN ] %s { SET | DROP } NOT NULL\n    ALTER [ COLUMN ] %s SET EXPRESSION AS ( %s )\n    ALTER [ COLUMN ] %s DROP EXPRESSION [ IF EXISTS ]\n    ALTER [ COLUMN ] %s ADD GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( %s ) ]\n    ALTER [ COLUMN ] %s { SET GENERATED { ALWAYS | BY DEFAULT } | SET %s | RESTART [ [ WITH ] %s ] } [...]\n    ALTER [ COLUMN ] %s DROP IDENTITY [ IF EXISTS ]\n    ALTER [ COLUMN ] %s SET STATISTICS { %s | DEFAULT }\n    ALTER [ COLUMN ] %s SET ( %s = %s [, ... ] )\n    ALTER [ COLUMN ] %s RESET ( %s [, ... ] )\n    ALTER [ COLUMN ] %s SET STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }\n    ALTER [ COLUMN ] %s SET COMPRESSION %s\n    ADD %s [ NOT VALID ]\n    ADD %s\n    ALTER CONSTRAINT %s [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n    VALIDATE CONSTRAINT %s\n    DROP CONSTRAINT [ IF EXISTS ]  %s [ RESTRICT | CASCADE ]\n    DISABLE TRIGGER [ %s | ALL | USER ]\n    ENABLE TRIGGER [ %s | ALL | USER ]\n    ENABLE REPLICA TRIGGER %s\n    ENABLE ALWAYS TRIGGER %s\n    DISABLE RULE %s\n    ENABLE RULE %s\n    ENABLE REPLICA RULE %s\n    ENABLE ALWAYS RULE %s\n    DISABLE ROW LEVEL SECURITY\n    ENABLE ROW LEVEL SECURITY\n    FORCE ROW LEVEL SECURITY\n    NO FORCE ROW LEVEL SECURITY\n    CLUSTER ON %s\n    SET WITHOUT CLUSTER\n    SET WITHOUT OIDS\n    SET ACCESS METHOD { %s | DEFAULT }\n    SET TABLESPACE %s\n    SET { LOGGED | UNLOGGED }\n    SET ( %s [= %s] [, ... ] )\n    RESET ( %s [, ... ] )\n    INHERIT %s\n    NO INHERIT %s\n    OF %s\n    NOT OF\n    OWNER TO { %s | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n    REPLICA IDENTITY { DEFAULT | USING INDEX %s | FULL | NOTHING }\n\n%s\n\nIN ( %s [, ...] ) |\nFROM ( { %s | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { %s | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS %s, REMAINDER %s )\n\n%s\n\n[ CONSTRAINT %s ]\n{ NOT NULL |\n  NULL |\n  CHECK ( %s ) [ NO INHERIT ] |\n  DEFAULT %s |\n  GENERATED ALWAYS AS ( %s ) STORED |\n  GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( %s ) ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] %s |\n  PRIMARY KEY %s |\n  REFERENCES %s [ ( %s ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]\n    [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ CHECK ( %s ) [ NO INHERIT ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( %s [, ... ] ) %s |\n  PRIMARY KEY ( %s [, ... ] ) %s |\n  EXCLUDE [ USING %s ] ( %s WITH %s [, ... ] ) %s [ WHERE ( %s ) ] |\n  FOREIGN KEY ( %s [, ... ] ) REFERENCES %s [ ( %s [, ... ] ) ]\n    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n    [ CONSTRAINT %s ]\n    { UNIQUE | PRIMARY KEY } USING INDEX %s\n    [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n[ INCLUDE ( %s [, ... ] ) ]\n[ WITH ( %s [= %s] [, ... ] ) ]\n[ USING INDEX TABLESPACE %s ]\n\n%s\n\n{ %s | ( %s ) } [ COLLATE %s ] [ %s [ ( %s = %s [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n\n%s\n\n{ NO ACTION | RESTRICT | CASCADE | SET NULL [ ( %s [, ... ] ) ] | SET DEFAULT [ ( %s [, ... ] ) ] }",
+    "ALTER TABLE [ IF EXISTS ] [ ONLY ] %s [ * ]\n    %s [, ... ]\nALTER TABLE [ IF EXISTS ] [ ONLY ] %s [ * ]\n    RENAME [ COLUMN ] %s TO %s\nALTER TABLE [ IF EXISTS ] [ ONLY ] %s [ * ]\n    RENAME CONSTRAINT %s TO %s\nALTER TABLE [ IF EXISTS ] %s\n    RENAME TO %s\nALTER TABLE [ IF EXISTS ] %s\n    SET SCHEMA %s\nALTER TABLE ALL IN TABLESPACE %s [ OWNED BY %s [, ... ] ]\n    SET TABLESPACE %s [ NOWAIT ]\nALTER TABLE [ IF EXISTS ] %s\n    ATTACH PARTITION %s { FOR VALUES %s | DEFAULT }\nALTER TABLE [ IF EXISTS ] %s\n    DETACH PARTITION %s [ CONCURRENTLY | FINALIZE ]\n\n%s\n\n    ADD [ COLUMN ] [ IF NOT EXISTS ] %s %s [ COLLATE %s ] [ %s [ ... ] ]\n    DROP [ COLUMN ] [ IF EXISTS ] %s [ RESTRICT | CASCADE ]\n    ALTER [ COLUMN ] %s [ SET DATA ] TYPE %s [ COLLATE %s ] [ USING %s ]\n    ALTER [ COLUMN ] %s SET DEFAULT %s\n    ALTER [ COLUMN ] %s DROP DEFAULT\n    ALTER [ COLUMN ] %s { SET | DROP } NOT NULL\n    ALTER [ COLUMN ] %s SET EXPRESSION AS ( %s )\n    ALTER [ COLUMN ] %s DROP EXPRESSION [ IF EXISTS ]\n    ALTER [ COLUMN ] %s ADD GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( %s ) ]\n    ALTER [ COLUMN ] %s { SET GENERATED { ALWAYS | BY DEFAULT } | SET %s | RESTART [ [ WITH ] %s ] } [...]\n    ALTER [ COLUMN ] %s DROP IDENTITY [ IF EXISTS ]\n    ALTER [ COLUMN ] %s SET STATISTICS { %s | DEFAULT }\n    ALTER [ COLUMN ] %s SET ( %s = %s [, ... ] )\n    ALTER [ COLUMN ] %s RESET ( %s [, ... ] )\n    ALTER [ COLUMN ] %s SET STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }\n    ALTER [ COLUMN ] %s SET COMPRESSION %s\n    ADD %s [ NOT VALID ]\n    ADD %s\n    ALTER CONSTRAINT %s [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n    ALTER CONSTRAINT %s [ INHERIT | NO INHERIT ]\n    VALIDATE CONSTRAINT %s\n    DROP CONSTRAINT [ IF EXISTS ]  %s [ RESTRICT | CASCADE ]\n    DISABLE TRIGGER [ %s | ALL | USER ]\n    ENABLE TRIGGER [ %s | ALL | USER ]\n    ENABLE REPLICA TRIGGER %s\n    ENABLE ALWAYS TRIGGER %s\n    DISABLE RULE %s\n    ENABLE RULE %s\n    ENABLE REPLICA RULE %s\n    ENABLE ALWAYS RULE %s\n    DISABLE ROW LEVEL SECURITY\n    ENABLE ROW LEVEL SECURITY\n    FORCE ROW LEVEL SECURITY\n    NO FORCE ROW LEVEL SECURITY\n    CLUSTER ON %s\n    SET WITHOUT CLUSTER\n    SET WITHOUT OIDS\n    SET ACCESS METHOD { %s | DEFAULT }\n    SET TABLESPACE %s\n    SET { LOGGED | UNLOGGED }\n    SET ( %s [= %s] [, ... ] )\n    RESET ( %s [, ... ] )\n    INHERIT %s\n    NO INHERIT %s\n    OF %s\n    NOT OF\n    OWNER TO { %s | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n    REPLICA IDENTITY { DEFAULT | USING INDEX %s | FULL | NOTHING }\n\n%s\n\nIN ( %s [, ...] ) |\nFROM ( { %s | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { %s | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS %s, REMAINDER %s )\n\n%s\n\n[ CONSTRAINT %s ]\n{ NOT NULL [ NO INHERIT ] |\n  NULL |\n  CHECK ( %s ) [ NO INHERIT ] |\n  DEFAULT %s |\n  GENERATED ALWAYS AS ( %s ) [ STORED | VIRTUAL ] |\n  GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( %s ) ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] %s |\n  PRIMARY KEY %s |\n  REFERENCES %s [ ( %s ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]\n    [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ CHECK ( %s ) [ NO INHERIT ] |\n  NOT NULL %s [ NO INHERIT ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( %s [, ... ] [, %s WITHOUT OVERLAPS ] ) %s |\n  PRIMARY KEY ( %s [, ... ] [, %s WITHOUT OVERLAPS ] ) %s |\n  EXCLUDE [ USING %s ] ( %s WITH %s [, ... ] ) %s [ WHERE ( %s ) ] |\n  FOREIGN KEY ( %s [, ... ] [, PERIOD %s ] ) REFERENCES %s [ ( %s [, ... ]  [, PERIOD %s ] ) ]\n    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n\n%s\n\n    [ CONSTRAINT %s ]\n    { UNIQUE | PRIMARY KEY } USING INDEX %s\n    [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n[ INCLUDE ( %s [, ... ] ) ]\n[ WITH ( %s [= %s] [, ... ] ) ]\n[ USING INDEX TABLESPACE %s ]\n\n%s\n\n{ %s | ( %s ) } [ COLLATE %s ] [ %s [ ( %s = %s [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n\n%s\n\n{ NO ACTION | RESTRICT | CASCADE | SET NULL [ ( %s [, ... ] ) ] | SET DEFAULT [ ( %s [, ... ] ) ] }",
     _("name"),
     _("action"),
     _("name"),
@@ -8155,6 +8337,7 @@ function sql_help_ALTER_TABLE(buf) {
     _("constraint_name"),
     _("constraint_name"),
     _("constraint_name"),
+    _("constraint_name"),
     _("trigger_name"),
     _("trigger_name"),
     _("trigger_name"),
@@ -8196,7 +8379,10 @@ function sql_help_ALTER_TABLE(buf) {
     _("constraint_name"),
     _("expression"),
     _("column_name"),
+    _("column_name"),
+    _("column_name"),
     _("index_parameters"),
+    _("column_name"),
     _("column_name"),
     _("index_parameters"),
     _("index_method"),
@@ -8205,7 +8391,9 @@ function sql_help_ALTER_TABLE(buf) {
     _("index_parameters"),
     _("predicate"),
     _("column_name"),
+    _("column_name"),
     _("reftable"),
+    _("refcolumn"),
     _("refcolumn"),
     _("referential_action"),
     _("referential_action"),
@@ -8418,7 +8606,7 @@ function sql_help_ALTER_VIEW(buf) {
 function sql_help_ANALYZE(buf) {
   appendPQExpBuffer(
     buf,
-    "ANALYZE [ ( %s [, ...] ) ] [ %s [, ...] ]\n\n%s\n\n    VERBOSE [ %s ]\n    SKIP_LOCKED [ %s ]\n    BUFFER_USAGE_LIMIT %s\n\n%s\n\n    %s [ ( %s [, ...] ) ]",
+    "ANALYZE [ ( %s [, ...] ) ] [ %s [, ...] ]\n\n%s\n\n    VERBOSE [ %s ]\n    SKIP_LOCKED [ %s ]\n    BUFFER_USAGE_LIMIT %s\n\n%s\n\n    [ ONLY ] %s [ * ] [ ( %s [, ...] ) ]",
     _("option"),
     _("table_and_columns"),
     _("where option can be one of:"),
@@ -8568,7 +8756,7 @@ function sql_help_COMMIT_PREPARED(buf) {
 function sql_help_COPY(buf) {
   appendPQExpBuffer(
     buf,
-    "COPY %s [ ( %s [, ...] ) ]\n    FROM { '%s' | PROGRAM '%s' | STDIN }\n    [ [ WITH ] ( %s [, ...] ) ]\n    [ WHERE %s ]\n\nCOPY { %s [ ( %s [, ...] ) ] | ( %s ) }\n    TO { '%s' | PROGRAM '%s' | STDOUT }\n    [ [ WITH ] ( %s [, ...] ) ]\n\n%s\n\n    FORMAT %s\n    FREEZE [ %s ]\n    DELIMITER '%s'\n    NULL '%s'\n    DEFAULT '%s'\n    HEADER [ %s | MATCH ]\n    QUOTE '%s'\n    ESCAPE '%s'\n    FORCE_QUOTE { ( %s [, ...] ) | * }\n    FORCE_NOT_NULL { ( %s [, ...] ) | * }\n    FORCE_NULL { ( %s [, ...] ) | * }\n    ON_ERROR %s\n    ENCODING '%s'\n    LOG_VERBOSITY %s",
+    "COPY %s [ ( %s [, ...] ) ]\n    FROM { '%s' | PROGRAM '%s' | STDIN }\n    [ [ WITH ] ( %s [, ...] ) ]\n    [ WHERE %s ]\n\nCOPY { %s [ ( %s [, ...] ) ] | ( %s ) }\n    TO { '%s' | PROGRAM '%s' | STDOUT }\n    [ [ WITH ] ( %s [, ...] ) ]\n\n%s\n\n    FORMAT %s\n    FREEZE [ %s ]\n    DELIMITER '%s'\n    NULL '%s'\n    DEFAULT '%s'\n    HEADER [ %s | MATCH ]\n    QUOTE '%s'\n    ESCAPE '%s'\n    FORCE_QUOTE { ( %s [, ...] ) | * }\n    FORCE_NOT_NULL { ( %s [, ...] ) | * }\n    FORCE_NULL { ( %s [, ...] ) | * }\n    ON_ERROR %s\n    REJECT_LIMIT %s\n    ENCODING '%s'\n    LOG_VERBOSITY %s",
     _("table_name"),
     _("column_name"),
     _("filename"),
@@ -8594,6 +8782,7 @@ function sql_help_COPY(buf) {
     _("column_name"),
     _("column_name"),
     _("error_action"),
+    _("maxerror"),
     _("encoding_name"),
     _("verbosity")
   );
@@ -8774,7 +8963,7 @@ function sql_help_CREATE_FOREIGN_DATA_WRAPPER(buf) {
 function sql_help_CREATE_FOREIGN_TABLE(buf) {
   appendPQExpBuffer(
     buf,
-    "CREATE FOREIGN TABLE [ IF NOT EXISTS ] %s ( [\n  { %s %s [ OPTIONS ( %s '%s' [, ... ] ) ] [ COLLATE %s ] [ %s [ ... ] ]\n    | %s }\n    [, ... ]\n] )\n[ INHERITS ( %s [, ... ] ) ]\n  SERVER %s\n[ OPTIONS ( %s '%s' [, ... ] ) ]\n\nCREATE FOREIGN TABLE [ IF NOT EXISTS ] %s\n  PARTITION OF %s [ (\n  { %s [ WITH OPTIONS ] [ %s [ ... ] ]\n    | %s }\n    [, ... ]\n) ]\n{ FOR VALUES %s | DEFAULT }\n  SERVER %s\n[ OPTIONS ( %s '%s' [, ... ] ) ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ NOT NULL |\n  NULL |\n  CHECK ( %s ) [ NO INHERIT ] |\n  DEFAULT %s |\n  GENERATED ALWAYS AS ( %s ) STORED }\n\n%s\n\n[ CONSTRAINT %s ]\nCHECK ( %s ) [ NO INHERIT ]\n\n%s\n\nIN ( %s [, ...] ) |\nFROM ( { %s | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { %s | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS %s, REMAINDER %s )",
+    "CREATE FOREIGN TABLE [ IF NOT EXISTS ] %s ( [\n  { %s %s [ OPTIONS ( %s '%s' [, ... ] ) ] [ COLLATE %s ] [ %s [ ... ] ]\n    | %s\n    | LIKE %s [ %s ... ] }\n    [, ... ]\n] )\n[ INHERITS ( %s [, ... ] ) ]\n  SERVER %s\n[ OPTIONS ( %s '%s' [, ... ] ) ]\n\nCREATE FOREIGN TABLE [ IF NOT EXISTS ] %s\n  PARTITION OF %s [ (\n  { %s [ WITH OPTIONS ] [ %s [ ... ] ]\n    | %s }\n    [, ... ]\n) ]\n{ FOR VALUES %s | DEFAULT }\n  SERVER %s\n[ OPTIONS ( %s '%s' [, ... ] ) ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ NOT NULL [ NO INHERIT ] |\n  NULL |\n  CHECK ( %s ) [ NO INHERIT ] |\n  DEFAULT %s |\n  GENERATED ALWAYS AS ( %s ) [ STORED | VIRTUAL ] }\n[ ENFORCED | NOT ENFORCED ]\n\n%s\n\n[ CONSTRAINT %s ]\n{  NOT NULL %s [ NO INHERIT ] |\n   CHECK ( %s ) [ NO INHERIT ] }\n[ ENFORCED | NOT ENFORCED ]\n\n%s\n\n{ INCLUDING | EXCLUDING } { COMMENTS | CONSTRAINTS | DEFAULTS | GENERATED | STATISTICS | ALL }\n\n%s\n\nIN ( %s [, ...] ) |\nFROM ( { %s | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { %s | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS %s, REMAINDER %s )",
     _("table_name"),
     _("column_name"),
     _("data_type"),
@@ -8783,6 +8972,8 @@ function sql_help_CREATE_FOREIGN_TABLE(buf) {
     _("collation"),
     _("column_constraint"),
     _("table_constraint"),
+    _("source_table"),
+    _("like_option"),
     _("parent_table"),
     _("server_name"),
     _("option"),
@@ -8803,7 +8994,9 @@ function sql_help_CREATE_FOREIGN_TABLE(buf) {
     _("generation_expr"),
     _("and table_constraint is:"),
     _("constraint_name"),
+    _("column_name"),
     _("expression"),
+    _("and like_option is:"),
     _("and partition_bound_spec is:"),
     _("partition_bound_expr"),
     _("partition_bound_expr"),
@@ -9038,7 +9231,7 @@ function sql_help_CREATE_SCHEMA(buf) {
 function sql_help_CREATE_SEQUENCE(buf) {
   appendPQExpBuffer(
     buf,
-    "CREATE [ { TEMPORARY | TEMP } | UNLOGGED ] SEQUENCE [ IF NOT EXISTS ] %s\n    [ AS %s ]\n    [ INCREMENT [ BY ] %s ]\n    [ MINVALUE %s | NO MINVALUE ] [ MAXVALUE %s | NO MAXVALUE ]\n    [ START [ WITH ] %s ] [ CACHE %s ] [ [ NO ] CYCLE ]\n    [ OWNED BY { %s.%s | NONE } ]",
+    "CREATE [ { TEMPORARY | TEMP } | UNLOGGED ] SEQUENCE [ IF NOT EXISTS ] %s\n    [ AS %s ]\n    [ INCREMENT [ BY ] %s ]\n    [ MINVALUE %s | NO MINVALUE ] [ MAXVALUE %s | NO MAXVALUE ]\n    [ [ NO ] CYCLE ]\n    [ START [ WITH ] %s ]\n    [ CACHE %s ]\n    [ OWNED BY { %s.%s | NONE } ]",
     _("name"),
     _("data_type"),
     _("increment"),
@@ -9092,7 +9285,7 @@ function sql_help_CREATE_SUBSCRIPTION(buf) {
 function sql_help_CREATE_TABLE(buf) {
   appendPQExpBuffer(
     buf,
-    "CREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE [ IF NOT EXISTS ] %s ( [\n  { %s %s [ STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT } ] [ COMPRESSION %s ] [ COLLATE %s ] [ %s [ ... ] ]\n    | %s\n    | LIKE %s [ %s ... ] }\n    [, ... ]\n] )\n[ INHERITS ( %s [, ... ] ) ]\n[ PARTITION BY { RANGE | LIST | HASH } ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ... ] ) ]\n[ USING %s ]\n[ WITH ( %s [= %s] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE %s ]\n\nCREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE [ IF NOT EXISTS ] %s\n    OF %s [ (\n  { %s [ WITH OPTIONS ] [ %s [ ... ] ]\n    | %s }\n    [, ... ]\n) ]\n[ PARTITION BY { RANGE | LIST | HASH } ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ... ] ) ]\n[ USING %s ]\n[ WITH ( %s [= %s] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE %s ]\n\nCREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE [ IF NOT EXISTS ] %s\n    PARTITION OF %s [ (\n  { %s [ WITH OPTIONS ] [ %s [ ... ] ]\n    | %s }\n    [, ... ]\n) ] { FOR VALUES %s | DEFAULT }\n[ PARTITION BY { RANGE | LIST | HASH } ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ... ] ) ]\n[ USING %s ]\n[ WITH ( %s [= %s] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE %s ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ NOT NULL |\n  NULL |\n  CHECK ( %s ) [ NO INHERIT ] |\n  DEFAULT %s |\n  GENERATED ALWAYS AS ( %s ) STORED |\n  GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( %s ) ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] %s |\n  PRIMARY KEY %s |\n  REFERENCES %s [ ( %s ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]\n    [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ CHECK ( %s ) [ NO INHERIT ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( %s [, ... ] ) %s |\n  PRIMARY KEY ( %s [, ... ] ) %s |\n  EXCLUDE [ USING %s ] ( %s WITH %s [, ... ] ) %s [ WHERE ( %s ) ] |\n  FOREIGN KEY ( %s [, ... ] ) REFERENCES %s [ ( %s [, ... ] ) ]\n    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\n%s\n\n{ INCLUDING | EXCLUDING } { COMMENTS | COMPRESSION | CONSTRAINTS | DEFAULTS | GENERATED | IDENTITY | INDEXES | STATISTICS | STORAGE | ALL }\n\n%s\n\nIN ( %s [, ...] ) |\nFROM ( { %s | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { %s | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS %s, REMAINDER %s )\n\n%s\n\n[ INCLUDE ( %s [, ... ] ) ]\n[ WITH ( %s [= %s] [, ... ] ) ]\n[ USING INDEX TABLESPACE %s ]\n\n%s\n\n{ %s | ( %s ) } [ COLLATE %s ] [ %s [ ( %s = %s [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n\n%s\n\n{ NO ACTION | RESTRICT | CASCADE | SET NULL [ ( %s [, ... ] ) ] | SET DEFAULT [ ( %s [, ... ] ) ] }",
+    "CREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE [ IF NOT EXISTS ] %s ( [\n  { %s %s [ STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT } ] [ COMPRESSION %s ] [ COLLATE %s ] [ %s [ ... ] ]\n    | %s\n    | LIKE %s [ %s ... ] }\n    [, ... ]\n] )\n[ INHERITS ( %s [, ... ] ) ]\n[ PARTITION BY { RANGE | LIST | HASH } ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ... ] ) ]\n[ USING %s ]\n[ WITH ( %s [= %s] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE %s ]\n\nCREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE [ IF NOT EXISTS ] %s\n    OF %s [ (\n  { %s [ WITH OPTIONS ] [ %s [ ... ] ]\n    | %s }\n    [, ... ]\n) ]\n[ PARTITION BY { RANGE | LIST | HASH } ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ... ] ) ]\n[ USING %s ]\n[ WITH ( %s [= %s] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE %s ]\n\nCREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE [ IF NOT EXISTS ] %s\n    PARTITION OF %s [ (\n  { %s [ WITH OPTIONS ] [ %s [ ... ] ]\n    | %s }\n    [, ... ]\n) ] { FOR VALUES %s | DEFAULT }\n[ PARTITION BY { RANGE | LIST | HASH } ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ... ] ) ]\n[ USING %s ]\n[ WITH ( %s [= %s] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE %s ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ NOT NULL [ NO INHERIT ]  |\n  NULL |\n  CHECK ( %s ) [ NO INHERIT ] |\n  DEFAULT %s |\n  GENERATED ALWAYS AS ( %s ) [ STORED | VIRTUAL ] |\n  GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( %s ) ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] %s |\n  PRIMARY KEY %s |\n  REFERENCES %s [ ( %s ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]\n    [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n\n%s\n\n[ CONSTRAINT %s ]\n{ CHECK ( %s ) [ NO INHERIT ] |\n  NOT NULL %s [ NO INHERIT ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( %s [, ... ] [, %s WITHOUT OVERLAPS ] ) %s |\n  PRIMARY KEY ( %s [, ... ] [, %s WITHOUT OVERLAPS ] ) %s |\n  EXCLUDE [ USING %s ] ( %s WITH %s [, ... ] ) %s [ WHERE ( %s ) ] |\n  FOREIGN KEY ( %s [, ... ] [, PERIOD %s ] ) REFERENCES %s [ ( %s [, ... ] [, PERIOD %s ] ) ]\n    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE %s ] [ ON UPDATE %s ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n\n%s\n\n{ INCLUDING | EXCLUDING } { COMMENTS | COMPRESSION | CONSTRAINTS | DEFAULTS | GENERATED | IDENTITY | INDEXES | STATISTICS | STORAGE | ALL }\n\n%s\n\nIN ( %s [, ...] ) |\nFROM ( { %s | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { %s | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS %s, REMAINDER %s )\n\n%s\n\n[ INCLUDE ( %s [, ... ] ) ]\n[ WITH ( %s [= %s] [, ... ] ) ]\n[ USING INDEX TABLESPACE %s ]\n\n%s\n\n{ %s | ( %s ) } [ COLLATE %s ] [ %s [ ( %s = %s [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n\n%s\n\n{ NO ACTION | RESTRICT | CASCADE | SET NULL [ ( %s [, ... ] ) ] | SET DEFAULT [ ( %s [, ... ] ) ] }",
     _("table_name"),
     _("column_name"),
     _("data_type"),
@@ -9154,7 +9347,10 @@ function sql_help_CREATE_TABLE(buf) {
     _("constraint_name"),
     _("expression"),
     _("column_name"),
+    _("column_name"),
+    _("column_name"),
     _("index_parameters"),
+    _("column_name"),
     _("column_name"),
     _("index_parameters"),
     _("index_method"),
@@ -9163,7 +9359,9 @@ function sql_help_CREATE_TABLE(buf) {
     _("index_parameters"),
     _("predicate"),
     _("column_name"),
+    _("column_name"),
     _("reftable"),
+    _("refcolumn"),
     _("refcolumn"),
     _("referential_action"),
     _("referential_action"),
@@ -9379,13 +9577,14 @@ function sql_help_DECLARE(buf) {
 function sql_help_DELETE(buf) {
   appendPQExpBuffer(
     buf,
-    "[ WITH [ RECURSIVE ] %s [, ...] ]\nDELETE FROM [ ONLY ] %s [ * ] [ [ AS ] %s ]\n    [ USING %s [, ...] ]\n    [ WHERE %s | WHERE CURRENT OF %s ]\n    [ RETURNING { * | %s [ [ AS ] %s ] } [, ...] ]",
+    "[ WITH [ RECURSIVE ] %s [, ...] ]\nDELETE FROM [ ONLY ] %s [ * ] [ [ AS ] %s ]\n    [ USING %s [, ...] ]\n    [ WHERE %s | WHERE CURRENT OF %s ]\n    [ RETURNING [ WITH ( { OLD | NEW } AS %s [, ...] ) ]\n                { * | %s [ [ AS ] %s ] } [, ...] ]",
     _("with_query"),
     _("table_name"),
     _("alias"),
     _("from_item"),
     _("condition"),
     _("cursor_name"),
+    _("output_alias"),
     _("output_expression"),
     _("output_name")
   );
@@ -9860,7 +10059,7 @@ function sql_help_IMPORT_FOREIGN_SCHEMA(buf) {
 function sql_help_INSERT(buf) {
   appendPQExpBuffer(
     buf,
-    "[ WITH [ RECURSIVE ] %s [, ...] ]\nINSERT INTO %s [ AS %s ] [ ( %s [, ...] ) ]\n    [ OVERRIDING { SYSTEM | USER } VALUE ]\n    { DEFAULT VALUES | VALUES ( { %s | DEFAULT } [, ...] ) [, ...] | %s }\n    [ ON CONFLICT [ %s ] %s ]\n    [ RETURNING { * | %s [ [ AS ] %s ] } [, ...] ]\n\n%s\n\n    ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ...] ) [ WHERE %s ]\n    ON CONSTRAINT %s\n\n%s\n\n    DO NOTHING\n    DO UPDATE SET { %s = { %s | DEFAULT } |\n                    ( %s [, ...] ) = [ ROW ] ( { %s | DEFAULT } [, ...] ) |\n                    ( %s [, ...] ) = ( %s )\n                  } [, ...]\n              [ WHERE %s ]",
+    "[ WITH [ RECURSIVE ] %s [, ...] ]\nINSERT INTO %s [ AS %s ] [ ( %s [, ...] ) ]\n    [ OVERRIDING { SYSTEM | USER } VALUE ]\n    { DEFAULT VALUES | VALUES ( { %s | DEFAULT } [, ...] ) [, ...] | %s }\n    [ ON CONFLICT [ %s ] %s ]\n    [ RETURNING [ WITH ( { OLD | NEW } AS %s [, ...] ) ]\n                { * | %s [ [ AS ] %s ] } [, ...] ]\n\n%s\n\n    ( { %s | ( %s ) } [ COLLATE %s ] [ %s ] [, ...] ) [ WHERE %s ]\n    ON CONSTRAINT %s\n\n%s\n\n    DO NOTHING\n    DO UPDATE SET { %s = { %s | DEFAULT } |\n                    ( %s [, ...] ) = [ ROW ] ( { %s | DEFAULT } [, ...] ) |\n                    ( %s [, ...] ) = ( %s )\n                  } [, ...]\n              [ WHERE %s ]",
     _("with_query"),
     _("table_name"),
     _("alias"),
@@ -9869,6 +10068,7 @@ function sql_help_INSERT(buf) {
     _("query"),
     _("conflict_target"),
     _("conflict_action"),
+    _("output_alias"),
     _("output_expression"),
     _("output_name"),
     _("where conflict_target can be one of:"),
@@ -9914,13 +10114,14 @@ function sql_help_LOCK(buf) {
 function sql_help_MERGE(buf) {
   appendPQExpBuffer(
     buf,
-    "[ WITH %s [, ...] ]\nMERGE INTO [ ONLY ] %s [ * ] [ [ AS ] %s ]\nUSING %s ON %s\n%s [...]\n[ RETURNING { * | %s [ [ AS ] %s ] } [, ...] ]\n\n%s\n\n{ [ ONLY ] %s [ * ] | ( %s ) } [ [ AS ] %s ]\n\n%s\n\n{ WHEN MATCHED [ AND %s ] THEN { %s | %s | DO NOTHING } |\n  WHEN NOT MATCHED BY SOURCE [ AND %s ] THEN { %s | %s | DO NOTHING } |\n  WHEN NOT MATCHED [ BY TARGET ] [ AND %s ] THEN { %s | DO NOTHING } }\n\n%s\n\nINSERT [( %s [, ...] )]\n[ OVERRIDING { SYSTEM | USER } VALUE ]\n{ VALUES ( { %s | DEFAULT } [, ...] ) | DEFAULT VALUES }\n\n%s\n\nUPDATE SET { %s = { %s | DEFAULT } |\n             ( %s [, ...] ) = [ ROW ] ( { %s | DEFAULT } [, ...] ) |\n             ( %s [, ...] ) = ( %s )\n           } [, ...]\n\n%s\n\nDELETE",
+    "[ WITH %s [, ...] ]\nMERGE INTO [ ONLY ] %s [ * ] [ [ AS ] %s ]\n    USING %s ON %s\n    %s [...]\n    [ RETURNING [ WITH ( { OLD | NEW } AS %s [, ...] ) ]\n                { * | %s [ [ AS ] %s ] } [, ...] ]\n\n%s\n\n    { [ ONLY ] %s [ * ] | ( %s ) } [ [ AS ] %s ]\n\n%s\n\n    { WHEN MATCHED [ AND %s ] THEN { %s | %s | DO NOTHING } |\n      WHEN NOT MATCHED BY SOURCE [ AND %s ] THEN { %s | %s | DO NOTHING } |\n      WHEN NOT MATCHED [ BY TARGET ] [ AND %s ] THEN { %s | DO NOTHING } }\n\n%s\n\n    INSERT [( %s [, ...] )]\n        [ OVERRIDING { SYSTEM | USER } VALUE ]\n        { VALUES ( { %s | DEFAULT } [, ...] ) | DEFAULT VALUES }\n\n%s\n\n    UPDATE SET { %s = { %s | DEFAULT } |\n                 ( %s [, ...] ) = [ ROW ] ( { %s | DEFAULT } [, ...] ) |\n                 ( %s [, ...] ) = ( %s )\n               } [, ...]\n\n%s\n\n    DELETE",
     _("with_query"),
     _("target_table_name"),
     _("target_alias"),
     _("data_source"),
     _("join_condition"),
     _("when_clause"),
+    _("output_alias"),
     _("output_expression"),
     _("output_name"),
     _("where data_source is:"),
@@ -10442,7 +10643,7 @@ function sql_help_UNLISTEN(buf) {
 function sql_help_UPDATE(buf) {
   appendPQExpBuffer(
     buf,
-    "[ WITH [ RECURSIVE ] %s [, ...] ]\nUPDATE [ ONLY ] %s [ * ] [ [ AS ] %s ]\n    SET { %s = { %s | DEFAULT } |\n          ( %s [, ...] ) = [ ROW ] ( { %s | DEFAULT } [, ...] ) |\n          ( %s [, ...] ) = ( %s )\n        } [, ...]\n    [ FROM %s [, ...] ]\n    [ WHERE %s | WHERE CURRENT OF %s ]\n    [ RETURNING { * | %s [ [ AS ] %s ] } [, ...] ]",
+    "[ WITH [ RECURSIVE ] %s [, ...] ]\nUPDATE [ ONLY ] %s [ * ] [ [ AS ] %s ]\n    SET { %s = { %s | DEFAULT } |\n          ( %s [, ...] ) = [ ROW ] ( { %s | DEFAULT } [, ...] ) |\n          ( %s [, ...] ) = ( %s )\n        } [, ...]\n    [ FROM %s [, ...] ]\n    [ WHERE %s | WHERE CURRENT OF %s ]\n    [ RETURNING [ WITH ( { OLD | NEW } AS %s [, ...] ) ]\n                { * | %s [ [ AS ] %s ] } [, ...] ]",
     _("with_query"),
     _("table_name"),
     _("alias"),
@@ -10455,6 +10656,7 @@ function sql_help_UPDATE(buf) {
     _("from_item"),
     _("condition"),
     _("cursor_name"),
+    _("output_alias"),
     _("output_expression"),
     _("output_name")
   );
@@ -10462,7 +10664,7 @@ function sql_help_UPDATE(buf) {
 function sql_help_VACUUM(buf) {
   appendPQExpBuffer(
     buf,
-    "VACUUM [ ( %s [, ...] ) ] [ %s [, ...] ]\n\n%s\n\n    FULL [ %s ]\n    FREEZE [ %s ]\n    VERBOSE [ %s ]\n    ANALYZE [ %s ]\n    DISABLE_PAGE_SKIPPING [ %s ]\n    SKIP_LOCKED [ %s ]\n    INDEX_CLEANUP { AUTO | ON | OFF }\n    PROCESS_MAIN [ %s ]\n    PROCESS_TOAST [ %s ]\n    TRUNCATE [ %s ]\n    PARALLEL %s\n    SKIP_DATABASE_STATS [ %s ]\n    ONLY_DATABASE_STATS [ %s ]\n    BUFFER_USAGE_LIMIT %s\n\n%s\n\n    %s [ ( %s [, ...] ) ]",
+    "VACUUM [ ( %s [, ...] ) ] [ %s [, ...] ]\n\n%s\n\n    FULL [ %s ]\n    FREEZE [ %s ]\n    VERBOSE [ %s ]\n    ANALYZE [ %s ]\n    DISABLE_PAGE_SKIPPING [ %s ]\n    SKIP_LOCKED [ %s ]\n    INDEX_CLEANUP { AUTO | ON | OFF }\n    PROCESS_MAIN [ %s ]\n    PROCESS_TOAST [ %s ]\n    TRUNCATE [ %s ]\n    PARALLEL %s\n    SKIP_DATABASE_STATS [ %s ]\n    ONLY_DATABASE_STATS [ %s ]\n    BUFFER_USAGE_LIMIT %s\n\n%s\n\n    [ ONLY ] %s [ * ] [ ( %s [, ...] ) ]",
     _("option"),
     _("table_and_columns"),
     _("where option can be one of:"),

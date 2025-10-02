@@ -70,3 +70,15 @@ CREATE OR REPLACE FUNCTION do_nothing_on_command() RETURNS event_trigger
   END;
   $$;
 CREATE EVENT TRIGGER do_nothing_ddl ON ddl_command_start EXECUTE FUNCTION do_nothing_on_command();
+
+-- WITHOUT OVERLAPS in PG18+
+CREATE EXTENSION btree_gist;
+CREATE TABLE employees (
+  emp_id INTEGER,
+  emp_name VARCHAR(100) NOT NULL,
+  department VARCHAR(50) NOT NULL,
+  position VARCHAR(50) NOT NULL,
+  salary DECIMAL(10,2) NOT NULL,
+  valid_period tstzrange NOT NULL DEFAULT tstzrange(now(), 'infinity', '[)'),
+  PRIMARY KEY (emp_id, valid_period WITHOUT OVERLAPS)
+);
