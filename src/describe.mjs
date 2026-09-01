@@ -1217,7 +1217,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
             success = await describeTableDetails(pattern, show_verbose, show_system);
           else
             /* standard listing of interesting things */
-            success = await listTables("tvmsE", NULL, show_verbose, show_system);
+            success = await listTables("tvmsEG", NULL, show_verbose, show_system);
           break;
         case 'A':
           {
@@ -1344,6 +1344,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
         case 'i':
         case 's':
         case 'E':
+        case 'G':
           success = await listTables(cmd[1], pattern, show_verbose, show_system);
           break;
         case 'r':
@@ -1424,7 +1425,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
             success = await listExtensions(pattern);
           break;
         case 'X':			/* Extended Statistics */
-          success = await listExtendedStats(pattern);
+          success = await listExtendedStats(pattern, show_verbose);
           break;
         case 'y':			/* Event Triggers */
           success = await listEventTriggers(pattern, show_verbose);
