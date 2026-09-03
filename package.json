@@ -3,7 +3,8 @@
   "version": "0.1.7",
   "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
   "scripts": {
-    "test": "test/test.mjs /Users/george.mackerron/Development/postgres/src/bin/psql/psql postgres://localhost:5417/psqldescribe < test/tests.txt",
+    "test": "npm run test:matrix",
+    "test:matrix": "node test/test-matrix.mjs",
     "build": "esbuild src/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
     "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020"
   },

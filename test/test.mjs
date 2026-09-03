@@ -3,21 +3,28 @@
 import pg from 'pg';
 import fs from 'fs';
 import { describe, describeDataToString } from '../src/describe.mjs';
-import { execFileSync, spawn } from 'child_process';
+import { spawn } from 'child_process';
 
 const [psqlPath, dbUrl, transport] = process.argv.slice(2);
 const db = parseURL(dbUrl);
 const useHttp = transport === 'http';
+const psqlContainer = process.env.PSQL_CONTAINER;
+const psqlContainerRuntime = process.env.PSQL_CONTAINER_RUNTIME;
+const psqlDbUrl = process.env.PSQL_DATABASE_URL || dbUrl;
+
+if (psqlContainer && !psqlContainerRuntime) {
+  throw new Error('PSQL_CONTAINER_RUNTIME is required when PSQL_CONTAINER is set');
+}
 
 console.log(`
-PSQL:      ${psqlPath}
+PSQL:      ${psqlContainer ? `${psqlContainerRuntime} exec ${psqlContainer} psql` : psqlPath}
 DB:        postgres://${db.auth !== ':' ? db.auth + '@' : ''}${db.hostname}${db.port ? ':' + db.port : ''}${db.pathname}
 Transport: ${useHttp ? 'http' : 'pg'}
 `);
 
 async function spawnAsync(command, args, options) {
   // ridiculous shenanigans to work around spawnSync output truncation: https://github.com/nodejs/node/issues/19218
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     let output = '';
     const cmd = spawn(command, args, options);
 
@@ -30,7 +37,11 @@ async function spawnAsync(command, args, options) {
     cmd.stderr.setEncoding('utf8');
     cmd.stderr.on('data', data => output += data);
 
-    cmd.on('close', code => resolve(output));
+    cmd.on('error', reject);
+    cmd.on('close', code => {
+      if (code === 0) resolve(output);
+      else reject(new Error(`${command} exited with status ${code}\n${output}`));
+    });
   });
 }
 
@@ -46,9 +57,14 @@ export function parseURL(url, parseQueryString = false) {
 }
 
 function psql(input) {
-  return spawnAsync(psqlPath, [dbUrl, '-E'], {
+  const command = psqlContainer ? psqlContainerRuntime : psqlPath;
+  const args = psqlContainer
+    ? ['exec', '-i', '-e', 'PGCLIENTENCODING=UTF8', psqlContainer, 'psql', psqlDbUrl, '-E']
+    : [dbUrl, '-E'];
+
+  return spawnAsync(command, args, {
     input,
-    env: { ...process.env, PGCLIENTENCODING: 'UTF8' },  // to match node-postgres for /dconfig
+    env: { ...process.env, PGCLIENTENCODING: 'UTF8' },  // to match node-postgres for \dconfig
   });
 }
 
@@ -92,6 +108,8 @@ const
   testsStr = fs.readFileSync(process.stdin.fd, 'utf-8'),
   tests = testsStr.split('\n').map(t => t.trim()).filter(x => !!x);
 
+let failed = false;
+
 for (let test of tests) {
   const psqlOutput = await psql(test);
 
@@ -128,8 +146,10 @@ for (let test of tests) {
   if (!pass) {
     fs.writeFileSync('psql.txt', stdPsqlOutput);
     fs.writeFileSync('local.txt', stdLocalOutput);
+    failed = true;
     break;
   }
 }
 
 if (!useHttp) await pool.end();
+if (failed) process.exitCode = 1;

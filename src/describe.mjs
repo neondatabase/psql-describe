@@ -3120,7 +3120,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
                     "\nORDER BY 1",
                     oid);
     
-          result = PSQLexec(buf.data);
+          result = await PSQLexec(buf.data);
           if (result) {
             let nrows = PQntuples(result);
     
@@ -3188,7 +3188,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
                   gettext_noop("Destination Vertex Alias"),
                   oid);
     
-        res = PSQLexec(buf.data);
+        res = await PSQLexec(buf.data);
         if (!res) return retval;
     
         printfPQExpBuffer(title, _("Property Graph \"%s.%s\""),
@@ -3202,7 +3202,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
           appendPQExpBuffer(buf,
                     "SELECT pg_catalog.pg_get_propgraphdef('%s'::pg_catalog.oid);",
                     oid);
-          result = PSQLexec(buf.data);
+          result = await PSQLexec(buf.data);
     
           if (result) {
             if (PQntuples(result) > 0) {
@@ -4418,7 +4418,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
             "AND pr.prexcept\n" +
             "ORDER BY 1;", oid, oid);
     
-          result = PSQLexec(buf.data);
+          result = await PSQLexec(buf.data);
           if (!result)
             return retval;
           else
@@ -7835,7 +7835,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
               "     JOIN pg_catalog.pg_publication_rel pr ON c.oid = pr.prrelid\n" +
               "WHERE pr.prpubid = '%s' AND pr.prexcept\n" +
               "ORDER BY 1", pubid);
-            if (!addFooterToPublicationDesc(buf, _("Except tables:"), true, cont))
+            if (!await addFooterToPublicationDesc(buf, _("Except tables:"), true, cont))
               return false;
           }
         }
@@ -8647,9 +8647,9 @@ function appendStringLiteral(buf, str, encoding, std_strings) {
 function appendStringLiteralConn(buf, str, conn) {
   /*
    * XXX This is a kluge to silence escape_string_warning in our utility
-   * programs.  It should go away someday.
+   * programs.  It can go away once pre-v19 servers are out of support.
    */
-  if (strchr(str, '\\') != NULL && PQserverVersion(conn) >= 80100) {
+  if (strchr(str, '\\') != NULL && PQserverVersion(conn) < 190000) {
     /* ensure we are not adjacent to an identifier */
     if (buf.len > 0 && buf.data[buf.len - 1] != ' ')
       appendPQExpBufferChar(buf, ' ');

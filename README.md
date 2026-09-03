@@ -60,21 +60,37 @@ The `x` option to provide expanded output, which was added to most commands in P
 
 ## Tests
 
-The tests compare this software's output against `psql` (release 19.0) for the commands in `test/tests.txt`. Output should be character-for-character identical, except for differences in trailing whitespace.
+The database-dependent tests compare this software's output against the PostgreSQL 19 `psql` client for the commands in `test/tests.txt`. Output should be character-for-character identical, except for differences in trailing whitespace. The same client is tested against the latest official PostgreSQL 14, 15, 16, 17, and 18 container images and the PostgreSQL 19 beta 3 image, so that all server-version branches are exercised.
 
 In case of failure, the tests halt and a `psql.txt` and `local.txt` are written, which you can then `diff`.
 
-To make the tests work on your machine, you'll need to create a test database (see below), and probably update the DB connection strings in the `test` command in `package.json`.
+The SQL help tests are compared against the PostgreSQL 19 `psql` client once, rather than being repeated for every server version. The JavaScript implementation does not query the database for these commands; the reference client only needs a connection so that `psql` can start.
 
-
-### Database
-
-Tests should be run against a database named `psqldescribe` containing the [Pagila](https://github.com/devrimgunduz/pagila) data set, with a few additions:
+The full test command automatically uses Podman if it is available, then Docker:
 
 ```bash
-curl https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-schema.sql | psql psqldescribe
-curl https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-data.sql | psql psqldescribe
+npm test
+```
+
+The matrix pulls current images for the floating PostgreSQL 14–18 major-version tags before running. You can select a runtime or a subset of versions, or use already-cached images:
+
+```bash
+npm run test:matrix -- --runtime docker
+npm run test:matrix -- --versions 18,19 --no-pull
+```
+
+The matrix downloads Pagila on first use and caches it in the ignored `test/cache` directory. It creates disposable containers and a private container network, loads the fixtures, and removes the containers and network when it finishes.
+
+### Testing an existing database
+
+To run the database tests directly, create a database named `psqldescribe` containing the [Pagila](https://github.com/devrimgunduz/pagila) data set, with a few additions:
+
+```bash
+PAGILA_REVISION=e0e35a666f31a786b9d3c06cb83799fc46db25d4
+curl https://raw.githubusercontent.com/devrimgunduz/pagila/$PAGILA_REVISION/pagila-schema.sql | psql psqldescribe
+curl https://raw.githubusercontent.com/devrimgunduz/pagila/$PAGILA_REVISION/pagila-data.sql | psql psqldescribe
 psql psqldescribe < test/test-pagila-additions.sql
+node test/test.mjs /path/to/psql postgres://localhost/psqldescribe < test/tests.txt
 ```
 
 ## License

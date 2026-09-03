@@ -4,7 +4,12 @@ INSERT INTO playing_with_neon(name, value)
 
 -- extensions with \dx
 CREATE EXTENSION citext;
+SELECT EXISTS (
+  SELECT FROM pg_available_extensions WHERE name = 'postgis'
+) AS postgis_available \gset
+\if :postgis_available
 CREATE EXTENSION postgis;
+\endif
 
 -- descriptions with \dd
 COMMENT ON OPERATOR CLASS char_bloom_ops USING brin IS 'example op class comment';
@@ -32,7 +37,7 @@ CREATE EXTENSION postgres_fdw;
 CREATE SERVER foreign_server
   FOREIGN DATA WRAPPER postgres_fdw
   OPTIONS (host 'localhost', port '5432', dbname 'psqldescribe');
-CREATE USER MAPPING FOR george SERVER foreign_server OPTIONS (user 'bob', password 'secret');
+CREATE USER MAPPING FOR CURRENT_USER SERVER foreign_server OPTIONS (user 'bob', password 'secret');
 
 -- procedures with \dfp
 CREATE PROCEDURE myproc(a integer, b integer)
@@ -72,13 +77,16 @@ CREATE OR REPLACE FUNCTION do_nothing_on_command() RETURNS event_trigger
 CREATE EVENT TRIGGER do_nothing_ddl ON ddl_command_start EXECUTE FUNCTION do_nothing_on_command();
 
 -- WITHOUT OVERLAPS in PG18+
-CREATE EXTENSION btree_gist;
-CREATE TABLE employees (
-  emp_id INTEGER,
-  emp_name VARCHAR(100) NOT NULL,
-  department VARCHAR(50) NOT NULL,
-  position VARCHAR(50) NOT NULL,
-  salary DECIMAL(10,2) NOT NULL,
-  valid_period tstzrange NOT NULL DEFAULT tstzrange(now(), 'infinity', '[)'),
-  PRIMARY KEY (emp_id, valid_period WITHOUT OVERLAPS)
-);
+SELECT current_setting('server_version_num')::INTEGER >= 180000 AS pg18_or_later \gset
+\if :pg18_or_later
+  CREATE EXTENSION btree_gist;
+  CREATE TABLE employees (
+    emp_id INTEGER,
+    emp_name VARCHAR(100) NOT NULL,
+    department VARCHAR(50) NOT NULL,
+    position VARCHAR(50) NOT NULL,
+    salary DECIMAL(10,2) NOT NULL,
+    valid_period tstzrange NOT NULL DEFAULT tstzrange(now(), 'infinity', '[)'),
+    PRIMARY KEY (emp_id, valid_period WITHOUT OVERLAPS)
+  );
+\endif
