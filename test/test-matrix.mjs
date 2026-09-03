@@ -9,25 +9,27 @@ const POSTGRES_VERSIONS = [
   { major: '15', tag: '15' },
   { major: '16', tag: '16' },
   { major: '17', tag: '17' },
-  { major: '18', tag: '18' },
+  { major: '18', tag: '18', image: 'docker.io/imresamu/postgis:18-3.6' },
   { major: '19', tag: '19beta3' },
 ];
+
+// fixed revision, compatible with all Postgres versions
 const PAGILA_REVISION = 'e0e35a666f31a786b9d3c06cb83799fc46db25d4';
-const PAGILA_SCHEMA_URL =
-  `https://raw.githubusercontent.com/devrimgunduz/pagila/${PAGILA_REVISION}/pagila-schema.sql`;
-const PAGILA_DATA_URL =
-  `https://raw.githubusercontent.com/devrimgunduz/pagila/${PAGILA_REVISION}/pagila-data.sql`;
+
+const PAGILA_BASE_URL = `https://raw.githubusercontent.com/devrimgunduz/pagila/${PAGILA_REVISION}`;
+const PAGILA_SCHEMA_URL = `${PAGILA_BASE_URL}/pagila-schema.sql`;
+const PAGILA_DATA_URL = `${PAGILA_BASE_URL}/pagila-data.sql`;
 const POSTGRES_PASSWORD = 'postgres';
 const POSTGRES_DB = 'psqldescribe';
 
 function usage() {
   return `Usage: node test/test-matrix.mjs [options]
 
-Run database-dependent tests against official PostgreSQL container images.
+Run database-dependent tests against PostgreSQL container images.
 PostgreSQL 19beta3 psql is used as the reference client for every server.
 
 Options:
-  --runtime podman|docker   Container runtime (auto-detected by default)
+  --runtime podman|docker  Container runtime (auto-detected by default)
   --versions LIST          Comma-separated majors, e.g. 14,17,19
   --no-pull                Use locally cached images without pulling updates
   -h, --help               Show this help
@@ -156,33 +158,57 @@ const network = `psql-describe-${runId}`;
 const containers = [];
 const schemaDirectory = new URL('./schema/', import.meta.url);
 const commandsDirectory = new URL('./commands/', import.meta.url);
-const additions = fs.readFileSync(new URL('./schema/test-pagila-additions.sql', import.meta.url), 'utf8');
-const databaseTests = fs.readFileSync(new URL('./commands/tests.txt', import.meta.url), 'utf8');
 const helpTests = helpIndex.map(entry => `\\h ${entry[0]}`).join('\n');
-const versionedAdditions = findVersionedFiles(schemaDirectory, /^test-pagila-additions-(\d+)\.sql$/);
-const versionedDatabaseTests = findVersionedFiles(commandsDirectory, /^tests-(\d+)\.txt$/);
+const versionedAdditions = findVersionedFiles(
+  schemaDirectory,
+  /^test-pagila-additions-(\d+)(?:-(\d*))?\.sql$/,
+);
+const versionedDatabaseTests = findVersionedFiles(
+  commandsDirectory,
+  /^tests-(\d+)(?:-(\d*))?\.txt$/,
+);
 let cleaningUp = false;
 
 function findVersionedFiles(directory, pattern) {
   return fs.readdirSync(directory)
     .map(filename => {
       const match = filename.match(pattern);
-      return match && {
+      if (!match) return null;
+
+      const minimumVersion = Number(match[1]);
+      const maximumVersion = match[2] === undefined
+        ? minimumVersion
+        : match[2] === ''
+          ? Infinity
+          : Number(match[2]);
+      if (maximumVersion < minimumVersion) {
+        throw new Error(`invalid version range in ${filename}`);
+      }
+
+      return {
         filename,
-        minimumVersion: Number(match[1]),
+        minimumVersion,
+        maximumVersion,
         contents: fs.readFileSync(new URL(filename, directory), 'utf8'),
       };
     })
     .filter(Boolean)
-    .sort((a, b) => a.minimumVersion - b.minimumVersion);
+    .sort((a, b) =>
+      a.minimumVersion - b.minimumVersion ||
+      a.maximumVersion - b.maximumVersion ||
+      a.filename.localeCompare(b.filename),
+    );
 }
 
 function filesForVersion(files, version) {
-  return files.filter(file => file.minimumVersion <= Number(version.major));
+  const major = Number(version.major);
+  return files.filter(file =>
+    file.minimumVersion <= major && major <= file.maximumVersion,
+  );
 }
 
 function image(version) {
-  return `${imagePrefix}:${version.tag}`;
+  return version.image ?? `${imagePrefix}:${version.tag}`;
 }
 
 function containerName(version) {
@@ -270,7 +296,6 @@ async function loadSql(container, label, sql) {
 async function setupDatabase(server, version, pagilaSchema, pagilaData) {
   await loadSql(server.container, 'Pagila schema', pagilaSchema);
   await loadSql(server.container, 'Pagila data', pagilaData);
-  await loadSql(server.container, 'psql-describe additions', additions);
   for (const fixture of filesForVersion(versionedAdditions, version)) {
     await loadSql(server.container, fixture.filename, fixture.contents);
   }
@@ -324,10 +349,8 @@ try {
       : await startServer(version);
 
     await setupDatabase(server, version, pagilaSchema, pagilaData);
-    const tests = [
-      databaseTests,
-      ...filesForVersion(versionedDatabaseTests, version).map(file => file.contents),
-    ].join('\n');
+    const tests = filesForVersion(versionedDatabaseTests, version).map(file => file.contents).join('\n');
+
     await runTests(
       server,
       referenceServer.container,

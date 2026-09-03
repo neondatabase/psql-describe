@@ -60,7 +60,7 @@ The `x` option to provide expanded output, which was added to most commands in P
 
 ## Tests
 
-The database-dependent tests compare this software's output against the PostgreSQL 19 `psql` client for the commands in `test/commands/tests.txt`. Output should be character-for-character identical, except for differences in trailing whitespace. The same client is tested against the latest official PostgreSQL 14, 15, 16, 17, and 18 container images and the PostgreSQL 19 beta 3 image, so that all server-version branches are exercised.
+The database-dependent tests compare this software's output against the PostgreSQL 19 `psql` client for the commands in `test/commands/tests.txt`. Output should be character-for-character identical, except for differences in trailing whitespace. The same client is tested against the latest official PostgreSQL 14, 15, 16, and 17 container images, `imresamu/postgis:18-3.6` for PostgreSQL 18, and the official PostgreSQL 19 beta 3 image. This exercises all server-version branches and adds coverage of PostGIS objects.
 
 In case of failure, the tests halt and a `psql.txt` and `local.txt` are written, which you can then `diff`.
 
@@ -72,7 +72,7 @@ The full test command automatically uses Podman if it is available, then Docker:
 npm test
 ```
 
-The matrix pulls current images for the floating PostgreSQL 14–18 major-version tags before running. You can select a runtime or a subset of versions, or use already-cached images:
+The matrix pulls current images before running. You can select a runtime or a subset of versions, or use already-cached images:
 
 ```bash
 npm run test:matrix -- --runtime docker
@@ -81,7 +81,7 @@ npm run test:matrix -- --versions 18,19 --no-pull
 
 The matrix downloads Pagila on first use and caches it in the ignored `test/cache` directory. It creates disposable containers and a private container network, loads the fixtures, and removes the containers and network when it finishes.
 
-Commands in `test/commands/tests-N.txt` and fixtures in `test/schema/test-pagila-additions-N.sql` are included only for PostgreSQL `N` and later. The unversioned files apply to every tested version.
+Version suffixes on command and fixture files select the PostgreSQL versions to which they apply: `-18` means exactly version 18, `-15-16` means versions 15 through 16 inclusive, and `-18-` means version 18 and later. The unversioned files apply to every tested version.
 
 ### Testing an existing database
 

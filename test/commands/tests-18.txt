@@ -1,5 +1,8 @@
-\d employees
-\d+ feature_columns
-\d+ temporal_table
-\dRp generated_columns_publication
-\dRp+ generated_columns_publication
+\dx postgis
+\dx+ postgis
+\d spatial_landmarks
+\d+ spatial_landmarks
+\dT+ geometry
+\df+ st_distance geometry geometry
+\do+ && geometry geometry
+\dC+ geometry
