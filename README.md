@@ -2,7 +2,7 @@
 
 psql's `\d` (describe) family of commands ported to JavaScript.
 
-* From Postgres `REL_18_0`, we take `exec_command_d`, `exec_command_list` and `exec_command_sf_sv` from `command.c`, and all of `describe.c` and `sql_help.c`, from `src/bin/psql` (note that `sql_help.c` is generated during compilation of psql: to get hold of it, you first need to run `./configure` in the Postgres repo root followed by `make` in `src/bin/psql`).
+* From Postgres `REL_19_0`, we take `exec_command_d`, `exec_command_list` and `exec_command_sf_sv` from `command.c`, and all of `describe.c` and `sql_help.c`, from `src/bin/psql` (note that `sql_help.c` is generated during compilation of psql: to get hold of it, you first need to run `./configure` in the Postgres repo root followed by `make` in `src/bin/psql`).
 * We use plenty of RegExp search-and-replace to turn this C code into valid JS syntax.
 * We implement some C library functions, such as `strlen` and `strchr`, and some Postgres support functions, such as `printTable` and `printQuery`, in JavaScript.
 * We write tests to catch problems, mostly related to pointer arithmetic, pointer dereferencing, and pointer output parameters. Then we fix them.
@@ -24,7 +24,7 @@ describe(
   echoHidden = false,
   sversion = null,
   std_strings = true, 
-  docsURLTemplate = (id) => `https://www.postgresql.org/docs/18/${id}.html`,
+  docsURLTemplate = (id) => `https://www.postgresql.org/docs/19/${id}.html`,
 ): { promise, cancel };
 ```
 
@@ -60,7 +60,7 @@ The `x` option to provide expanded output, which was added to most commands in P
 
 ## Tests
 
-The tests compare this software's output against `psql` (release 18.0) for the commands in `test/tests.txt`. Output should be character-for-character identical, except for differences in trailing whitespace.
+The tests compare this software's output against `psql` (release 19.0) for the commands in `test/tests.txt`. Output should be character-for-character identical, except for differences in trailing whitespace.
 
 In case of failure, the tests halt and a `psql.txt` and `local.txt` are written, which you can then `diff`.
 
