@@ -1,0 +1,12 @@
+cd postgres
+
+brew install icu4c pkgconfig
+
+PATH="/opt/homebrew/opt/icu4c/bin:/opt/homebrew/opt/icu4c/sbin:$PATH" \
+LDFLAGS="-L/opt/homebrew/opt/icu4c/lib" \
+CPPFLAGS="-I/opt/homebrew/opt/icu4c/include" \
+PKG_CONFIG_PATH="/opt/homebrew/opt/icu4c/lib/pkgconfig" \
+./configure
+
+cd src/bin/psql
+MACOSX_DEPLOYMENT_TARGET="$(sw_vers -productVersion)" make
