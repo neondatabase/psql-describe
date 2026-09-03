@@ -154,10 +154,31 @@ const imagePrefix = process.env.POSTGRES_IMAGE_PREFIX || 'docker.io/library/post
 const runId = `${process.pid}-${Date.now()}`;
 const network = `psql-describe-${runId}`;
 const containers = [];
+const testDirectory = new URL('./', import.meta.url);
 const additions = fs.readFileSync(new URL('./test-pagila-additions.sql', import.meta.url), 'utf8');
 const databaseTests = fs.readFileSync(new URL('./tests.txt', import.meta.url), 'utf8');
 const helpTests = helpIndex.map(entry => `\\h ${entry[0]}`).join('\n');
+const versionedAdditions = findVersionedFiles(/^test-pagila-additions-(\d+)\.sql$/);
+const versionedDatabaseTests = findVersionedFiles(/^tests-(\d+)\.txt$/);
 let cleaningUp = false;
+
+function findVersionedFiles(pattern) {
+  return fs.readdirSync(testDirectory)
+    .map(filename => {
+      const match = filename.match(pattern);
+      return match && {
+        filename,
+        minimumVersion: Number(match[1]),
+        contents: fs.readFileSync(new URL(filename, testDirectory), 'utf8'),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.minimumVersion - b.minimumVersion);
+}
+
+function filesForVersion(files, version) {
+  return files.filter(file => file.minimumVersion <= Number(version.major));
+}
 
 function image(version) {
   return `${imagePrefix}:${version.tag}`;
@@ -245,10 +266,13 @@ async function loadSql(container, label, sql) {
   console.log('done');
 }
 
-async function setupDatabase(server, pagilaSchema, pagilaData) {
+async function setupDatabase(server, version, pagilaSchema, pagilaData) {
   await loadSql(server.container, 'Pagila schema', pagilaSchema);
   await loadSql(server.container, 'Pagila data', pagilaData);
   await loadSql(server.container, 'psql-describe additions', additions);
+  for (const fixture of filesForVersion(versionedAdditions, version)) {
+    await loadSql(server.container, fixture.filename, fixture.contents);
+  }
 }
 
 async function runTests(server, referenceContainer, label, tests) {
@@ -298,12 +322,16 @@ try {
       ? referenceServer
       : await startServer(version);
 
-    await setupDatabase(server, pagilaSchema, pagilaData);
+    await setupDatabase(server, version, pagilaSchema, pagilaData);
+    const tests = [
+      databaseTests,
+      ...filesForVersion(versionedDatabaseTests, version).map(file => file.contents),
+    ].join('\n');
     await runTests(
       server,
       referenceServer.container,
       `PostgreSQL ${version.tag}`,
-      databaseTests,
+      tests,
     );
 
     if (server !== referenceServer) {

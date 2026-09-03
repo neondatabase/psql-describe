@@ -81,6 +81,8 @@ npm run test:matrix -- --versions 18,19 --no-pull
 
 The matrix downloads Pagila on first use and caches it in the ignored `test/cache` directory. It creates disposable containers and a private container network, loads the fixtures, and removes the containers and network when it finishes.
 
+Commands in `test/tests-N.txt` and fixtures in `test/test-pagila-additions-N.sql` are included only for PostgreSQL `N` and later. The unversioned files apply to every tested version.
+
 ### Testing an existing database
 
 To run the database tests directly, create a database named `psqldescribe` containing the [Pagila](https://github.com/devrimgunduz/pagila) data set, with a few additions:
