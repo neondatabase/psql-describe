@@ -2,12 +2,13 @@
 
 psql's `\d` (describe) family of commands ported to JavaScript.
 
-* From Postgres `REL_19_0`, we take `exec_command_sf_sv`, `print_with_linenumbers`, `lookup_object_oid`, `get_create_object_cmd`, `exec_command_d`, `exec_command_list` and from `command.c`, and all of `describe.c` and `sql_help.c`, from `src/bin/psql` (note that `sql_help.c` is generated during compilation of psql: to get hold of it, you first need to run `./configure` in the Postgres repo root followed by `make` in `src/bin/psql`).
+* From Postgres `REL_19_0`, we take `exec_command_sf_sv`, `print_with_linenumbers`, `lookup_object_oid`, `get_create_object_cmd`, `exec_command_d` and `exec_command_list` from `command.c`, and all of `describe.c`, from `src/bin/psql`.
 * We use plenty of RegExp search-and-replace to turn this C code into valid JS syntax.
 * We implement some C library functions, such as `strlen` and `strchr`, and some Postgres support functions, such as `printTable` and `printQuery`, in JavaScript.
+* We generate `src/sql-help.generated.mjs` from the Postgres SGML doc files (rather like how `create_help.pl` generates `sql_help.c` for `psql`).
 * We write tests to catch problems, mostly related to pointer arithmetic, pointer dereferencing, and pointer output parameters. Then we fix them.
 
-This approach means that some of the 13,000+ lines of code in `describe.mjs` may never actually have been looked at. If you find a bug, please file an issue.
+This approach means that some of the 9000 lines of code in `describe.mjs` have never actually been looked at. If you find a bug, please file an issue.
 
 This library is [on npm](https://www.npmjs.com/package/psql-describe) and [powers backslash commands in the Neon SQL Editor](https://neon.tech/blog/bringing-psqls-d-to-your-web-browser).
 
@@ -79,21 +80,9 @@ npm run test:matrix -- --runtime docker
 npm run test:matrix -- --versions 18,19 --no-pull
 ```
 
-The matrix downloads Pagila on first use and caches it in the ignored `test/cache` directory. It creates disposable containers and a private container network, loads the fixtures, and removes the containers and network when it finishes.
+The matrix downloads Pagila on first use and caches it in the .gitignored `test/cache` directory. It creates disposable containers and a private container network, loads the fixtures, and removes the containers and network when it finishes.
 
-Version suffixes on command and fixture files select the PostgreSQL versions to which they apply: `-18` means exactly version 18, `-15-16` means versions 15 through 16 inclusive, and `-18-` means version 18 and later. The unversioned files apply to every tested version.
-
-### Testing an existing database
-
-To run the database tests directly, create a database named `psqldescribe` containing the [Pagila](https://github.com/devrimgunduz/pagila) data set, with a few additions:
-
-```bash
-PAGILA_REVISION=e0e35a666f31a786b9d3c06cb83799fc46db25d4
-curl https://raw.githubusercontent.com/devrimgunduz/pagila/$PAGILA_REVISION/pagila-schema.sql | psql psqldescribe
-curl https://raw.githubusercontent.com/devrimgunduz/pagila/$PAGILA_REVISION/pagila-data.sql | psql psqldescribe
-psql psqldescribe < test/schema/test-pagila-additions.sql
-node test/test.mjs /path/to/psql postgres://localhost/psqldescribe < test/commands/tests.txt
-```
+Version suffixes on command and fixture files select the PostgreSQL versions to which they apply: `-18` means exactly version 18, `-15-16` means versions 15 through 16 inclusive, and `-18-` means version 18 and later.
 
 ## License
 
