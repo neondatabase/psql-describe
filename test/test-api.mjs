@@ -9,7 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { describe, describeDataToString, describeDataToHtml } from '../src/describe.mjs';
+import { describe, describeDataToString, describeDataToHtml } from '../index.js';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 

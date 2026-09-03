@@ -8903,8 +8903,8 @@ const helpText = `Help
 
 Informational
   (options: S = show system objects, + = additional detail)
-  \\d[S+]                 list tables, views, and sequences
-  \\d[S+]  NAME           describe table, view, sequence, or index
+  \\d[S+]                 list tables, views, sequences, and property graphs
+  \\d[S+]  NAME           describe table, view, sequence, index, or property graph
   \\da[S]  [PATTERN]      list aggregates
   \\dA[+]  [PATTERN]      list access methods
   \\dAc[+] [AMPTRN [TYPEPTRN]]  list operator classes
@@ -8930,6 +8930,7 @@ Informational
   \\dFp[+] [PATTERN]      list text search parsers
   \\dFt[+] [PATTERN]      list text search templates
   \\dg[S+] [PATTERN]      list roles
+  \\dG[S+] [PATTERN]      list property graphs
   \\di[S+] [PATTERN]      list indexes
   \\dl[+]                 list large objects, same as \\lo_list
   \\dL[S+] [PATTERN]      list procedural languages
@@ -8950,7 +8951,7 @@ Informational
   \\du[S+] [PATTERN]      list roles
   \\dv[S+] [PATTERN]      list views
   \\dx[+]  [PATTERN]      list extensions
-  \\dX     [PATTERN]      list extended statistics
+  \\dX[+]  [PATTERN]      list extended statistics
   \\dy[+]  [PATTERN]      list event triggers
   \\l[+]   [PATTERN]      list databases
   \\lo_list[+]            list large objects

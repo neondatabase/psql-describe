@@ -2,7 +2,7 @@
 
 import pg from 'pg';
 import fs from 'fs';
-import { describe, describeDataToString } from '../src/describe.mjs';
+import { describe, describeDataToString } from '../index.js';
 import { spawn } from 'child_process';
 
 const [psqlPath, dbUrl, transport] = process.argv.slice(2);

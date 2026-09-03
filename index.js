@@ -2726,7 +2726,7 @@ _,0,0));break;case"i":U[0]=tn(R("Sequence for identity column: %s"),A(_,0,0));br
 `,R("Get publications containing this sequence")),p(e,`SELECT pubname FROM pg_catalog.pg_publication p
 WHERE p.puballsequences
  AND pg_catalog.pg_relation_is_publishable('%s')
-ORDER BY 1`,n),_=u(e.data),_)){let G=W(_);if(G>0){for(N(O,R("Included in publications:")),T=0;T<G;T++)p(O,`
+ORDER BY 1`,n),_=await u(e.data),_)){let G=W(_);if(G>0){for(N(O,R("Included in publications:")),T=0;T<G;T++)p(O,`
     "%s"`,A(_,T,0));U[0]==E?U[0]=pe(O.data):U[1]=pe(O.data),an(O)}}return f.relpersistence=="u"?N(L,R('Unlogged sequence\
  "%s.%s"'),o,s):N(L,R('Sequence "%s.%s"'),o,s),I.footers=U,I.topt.default_footer=!1,I.title=L.data,I.translate_header=!0,
 v(l,I,c.queryFout,!1,c.logfile),i=!0,i}if(f.relkind==st){let _=c.popt,I=[E,E,E];if(N(e,`/* %s */
@@ -2744,11 +2744,11 @@ v(l,I,c.queryFout,!1,c.logfile),i=!0,i}if(f.relkind==st){let _=c.popt,I=[E,E,E];
       LEFT JOIN pg_catalog.pg_propgraph_element d ON e.pgedestvertexid = d.oid
  WHERE e.pgepgid = '%s'
  ORDER BY e.pgealias`,t("Element Alias"),t("Element Table"),t("Element Kind"),t("Source Vertex Alias"),t("Destination Ve\
-rtex Alias"),n),l=u(e.data),!l)return i;if(N(L,R('Property Graph "%s.%s"'),o,s),a){let U;N(e,`/* %s */
-`,R("Get property graph definition")),p(e,"SELECT pg_catalog.pg_get_propgraphdef('%s'::pg_catalog.oid);",n),U=u(e.data),
-U&&W(U)>0&&(I[0]=pe(R("Property graph definition:")),I[1]=pe(A(U,0,0)))}return _.footers=I,_.topt.default_footer=!1,_.title=
-L.data,_.translate_header=!0,v(l,_,c.queryFout,!1,c.logfile),i=!0,i}if((f.relkind==Re||f.relkind==Be||f.relkind==Ee||f.relkind==
-_e||f.relkind==Rn||f.relkind==le)&&($e=!0),M=0,N(e,`/* %s */
+rtex Alias"),n),l=await u(e.data),!l)return i;if(N(L,R('Property Graph "%s.%s"'),o,s),a){let U;N(e,`/* %s */
+`,R("Get property graph definition")),p(e,"SELECT pg_catalog.pg_get_propgraphdef('%s'::pg_catalog.oid);",n),U=await u(e.
+data),U&&W(U)>0&&(I[0]=pe(R("Property graph definition:")),I[1]=pe(A(U,0,0)))}return _.footers=I,_.topt.default_footer=!1,
+_.title=L.data,_.translate_header=!0,v(l,_,c.queryFout,!1,c.logfile),i=!0,i}if((f.relkind==Re||f.relkind==Be||f.relkind==
+Ee||f.relkind==_e||f.relkind==Rn||f.relkind==le)&&($e=!0),M=0,N(e,`/* %s */
 `,R("Get per-column information for one relation")),r(e,"SELECT a.attname"),z=M++,r(e,`,
   pg_catalog.format_type(a.atttypid, a.atttypmod)`),K=M++,$e&&(r(e,`,
   (SELECT pg_catalog.pg_get_expr(d.adbin, d.adrelid, true)
@@ -2996,8 +2996,8 @@ FROM pg_catalog.pg_publication p
 JOIN pg_catalog.pg_publication_rel pr ON p.oid = pr.prpubid
 WHERE (pr.prrelid = '%s' OR pr.prrelid = pg_catalog.pg_partition_root('%s'))
 AND pr.prexcept
-ORDER BY 1;`,n,n),_=u(e.data),_)I=W(_);else return i;for(I>0&&w(S,R("Excluded from publications:")),T=0;T<I;T++)N(e,'   \
- "%s"',A(_,T,0)),w(S,e.data)}if(a){if(N(e,`/* %s */
+ORDER BY 1;`,n,n),_=await u(e.data),_)I=W(_);else return i;for(I>0&&w(S,R("Excluded from publications:")),T=0;T<I;T++)N(
+e,'    "%s"',A(_,T,0)),w(S,e.data)}if(a){if(N(e,`/* %s */
 `,R("Get not-null constraints for this table")),p(e,`SELECT c.conname, a.attname, c.connoinherit,
   c.conislocal, c.coninhcount <> 0,
   c.convalidated
@@ -3645,7 +3645,7 @@ FROM pg_catalog.pg_class c
      JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
      JOIN pg_catalog.pg_publication_rel pr ON c.oid = pr.prrelid
 WHERE pr.prpubid = '%s' AND pr.prexcept
-ORDER BY 1`,O),!cn(s,R("Except tables:"),!0,d)))return!1}else if(N(s,`/* %s */
+ORDER BY 1`,O),!await cn(s,R("Except tables:"),!0,d)))return!1}else if(N(s,`/* %s */
 `,R("Get tables published by this publication")),r(s,"SELECT n.nspname, c.relname"),c.sversion>=15e4?(r(s,", pg_catalog.\
 pg_get_expr(pr.prqual, c.oid)"),r(s,`, (CASE WHEN pr.prattrs IS NOT NULL THEN
      pg_catalog.array_to_string(      ARRAY(SELECT attname

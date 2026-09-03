@@ -4,11 +4,12 @@
   "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
   "scripts": {
     "test": "npm run test:api && npm run test:matrix",
-    "test:api": "node --test test/test-api.mjs",
-    "test:matrix": "node test/test-matrix.mjs",
+    "test:api": "npm run build && node --test test/test-api.mjs",
+    "test:matrix": "npm run build && node test/test-matrix.mjs",
     "build": "esbuild src/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
     "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020"
   },
+  "type": "module",
   "author": "George MacKerron",
   "license": "postgresql",
   "devDependencies": {
