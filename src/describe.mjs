@@ -158,7 +158,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
 
     const PSQLexec = async (sql, suppressEcho = false) => {
       throwIfCancelled();
-      if (echoHidden && !suppressEcho) outputFn(`/******** QUERY *********/\n${sql}\n/************************/`);
+      if (echoHidden && !suppressEcho) outputFn(`/**** INTERNAL QUERY ****/\n${sql}\n/************************/`);
       const result = await runQuery(sql);
       throwIfCancelled();
       return result;
@@ -834,6 +834,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
            * query to retrieve the function's OID using a cast to regproc or
            * regprocedure (as appropriate).
            */
+          printfPQExpBuffer(query, "/* %s */\n", _("Get function's OID"));
           appendPQExpBufferStr(query, "SELECT ");
           appendStringLiteralConn(query, desc, pset.db);
           appendPQExpBuffer(query, "::pg_catalog.%s::pg_catalog.oid",
@@ -846,7 +847,8 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
            * this code doesn't check if the relation is actually a view.
            * We'll detect that in get_create_object_cmd().
            */
-          appendPQExpBufferStr(query, "SELECT ");
+          printfPQExpBuffer(query, "/* %s */\n", _("Get view's OID"));
+			    appendPQExpBufferStr(query, "SELECT ");
           appendStringLiteralConn(query, desc, pset.db);
           appendPQExpBufferStr(query, "::pg_catalog.regclass::pg_catalog.oid");
           break;
@@ -880,7 +882,8 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
 
       switch (obj_type) {
         case EditableFunction:
-          printfPQExpBuffer(query,
+          printfPQExpBuffer(query, "/* %s */\n", _("Get function's definition"));
+			    appendPQExpBuffer(query,
             "SELECT pg_catalog.pg_get_functiondef(%u)",
             oid);
           break;
@@ -898,8 +901,9 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
            * separately.  Materialized views (introduced in 9.3) may have
            * arbitrary storage parameter reloptions.
            */
+          printfPQExpBuffer(query, "/* %s */\n", _("Get view's definition and details"));
           if (pset.sversion >= 90400) {
-            printfPQExpBuffer(query,
+            appendPQExpBuffer(query,
               "SELECT nspname, relname, relkind, " +
               "pg_catalog.pg_get_viewdef(c.oid, true), " +
               "pg_catalog.array_remove(pg_catalog.array_remove(c.reloptions,'check_option=local'),'check_option=cascaded') AS reloptions, " +
@@ -911,7 +915,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
               oid);
           }
           else {
-            printfPQExpBuffer(query,
+            appendPQExpBuffer(query,
               "SELECT nspname, relname, relkind, " +
               "pg_catalog.pg_get_viewdef(c.oid, true), " +
               "c.reloptions AS reloptions, " +
@@ -1576,7 +1580,8 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
 
       initPQExpBuffer(buf);
 
-      printfPQExpBuffer(buf,
+      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching aggregates"));
+	    appendPQExpBuffer(buf,
         "SELECT n.nspname as \"%s\",\n" +
         "  p.proname AS \"%s\",\n" +
         "  pg_catalog.format_type(p.prorettype, NULL) AS \"%s\",\n" +
@@ -1653,7 +1658,8 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
 
       initPQExpBuffer(buf);
 
-      printfPQExpBuffer(buf,
+      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching access methods"));
+	    appendPQExpBuffer(buf,
         "SELECT amname AS \"%s\",\n" +
         "  CASE amtype" +
         " WHEN 'i' THEN '%s'" +
@@ -7748,6 +7754,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
           printTableAddHeader(cont, gettext_noop("Generated columns"), true, align);
         if (has_pubviaroot)
           printTableAddHeader(cont, gettext_noop("Via root"), true, align);
+        printTableAddHeader(cont, gettext_noop("Description"), true, align);
 
         printTableAddCell(cont, PQgetvalue(res, i, 2), false, false);
         printTableAddCell(cont, PQgetvalue(res, i, 3), false, false);
