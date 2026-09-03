@@ -14,3 +14,5 @@
 \d+ actor_actor_id_seq
 \dRs pagila_subscription
 \dRs+ pagila_subscription
+\dX+ audit_stats_*
+\d+ film

@@ -104,3 +104,96 @@ CREATE CAST (dimensions AS text)
 -- a user-defined collation with \dO
 CREATE COLLATION traditional FROM "C";
 
+-- RLS policies and trigger/rule firing states with \d+ and \dp
+CREATE ROLE app_reader;
+CREATE TABLE secured_table (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  owner_name name NOT NULL DEFAULT current_user,
+  public_value text,
+  private_value text
+);
+GRANT SELECT, INSERT, UPDATE ON secured_table TO app_reader;
+ALTER TABLE secured_table ENABLE ROW LEVEL SECURITY;
+ALTER TABLE secured_table FORCE ROW LEVEL SECURITY;
+CREATE POLICY secured_select ON secured_table
+  FOR SELECT TO app_reader
+  USING (owner_name = current_user);
+CREATE POLICY secured_update ON secured_table
+  AS RESTRICTIVE FOR UPDATE TO app_reader
+  USING (owner_name = current_user)
+  WITH CHECK (owner_name = current_user);
+
+CREATE FUNCTION secured_trigger() RETURNS trigger
+  LANGUAGE plpgsql AS $$
+  BEGIN
+    RETURN NEW;
+  END;
+  $$;
+CREATE TRIGGER secured_enabled_trigger
+  BEFORE UPDATE ON secured_table
+  FOR EACH ROW EXECUTE FUNCTION secured_trigger();
+CREATE TRIGGER secured_disabled_trigger
+  BEFORE UPDATE ON secured_table
+  FOR EACH ROW EXECUTE FUNCTION secured_trigger();
+CREATE TRIGGER secured_replica_trigger
+  BEFORE UPDATE ON secured_table
+  FOR EACH ROW EXECUTE FUNCTION secured_trigger();
+CREATE TRIGGER secured_always_trigger
+  BEFORE UPDATE ON secured_table
+  FOR EACH ROW EXECUTE FUNCTION secured_trigger();
+ALTER TABLE secured_table DISABLE TRIGGER secured_disabled_trigger;
+ALTER TABLE secured_table ENABLE REPLICA TRIGGER secured_replica_trigger;
+ALTER TABLE secured_table ENABLE ALWAYS TRIGGER secured_always_trigger;
+
+CREATE TABLE security_audit (
+  source text NOT NULL,
+  secured_id bigint
+);
+CREATE RULE secured_disabled_rule AS
+  ON UPDATE TO secured_table DO ALSO
+  INSERT INTO security_audit VALUES ('disabled rule', NEW.id);
+CREATE RULE secured_replica_rule AS
+  ON UPDATE TO secured_table DO ALSO
+  INSERT INTO security_audit VALUES ('replica rule', NEW.id);
+CREATE RULE secured_always_rule AS
+  ON UPDATE TO secured_table DO ALSO
+  INSERT INTO security_audit VALUES ('always rule', NEW.id);
+ALTER TABLE secured_table DISABLE RULE secured_disabled_rule;
+ALTER TABLE secured_table ENABLE REPLICA RULE secured_replica_rule;
+ALTER TABLE secured_table ENABLE ALWAYS RULE secured_always_rule;
+
+-- Index and constraint detail states with \d+ and \di+
+CREATE TABLE indexed_table (
+  id bigint PRIMARY KEY,
+  email text NOT NULL,
+  category text NOT NULL,
+  active boolean NOT NULL DEFAULT true,
+  active_period daterange NOT NULL,
+  payload jsonb,
+  CONSTRAINT feature_deferrable_unique
+    UNIQUE (email) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT feature_exclusion
+    EXCLUDE USING gist (active_period WITH &&) DEFERRABLE
+);
+INSERT INTO indexed_table
+VALUES
+  (1, 'one@example.com', 'first', true, daterange('2025-01-01', '2025-02-01'), '{}'),
+  (2, 'two@example.com', 'second', false, daterange('2025-02-01', '2025-03-01'), '{}');
+CREATE INDEX feature_partial_idx
+  ON indexed_table (category) WHERE active;
+CREATE INDEX feature_expression_idx
+  ON indexed_table (lower(email));
+CREATE INDEX feature_clustered_idx
+  ON indexed_table (category, id);
+CLUSTER indexed_table USING feature_clustered_idx;
+CREATE UNIQUE INDEX feature_replica_identity_idx
+  ON indexed_table (id, email);
+ALTER TABLE indexed_table
+  REPLICA IDENTITY USING INDEX feature_replica_identity_idx;
+
+-- Partition parent, child, partitioned-index and zero-partition details
+CREATE TABLE empty_partitioned (
+  id bigint NOT NULL,
+  recorded_on date NOT NULL
+) PARTITION BY RANGE (recorded_on);
+

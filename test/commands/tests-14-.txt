@@ -198,3 +198,14 @@
 \dy
 \dy+
 \dzz
+\d+ secured_table
+\dp secured_table
+\d+ indexed_table
+\di+ feature_*
+\d+ feature_clustered_idx
+\d+ feature_replica_identity_idx
+\d+ feature_exclusion
+\d+ payment
+\d+ payment_p2022_01
+\d+ payment_pkey
+\d+ empty_partitioned

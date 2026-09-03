@@ -48,3 +48,20 @@ CREATE SUBSCRIPTION pagila_subscription
 
 COMMENT ON SUBSCRIPTION pagila_subscription IS
   'Disconnected subscription used for describe-command tests';
+
+-- Extended statistics kinds, expressions, target and PG19 verbose description
+CREATE STATISTICS audit_stats_all (ndistinct, dependencies, mcv)
+  ON release_year, language_id, rating
+  FROM film;
+
+CREATE STATISTICS audit_stats_expression
+  ON (lower(title)), rating
+  FROM film;
+
+ALTER STATISTICS audit_stats_expression SET STATISTICS 500;
+COMMENT ON STATISTICS audit_stats_all IS
+  'Extended statistics covering all supported kinds';
+COMMENT ON STATISTICS audit_stats_expression IS
+  'Expression statistics with a non-default target';
+
+ANALYZE film;
