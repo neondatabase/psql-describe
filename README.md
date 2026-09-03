@@ -60,7 +60,7 @@ The `x` option to provide expanded output, which was added to most commands in P
 
 ## Tests
 
-The database-dependent tests compare this software's output against the PostgreSQL 19 `psql` client for the commands in `test/tests.txt`. Output should be character-for-character identical, except for differences in trailing whitespace. The same client is tested against the latest official PostgreSQL 14, 15, 16, 17, and 18 container images and the PostgreSQL 19 beta 3 image, so that all server-version branches are exercised.
+The database-dependent tests compare this software's output against the PostgreSQL 19 `psql` client for the commands in `test/commands/tests.txt`. Output should be character-for-character identical, except for differences in trailing whitespace. The same client is tested against the latest official PostgreSQL 14, 15, 16, 17, and 18 container images and the PostgreSQL 19 beta 3 image, so that all server-version branches are exercised.
 
 In case of failure, the tests halt and a `psql.txt` and `local.txt` are written, which you can then `diff`.
 
@@ -81,7 +81,7 @@ npm run test:matrix -- --versions 18,19 --no-pull
 
 The matrix downloads Pagila on first use and caches it in the ignored `test/cache` directory. It creates disposable containers and a private container network, loads the fixtures, and removes the containers and network when it finishes.
 
-Commands in `test/tests-N.txt` and fixtures in `test/test-pagila-additions-N.sql` are included only for PostgreSQL `N` and later. The unversioned files apply to every tested version.
+Commands in `test/commands/tests-N.txt` and fixtures in `test/schema/test-pagila-additions-N.sql` are included only for PostgreSQL `N` and later. The unversioned files apply to every tested version.
 
 ### Testing an existing database
 
@@ -91,8 +91,8 @@ To run the database tests directly, create a database named `psqldescribe` conta
 PAGILA_REVISION=e0e35a666f31a786b9d3c06cb83799fc46db25d4
 curl https://raw.githubusercontent.com/devrimgunduz/pagila/$PAGILA_REVISION/pagila-schema.sql | psql psqldescribe
 curl https://raw.githubusercontent.com/devrimgunduz/pagila/$PAGILA_REVISION/pagila-data.sql | psql psqldescribe
-psql psqldescribe < test/test-pagila-additions.sql
-node test/test.mjs /path/to/psql postgres://localhost/psqldescribe < test/tests.txt
+psql psqldescribe < test/schema/test-pagila-additions.sql
+node test/test.mjs /path/to/psql postgres://localhost/psqldescribe < test/commands/tests.txt
 ```
 
 ## License

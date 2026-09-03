@@ -1,0 +1,5 @@
+\d employees
+\d+ feature_columns
+\d+ temporal_table
+\dRp generated_columns_publication
+\dRp+ generated_columns_publication

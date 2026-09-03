@@ -4,12 +4,6 @@ INSERT INTO playing_with_neon(name, value)
 
 -- extensions with \dx
 CREATE EXTENSION citext;
-SELECT EXISTS (
-  SELECT FROM pg_available_extensions WHERE name = 'postgis'
-) AS postgis_available \gset
-\if :postgis_available
-CREATE EXTENSION postgis;
-\endif
 
 -- descriptions with \dd
 COMMENT ON OPERATOR CLASS char_bloom_ops USING brin IS 'example op class comment';
@@ -76,17 +70,37 @@ CREATE OR REPLACE FUNCTION do_nothing_on_command() RETURNS event_trigger
   $$;
 CREATE EVENT TRIGGER do_nothing_ddl ON ddl_command_start EXECUTE FUNCTION do_nothing_on_command();
 
--- WITHOUT OVERLAPS in PG18+
-SELECT current_setting('server_version_num')::INTEGER >= 180000 AS pg18_or_later \gset
-\if :pg18_or_later
-  CREATE EXTENSION btree_gist;
-  CREATE TABLE employees (
-    emp_id INTEGER,
-    emp_name VARCHAR(100) NOT NULL,
-    department VARCHAR(50) NOT NULL,
-    position VARCHAR(50) NOT NULL,
-    salary DECIMAL(10,2) NOT NULL,
-    valid_period tstzrange NOT NULL DEFAULT tstzrange(now(), 'infinity', '[)'),
-    PRIMARY KEY (emp_id, valid_period WITHOUT OVERLAPS)
-  );
-\endif
+-- custom types, functions, operators, casts and collations: the official
+-- postgres image bundles no rich extension (e.g. PostGIS), so we add our own
+-- to exercise \dT, \df, \do, \dC and \dO against user-defined objects
+
+-- composite and range types with \dT
+CREATE TYPE dimensions AS (width numeric, height numeric, depth numeric);
+CREATE TYPE floatrange AS RANGE (subtype = float8);
+
+-- functions with varied argument styles for \df
+CREATE FUNCTION box_volume(dims dimensions) RETURNS numeric
+  LANGUAGE sql IMMUTABLE AS $$ SELECT dims.width * dims.height * dims.depth $$;
+CREATE FUNCTION sum_all(VARIADIC vals numeric[]) RETURNS numeric
+  LANGUAGE sql IMMUTABLE AS $$ SELECT coalesce(sum(v), 0) FROM unnest(vals) AS v $$;
+CREATE FUNCTION greet(who text DEFAULT 'world') RETURNS text
+  LANGUAGE sql IMMUTABLE AS $$ SELECT 'hello ' || who $$;
+
+-- a user-defined operator with \do
+CREATE FUNCTION dimensions_eq(dimensions, dimensions) RETURNS boolean
+  LANGUAGE sql IMMUTABLE AS $$ SELECT box_volume($1) = box_volume($2) $$;
+CREATE OPERATOR === (
+  LEFTARG = dimensions, RIGHTARG = dimensions,
+  FUNCTION = dimensions_eq, COMMUTATOR = ===
+);
+
+-- a user-defined cast with \dC
+CREATE FUNCTION dimensions_as_text(dimensions) RETURNS text
+  LANGUAGE sql IMMUTABLE AS
+  $$ SELECT format('%s x %s x %s', $1.width, $1.height, $1.depth) $$;
+CREATE CAST (dimensions AS text)
+  WITH FUNCTION dimensions_as_text(dimensions) AS ASSIGNMENT;
+
+-- a user-defined collation with \dO
+CREATE COLLATION traditional FROM "C";
+

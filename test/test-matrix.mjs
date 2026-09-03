@@ -154,22 +154,23 @@ const imagePrefix = process.env.POSTGRES_IMAGE_PREFIX || 'docker.io/library/post
 const runId = `${process.pid}-${Date.now()}`;
 const network = `psql-describe-${runId}`;
 const containers = [];
-const testDirectory = new URL('./', import.meta.url);
-const additions = fs.readFileSync(new URL('./test-pagila-additions.sql', import.meta.url), 'utf8');
-const databaseTests = fs.readFileSync(new URL('./tests.txt', import.meta.url), 'utf8');
+const schemaDirectory = new URL('./schema/', import.meta.url);
+const commandsDirectory = new URL('./commands/', import.meta.url);
+const additions = fs.readFileSync(new URL('./schema/test-pagila-additions.sql', import.meta.url), 'utf8');
+const databaseTests = fs.readFileSync(new URL('./commands/tests.txt', import.meta.url), 'utf8');
 const helpTests = helpIndex.map(entry => `\\h ${entry[0]}`).join('\n');
-const versionedAdditions = findVersionedFiles(/^test-pagila-additions-(\d+)\.sql$/);
-const versionedDatabaseTests = findVersionedFiles(/^tests-(\d+)\.txt$/);
+const versionedAdditions = findVersionedFiles(schemaDirectory, /^test-pagila-additions-(\d+)\.sql$/);
+const versionedDatabaseTests = findVersionedFiles(commandsDirectory, /^tests-(\d+)\.txt$/);
 let cleaningUp = false;
 
-function findVersionedFiles(pattern) {
-  return fs.readdirSync(testDirectory)
+function findVersionedFiles(directory, pattern) {
+  return fs.readdirSync(directory)
     .map(filename => {
       const match = filename.match(pattern);
       return match && {
         filename,
         minimumVersion: Number(match[1]),
-        contents: fs.readFileSync(new URL(filename, testDirectory), 'utf8'),
+        contents: fs.readFileSync(new URL(filename, directory), 'utf8'),
       };
     })
     .filter(Boolean)

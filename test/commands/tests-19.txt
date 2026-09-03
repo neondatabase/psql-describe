@@ -1,0 +1,16 @@
+\dG
+\dG+
+\dG pagila_graph
+\dG+ pagila_graph
+\dG p*
+\d pagila_graph
+\d+ pagila_graph
+\dRp *publication
+\dRp+ filtered_columns_publication
+\dRp+ schema_publication
+\dRp+ all_tables_except_publication
+\dRp+ all_sequences_publication
+\d+ actor
+\d+ actor_actor_id_seq
+\dRs pagila_subscription
+\dRs+ pagila_subscription

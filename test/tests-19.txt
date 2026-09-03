@@ -1,7 +1,0 @@
-\dG
-\dG+
-\dG pagila_graph
-\dG+ pagila_graph
-\dG p*
-\d pagila_graph
-\d+ pagila_graph

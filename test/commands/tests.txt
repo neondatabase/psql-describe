@@ -18,7 +18,6 @@
 \sz
 \d
 \d+
-\d employees
 \d actor
 \d act*
 \d+ act*
@@ -71,6 +70,7 @@
 \dC+
 \dC xml
 \dC+ text
+\dC+ dimensions
 \dd
 \ddS
 \dd char*
@@ -127,6 +127,9 @@
 \dfp
 \dfp+
 \dfp myproc integer
+\df box_volume
+\df greet
+\df sum_all
 \dF
 \dF+
 \dF+ norwegian
@@ -154,11 +157,14 @@
 \do+
 \do ||
 \do+ || text text
+\do ===
+\do+ ===
 \dO
 \dOS
 \dOS+
 \dOS+ POSIX
 \dOS+ "POSIX"
+\dO traditional
 \dp
 \dpS
 \dp act*
@@ -179,6 +185,8 @@
 \dT+
 \dTS
 \dT+ mpaa*
+\dT+ dimensions
+\dT floatrange
 \du
 \duS
 \duS+
