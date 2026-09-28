@@ -10,7 +10,7 @@ const POSTGRES_VERSIONS = [
   { major: '16', tag: '16' },
   { major: '17', tag: '17' },
   { major: '18', tag: '18', image: 'docker.io/imresamu/postgis:18-3.6' },
-  { major: '19', tag: '19beta3' },
+  { major: '19', tag: '19beta4' },
 ];
 
 // fixed revision, compatible with all Postgres versions

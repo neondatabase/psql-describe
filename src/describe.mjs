@@ -58,8 +58,7 @@ const
   RELKIND_COMPOSITE_TYPE = 'c',
   RELKIND_FOREIGN_TABLE = 'f',
   RELKIND_PARTITIONED_TABLE = 'p',
-  RELKIND_PARTITIONED_INDEX = 'I',
-  RELKIND_PROPGRAPH = 'g';
+  RELKIND_PARTITIONED_INDEX = 'I';
 
 const
   PUBLISH_GENCOLS_NONE = 'n',
@@ -1221,7 +1220,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
             success = await describeTableDetails(pattern, show_verbose, show_system);
           else
             /* standard listing of interesting things */
-            success = await listTables("tvmsEG", NULL, show_verbose, show_system);
+            success = await listTables("tvmsE", NULL, show_verbose, show_system);
           break;
         case 'A':
           {
@@ -1348,7 +1347,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
         case 'i':
         case 's':
         case 'E':
-        case 'G':
           success = await listTables(cmd[1], pattern, show_verbose, show_system);
           break;
         case 'r':
@@ -2385,7 +2383,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
         " WHEN 'm' THEN '%s'" +
         " WHEN 'S' THEN '%s'" +
         " WHEN 'f' THEN '%s'" +
-        " WHEN 'g' THEN '%s'" +
         " WHEN 'p' THEN '%s'" +
         " END as \"%s\",\n" +
         "  ",
@@ -2396,7 +2393,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
         gettext_noop("materialized view"),
         gettext_noop("sequence"),
         gettext_noop("foreign table"),
-        gettext_noop("property graph"),
         gettext_noop("partitioned table"),
         gettext_noop("Type"));
 
@@ -2483,7 +2479,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
         "'m'," +
         "'S'," +
         "'f'," +
-        "'g'," +
         "'p')\n");
 
       if (!showSystem && !pattern)
@@ -3154,71 +3149,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
 
         printQuery(res, myopt, pset.queryFout, false, pset.logfile);
 
-        retval = true;
-        return retval;		/* not an error, just return early */
-      }
-
-      /*
-      * If it's a property graph, deal with it here separately.
-      */
-      if (tableinfo.relkind == RELKIND_PROPGRAPH) {
-        let popt = pset.popt;
-        let footers = [NULL, NULL, NULL];
-    
-        printfPQExpBuffer(buf, "/* %s */\n", _("Get property graph information"));
-        appendPQExpBuffer(buf,
-                  "SELECT e.pgealias AS \"%s\"," +
-                  "\n     pg_catalog.quote_ident(n.nspname) || '.' ||" +
-                  "\n          pg_catalog.quote_ident(c.relname) AS \"%s\"," +
-                  "\n     case e.pgekind when 'v' then 'vertex'" +
-                  "\n                    when 'e' then 'edge' end AS \"%s\"," +
-                  "\n     s.pgealias as \"%s\"," +
-                  "\n     d.pgealias as \"%s\"" +
-                  "\n FROM pg_catalog.pg_propgraph_element e" +
-                  "\n      INNER JOIN pg_catalog.pg_class c ON c.oid = e.pgerelid" +
-                  "\n      INNER JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid" +
-                  "\n      LEFT JOIN pg_catalog.pg_propgraph_element s ON e.pgesrcvertexid = s.oid" +
-                  "\n      LEFT JOIN pg_catalog.pg_propgraph_element d ON e.pgedestvertexid = d.oid" +
-                  "\n WHERE e.pgepgid = '%s'" +
-                  "\n ORDER BY e.pgealias",
-                  gettext_noop("Element Alias"),
-                  gettext_noop("Element Table"),
-                  gettext_noop("Element Kind"),
-                  gettext_noop("Source Vertex Alias"),
-                  gettext_noop("Destination Vertex Alias"),
-                  oid);
-    
-        res = await PSQLexec(buf.data);
-        if (!res) return retval;
-    
-        printfPQExpBuffer(title, _("Property Graph \"%s.%s\""),
-                  schemaname, relationname);
-    
-        /* Add property graph definition in verbose mode */
-        if (verbose) {
-          let result;
-    
-          printfPQExpBuffer(buf, "/* %s */\n", _("Get property graph definition"));
-          appendPQExpBuffer(buf,
-                    "SELECT pg_catalog.pg_get_propgraphdef('%s'::pg_catalog.oid);",
-                    oid);
-          result = await PSQLexec(buf.data);
-    
-          if (result) {
-            if (PQntuples(result) > 0) {
-              footers[0] = pg_strdup(_("Property graph definition:"));
-              footers[1] = pg_strdup(PQgetvalue(result, 0, 0));
-            }
-          }
-        }
-    
-        popt.footers = footers;
-        popt.topt.default_footer = false;
-        popt.title = title.data;
-        popt.translate_header = true;
-    
-        printQuery(res, popt, pset.queryFout, false, pset.logfile);
-        
         retval = true;
         return retval;		/* not an error, just return early */
       }
@@ -5253,7 +5183,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
      * m - materialized views
      * s - sequences
      * E - foreign table (Note: different from 'f', the relkind value)
-     * G - property graphs
      * (any order of the above is fine)
      */
     async function listTables(tabtypes, pattern, verbose, showSystem) {
@@ -5263,7 +5192,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
       let showMatViews = strchr(tabtypes, 'm') != NULL;
       let showSeq = strchr(tabtypes, 's') != NULL;
       let showForeign = strchr(tabtypes, 'E') != NULL;
-      let	showPropGraphs = strchr(tabtypes, 'G') != NULL;
 
       let ntypes;
       let buf = { /* struct */ };
@@ -5274,10 +5202,10 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
 
       /* Count the number of explicitly-requested relation types */
       ntypes = showTables + showIndexes + showViews + showMatViews + 
-        showSeq + showForeign + showPropGraphs;
+        showSeq + showForeign;
       /* If none, we default to \dtvmsE (but see also command.c) */
       if (ntypes == 0)
-        showTables = showViews = showMatViews = showSeq = showForeign = showPropGraphs = true;
+        showTables = showViews = showMatViews = showSeq = showForeign = true;
 
       initPQExpBuffer(buf);
 
@@ -5295,7 +5223,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
         " WHEN 'f' THEN '%s'" +
         " WHEN 'p' THEN '%s'" +
         " WHEN 'I' THEN '%s'" +
-        " WHEN 'g' THEN '%s'" +
         " END as \"%s\",\n" +
         "  pg_catalog.pg_get_userbyid(c.relowner) as \"%s\"",
         gettext_noop("Schema"),
@@ -5309,7 +5236,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
         gettext_noop("foreign table"),
         gettext_noop("partitioned table"),
         gettext_noop("partitioned index"),
-        gettext_noop("property graph"),
         gettext_noop("Type"),
         gettext_noop("Owner"));
       cols_so_far = 4;
@@ -5388,8 +5314,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
         appendPQExpBufferStr(buf, "'s',"); /* was RELKIND_SPECIAL */
       if (showForeign)
         appendPQExpBufferStr(buf, "'f',");
-      if (showPropGraphs)
-        appendPQExpBufferStr(buf, "'g',");
 
       appendPQExpBufferStr(buf, "''");	/* dummy */
       appendPQExpBufferStr(buf, ")\n");
@@ -5442,9 +5366,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
           else if (showForeign)
             pg_log_error("Did not find any foreign tables named \"%s\".",
               pattern);
-          else if (showPropGraphs)
-            pg_log_error("Did not find any property graphs named \"%s\".",
-              pattern);
           else				/* should not get here */
             pg_log_error_internal("Did not find any ??? named \"%s\".",
               pattern);
@@ -5464,8 +5385,6 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
             pg_log_error("Did not find any sequences.");
           else if (showForeign)
             pg_log_error("Did not find any foreign tables.");
-          else if (showPropGraphs)
-            pg_log_error("Did not find any property graphs.");
           else				/* should not get here */
             pg_log_error_internal("Did not find any ??? relations.");
         }
@@ -5480,8 +5399,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
                   (showMatViews) ? _("List of materialized views") :
                     (showSeq) ? _("List of sequences") :
                       (showForeign) ? _("List of foreign tables") :
-                        (showPropGraphs) ? _("List of property graphs") :
-                          "List of ???";		/* should not get here */
+                        "List of ???";		/* should not get here */
         myopt.translate_header = true;
         myopt.translate_columns = translate_columns;
         myopt.n_translate_columns = lengthof(translate_columns);
@@ -8903,8 +8821,8 @@ const helpText = `Help
 
 Informational
   (options: S = show system objects, + = additional detail)
-  \\d[S+]                 list tables, views, sequences, and property graphs
-  \\d[S+]  NAME           describe table, view, sequence, index, or property graph
+  \\d[S+]                 list tables, views, and sequences
+  \\d[S+]  NAME           describe table, view, sequence, or index
   \\da[S]  [PATTERN]      list aggregates
   \\dA[+]  [PATTERN]      list access methods
   \\dAc[+] [AMPTRN [TYPEPTRN]]  list operator classes
@@ -8930,7 +8848,6 @@ Informational
   \\dFp[+] [PATTERN]      list text search parsers
   \\dFt[+] [PATTERN]      list text search templates
   \\dg[S+] [PATTERN]      list roles
-  \\dG[S+] [PATTERN]      list property graphs
   \\di[S+] [PATTERN]      list indexes
   \\dl[+]                 list large objects, same as \\lo_list
   \\dL[S+] [PATTERN]      list procedural languages

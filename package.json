@@ -13,8 +13,8 @@
   "author": "George MacKerron",
   "license": "postgresql",
   "devDependencies": {
-    "esbuild": "^0.25.10",
-    "pg": "^8.16.3"
+    "esbuild": "^0.28.2",
+    "pg": "^8.23.0"
   },
   "repository": {
     "type": "git",
