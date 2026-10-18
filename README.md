@@ -57,7 +57,7 @@ To format these outputs for display, three additional functions are exported:
 
 * ```htmlEscape(str, convertWhitespace)```
   
-  Returns its argument HTML-escaped. If `convertWhitespace` is truthy, spaces are replaced with `&nbsp;` and newlines with `<br>`.
+  Returns its argument HTML-escaped. If `convertWhitespace` is truthy, spaces are replaced with `&amp;nbsp;` and newlines with `&lt;br&gt;`.
 
 ## Limitations
 
