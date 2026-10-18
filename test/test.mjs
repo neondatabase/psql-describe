@@ -106,16 +106,24 @@ if (useHttp) {
 
 const
   testsStr = fs.readFileSync(process.stdin.fd, 'utf-8'),
-  tests = testsStr.split('\n').map(t => t.trim()).filter(x => !!x);
+  tests = testsStr.split('\n').map(t => t.trim()).filter(Boolean),
+  expandedTests = tests.flatMap(test => 
+    /^\\h/.test(test)
+    ? test
+    : [test, test.replace(/( |$)/, 'x$1')]  // add an 'x'
+  );
 
 let failed = false;
 
-for (let test of tests) {
+for (let test of expandedTests) {
+  // buggy in psql: https://www.postgresql.org/message-id/FEA91EA9-CF32-4920-9674-F2C3E01C3807%40databricks.com
+  if (test.startsWith('\\d+x ') || test.startsWith('\\dS+x ')) continue;
+
   const psqlOutput = await psql(test);
 
   const localOutputArr = [];
-  await describe(test, db.pathname.slice(1), queryFn, x => localOutputArr.push(x), true).promise;
-  const localOutput = localOutputArr.map(x => describeDataToString(x)).join('\n\n');
+  await describe(test, db.pathname.slice(1), queryFn, (...x) => localOutputArr.push(x), true).promise;
+  const localOutput = localOutputArr.map(x => describeDataToString(...x)).join('\n\n');
 
   const stdPsqlOutput = psqlOutput
     .replace(/\/docs\/17\//g, '/docs/current/')

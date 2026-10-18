@@ -1,4 +1,4 @@
-import { describe, describeDataToString, describeDataToHtml } from '../src/describe.mjs';
+import { describe, describeDataToString, describeDataToHtml, htmlEscape } from '../src/describe.mjs';
 
 function parse(url, parseQueryString) {
   const { protocol } = new URL(url);
@@ -75,9 +75,9 @@ async function go() {
 
     let firstOutput = true;
     const outputFn = htmlOutput ?
-      x => outputEl.innerHTML += describeDataToHtml(x) :
-      x => {
-        outputEl.innerHTML += (firstOutput ? '' : '\n\n') + describeDataToString(x, true);
+      (x, pset) => outputEl.innerHTML += describeDataToHtml(x, pset) :
+      (x, pset) => {
+        outputEl.innerHTML += (firstOutput ? '' : '\n\n') + htmlEscape(describeDataToString(x, pset));
         firstOutput = false;
       };
 

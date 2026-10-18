@@ -1,4 +1,4 @@
-var Ue=[["ABORT","abort the current transaction","sql-abort","ABORT [ WORK | TRANSACTION ] [ AND [ NO ] CHAIN ]"],["ALTE\
+var we=[["ABORT","abort the current transaction","sql-abort","ABORT [ WORK | TRANSACTION ] [ AND [ NO ] CHAIN ]"],["ALTE\
 R AGGREGATE","change the definition of an aggregate function","sql-alteraggregate",`ALTER AGGREGATE name ( aggregate_sig\
 nature ) RENAME TO new_name
 ALTER AGGREGATE name ( aggregate_signature )
@@ -2071,89 +2071,89 @@ and with_query is:
         [ CYCLE column_name [, ...] SET cycle_mark_col_name [ TO cycle_mark_value DEFAULT cycle_mark_default ] USING cyc\
 le_path_col_name ]
 
-TABLE [ ONLY ] table_name [ * ]`]];var Wa=0,l=null,va=100,Ba="E",xa=0,en=0,nn=1,ce=0,Tn=2,We=5,Ie=0,An=4,Ya=6,bn=0,qa=1,ka="b",Va="i",Xa="a",ja="e",Ja="r",
-Ka="S",za="f",Qa="T",Za="n",$a="L",et="a",nt="d",at="s",tt="v",Te="r",de="i",st="S",ve="t",Be="v",le="m",Rn="c",Re="f",Ee="\
-p",_e="I",dn="n",un="s",it=20,ot=21,rt=23,lt=26,Et=28,ct=29,pt=5069,Tt=700,Rt=701,_t=790,At=1700;function Dt(g){return typeof g==
-"string"?g:Nt(g)}function bt(g){return typeof g=="string"?`<p>${me(g,!0)}</p>`:St(g)}function Ut(g,I,D,U,B=!1,q=null,k=1,ne=X=>`\
-https://www.postgresql.org/docs/19/${X}.html`){let X=!1;function De(){X=!0,U=()=>{}}function pe(){if(X)throw new Error("\
-cancelled")}async function on(){let qe=g.match(/^\\([?hdzsl]\S*)(.*)/);if(!qe)return U(`unsupported command: ${g}`),!1;let[
-,J,oe]=qe;if(J=J.replace(/^lo_list/,"dl"),J=J.replace(/^z/,"dp"),J==="?")return U(Lt),!1;if(J==="h"){let o=(oe??"").trim().
-toUpperCase().replace(/\s+/g," ");if(o==="")return U(`Available help:
-`+Ue.map(i=>i[0]).join(`
-`)),!1;{let i=o==="*"?Ue:Ue.filter(n=>n[0]===o);if(i.length===0&&(i=Ue.filter(n=>n[0].startsWith(o))),i.length===0){let n=o.
-split(" ");for(let a=n.length;a>0;a--){let s=n.slice(0,a).join(" ");if(i=Ue.filter(e=>e[0].startsWith(s)),i.length>0)break}}
-if(i.length===0)return U(`No help available for "${oe.trim()}".
-Try \\h with no arguments to see available help.`),!1;for(let n of i)U(`Command:     ${n[0]}
+TABLE [ ONLY ] table_name [ * ]`]];var va=0,l=null,xa=100,Ba="E",Ya=0,sn=0,on=1,Ae=0,An=2,Ve=5,Fe=0,Sn=4,qa=6,Fn=0,ka=1,Va="b",Xa="i",ja="a",Ja="e",Ka="r",
+za="S",Qa="f",$a="T",Za="n",et="L",nt="a",at="d",tt="s",st="v",ge="r",be="i",it="S",Xe="t",je="v",pe="m",gn="c",Ne="f",Te="\
+p",Se="I",Cn="n",Dn="s",ot=20,rt=21,lt=23,Et=26,ct=28,pt=29,Tt=5069,Rt=700,_t=701,At=790,gt=1700;function Ut(A,L){return typeof A==
+"string"?A:St(A,L)}function Pt(A,L){return typeof A=="string"?`<p>${ce(A,!0)}</p>`:ft(A,L)}function Ft(A,L,C,P,w=!1,Y=null,k=1,V=B=>`\
+https://www.postgresql.org/docs/19/${B}.html`){let B=!1;function Re(){B=!0,P=()=>{}}function re(){if(B)throw new Error("\
+cancelled")}async function fe(){let _e=A.match(/^\\([?hdzsl]\S*)(.*)/);if(!_e)return P(`unsupported command: ${A}`),!1;let[
+,J,oe]=_e;if(J=J.replace(/^lo_list/,"dl"),J=J.replace(/^z/,"dp"),J==="?")return P(Ct),!1;if(J==="h"){let o=(oe??"").trim().
+toUpperCase().replace(/\s+/g," ");if(o==="")return P(`Available help:
+`+we.map(i=>i[0]).join(`
+`)),!1;{let i=o==="*"?we:we.filter(n=>n[0]===o);if(i.length===0&&(i=we.filter(n=>n[0].startsWith(o))),i.length===0){let n=o.
+split(" ");for(let a=n.length;a>0;a--){let s=n.slice(0,a).join(" ");if(i=we.filter(e=>e[0].startsWith(s)),i.length>0)break}}
+if(i.length===0)return P(`No help available for "${oe.trim()}".
+Try \\h with no arguments to see available help.`),!1;for(let n of i)P(`Command:     ${n[0]}
 Description: ${n[1]}
 Syntax:
 ${n[3]}
 
-URL: ${ne(n[2])}`);return!1}}let u=async(o,i=!1)=>{pe(),B&&!i&&U(`/**** INTERNAL QUERY ****/
+URL: ${V(n[2])}`);return!1}}let u=async(o,i=!1)=>{re(),w&&!i&&P(`/**** INTERNAL QUERY ****/
 ${o}
-/************************/`);let n=await D(o);return pe(),n},c;try{if(!q){let s=await u("SHOW server_version_num",!0);q=
-parseInt(s.rows[0][0],10)}c={sversion:q,db:{dbName:I,sversion:q,std_strings:k,status:bn,encoding:Ya},popt:{topt:{default_footer:!0},
-nullPrint:""}};let o=[oe,0],i=await(J[0]==="d"?Yn(o,!0,J):J[0]==="s"?J[1]==="f"||J[1]==="v"?wn(o,!0,J,J[1]==="f"):ce:J[0]===
-"l"?xn(o,!0,J):ce);(J.startsWith("dx")?J.slice(2):J).indexOf("x")!==-1&&U("Note: expanded output using x is not supporte\
-d"),i===ce&&U(`invalid command \\${J}`);let n,a=[];for(;n=Le(o,Ie,l,!0);)a.push(ae('\\%s: extra argument "%s" ignored',J,
-n));a.length>0&&U(a.join(`
-`))}catch(o){return U("ERROR:  "+o.message),X?null:!1}function w(o,...i){U(ae(o,...i))}function P(o,i,n,a,s,e,E,f,S,T){let F={},
-m={},C;if(b(F),C=he(c.db,o,i,n,a,s,e,E,f,F,m),m=m.value,S&&(S.value=C),m>=T)return w("improper qualified name (too many \
-dotted names): %s",i),!1;if(T>1&&m==T-1){if(Dn(c.db)==l)return w("You are currently not connected to a database."),!1;if(h(
-Dn(c.db),F.data)!=0)return w("cross-database references are not implemented: %s",i),!1}return!0}function he(o,i,n,a,s,e,E,f,S,T,F){
-let m={},C={},O=!1;return F||(F={}),F.value=0,n==l?(S&&(r(i,a?"  AND ":"WHERE "),a=!0,O=!0,p(i,`%s
-`,S)),O):(b(m),b(C),ke(Pn(o),e?T:l,e?m:l,C,n,s,!0,F),E&&C.len>2&&h(C.data,"^(.*)$")!=0&&(r(i,a?"  AND ":"WHERE "),a=!0,O=
-!0,f?(p(i,"(%s OPERATOR(pg_catalog.~) ",E),Fe(i,C.data,o),xe(o)>=12e4&&r(i," COLLATE pg_catalog.default"),p(i,`
-        OR %s OPERATOR(pg_catalog.~) `,f),Fe(i,C.data,o),xe(o)>=12e4&&r(i," COLLATE pg_catalog.default"),r(i,`)
-`)):(p(i,"%s OPERATOR(pg_catalog.~) ",E),Fe(i,C.data,o),xe(o)>=12e4&&r(i," COLLATE pg_catalog.default"),j(i,`
-`))),e&&m.len>2?h(m.data,"^(.*)$")!=0&&e&&(r(i,a?"  AND ":"WHERE "),a=!0,O=!0,p(i,"%s OPERATOR(pg_catalog.~) ",e),Fe(i,m.
-data,o),xe(o)>=12e4&&r(i," COLLATE pg_catalog.default"),j(i,`
+/************************/`);let n=await C(o);return re(),n},E;try{if(!Y){let s=await u("SHOW server_version_num",!0);Y=
+parseInt(s.rows[0][0],10)}let i=(J.startsWith("dx")?J.slice(2):J).indexOf("x")!==-1?1:0;E={sversion:Y,db:{dbName:L,sversion:Y,
+std_strings:k,status:Fn,encoding:qa},popt:{topt:{default_footer:!0},nullPrint:"",expanded:i}};let n=[oe,0];if(await(J[0]===
+"d"?qn(n,!0,J):J==="sf"||J==="sf+"||J==="sv"||J==="sv+"?Mn(n,!0,J,J[1]==="f"):J[0]==="l"?Yn(n,!0,J):Ae)===Ae)P(`invalid \
+command \\${J}`);else{let s,e=[];for(;s=Pe(n,Fe,l,!0);)e.push(se('\\%s: extra argument "%s" ignored',J,s));e.length>0&&P(
+e.join(`
+`))}}catch(o){return P("ERROR:  "+o.message),B?null:!1}function M(o,...i){P(se(o,...i))}function U(o,i,n,a,s,e,c,f,S,T){
+let F={},m={},D;if(b(F),D=de(E.db,o,i,n,a,s,e,c,f,F,m),m=m.value,S&&(S.value=D),m>=T)return M("improper qualified name (\
+too many dotted names): %s",i),!1;if(T>1&&m==T-1){if(Pn(E.db)==l)return M("You are currently not connected to a database\
+."),!1;if(H(Pn(E.db),F.data)!=0)return M("cross-database references are not implemented: %s",i),!1}return!0}function de(o,i,n,a,s,e,c,f,S,T,F){
+let m={},D={},O=!1;return F||(F={}),F.value=0,n==l?(S&&(r(i,a?"  AND ":"WHERE "),a=!0,O=!0,p(i,`%s
+`,S)),O):(b(m),b(D),ve(yn(o),e?T:l,e?m:l,D,n,s,!0,F),c&&D.len>2&&H(D.data,"^(.*)$")!=0&&(r(i,a?"  AND ":"WHERE "),a=!0,O=
+!0,f?(p(i,"(%s OPERATOR(pg_catalog.~) ",c),Ge(i,D.data,o),Je(o)>=12e4&&r(i," COLLATE pg_catalog.default"),p(i,`
+        OR %s OPERATOR(pg_catalog.~) `,f),Ge(i,D.data,o),Je(o)>=12e4&&r(i," COLLATE pg_catalog.default"),r(i,`)
+`)):(p(i,"%s OPERATOR(pg_catalog.~) ",c),Ge(i,D.data,o),Je(o)>=12e4&&r(i," COLLATE pg_catalog.default"),K(i,`
+`))),e&&m.len>2?H(m.data,"^(.*)$")!=0&&e&&(r(i,a?"  AND ":"WHERE "),a=!0,O=!0,p(i,"%s OPERATOR(pg_catalog.~) ",e),Ge(i,m.
+data,o),Je(o)>=12e4&&r(i," COLLATE pg_catalog.default"),K(i,`
 `)):S&&(r(i,a?"  AND ":"WHERE "),a=!0,O=!0,p(i,`%s
-`,S)),O)}function ke(o,i,n,a,s,e,E,f){let S=[{},{},{}],T=0,F={},m={},C={},O,M,K;Pe(s),Pe(a),Pe(!i||n),Pe(f),f.value=0,O=
-!1,K=s,i?C=2:n?C=1:C=0,m=S[T],E?(M=!0,b(F)):M=!1,b(m),r(m,"^(");let $=0,z;for(;(z=K[$])!=l;)z=='"'?(O&&K[$+1]=='"'?(j(m,
-'"'),M&&j(F,'"'),$++):O=!O,$++):!O&&Ot(z)?(j(m,gn(z)),M&&j(F,gn(z)),$++):!O&&z=="*"?(r(m,".*"),M&&j(F,"*"),$++):!O&&z=="\
-?"?(j(m,"."),M&&j(F,"?"),$++):!O&&z=="."?(M=!1,f.value++,T<C?(r(m,")$"),m=S[++T],b(m),r(m,"^("),$++):(j(m,z),$++)):z=="$"?
-(r(m,"\\$"),M&&j(F,"$"),$++):(((O||e)&&Z("|*+?()[]{}.^$\\",z)!=l||z=="["&&K[$+1]=="]")&&j(m,"\\"),M&&j(F,z),j(m,z),$++);
-r(m,")$"),a&&(r(a,m.data),m=S[--T]),n&&T>=0&&(r(n,m.data),m=S[--T]),i&&T>=0&&(E?r(i,F.data):r(i,m.data))}function hn(o){
-let i;switch(o){case ot:case rt:case it:case Tt:case Rt:case At:case lt:case Et:case pt:case ct:case _t:i="r";break;default:
-i="l";break}return i}function v(o,i,n,a,s){let e={},E,f,S;for(Ve(e,i.topt,i.title,Fn(o),W(o)),Pe(i.translate_columns==l||
-i.translate_columns==null||i.n_translate_columns>=e.ncolumns),E=0;E<e.ncolumns;E++)se(e,yn(o,E),i.translate_header,hn(ut(
-o,E)));for(f=0;f<e.nrows;f++)for(S=0;S<e.ncolumns;S++){let T,F=!1,m;te(o,f,S)?T=i.nullPrint?i.nullPrint:"":(T=A(o,f,S),e.
-aligns[S]=="r"&&i.topt.numericLocale&&(T=format_numeric_locale(T),F=!0)),m=i.translate_columns&&i.translate_columns[S],V(
-e,T,m,F)}if(i.footers)for(let T of i.footers)H(e,T);Xe(e,n,a,s)}function Ve(o,i,n,a,s){o.opt=i,o.title=n,o.ncolumns=a,o.
-nrows=s,o.headers=[],o.cells=[],o.footers=l,o.aligns=[]}function se(o,i,n,a){n&&(i=R(i)),o.headers.push(i),o.header=i,o.
-aligns.push(a),o.align=a}function V(o,i,n,a){n&&(i=R(i)),o.cells.push(i),o.cell=i}function H(o,i){o.footers==l&&(o.footers=
-[]),o.footers.push(i),o.footer=i}function Hn(o,i){o.footers&&o.footers.pop(),H(o,i)}function Xe(o,i,n,a){U({...o})}async function wn(o,i,n,a){
-let s=Tn,e=Z(n,"+")!=l,E={},f,S={value:xa},T=a?en:nn;return b(E),f=Le(o,An,l,!0),f?await Gn(T,f,S)&&await Wn(T,S.value,E)?
-e?Mn(E.data,a):U(E.data):s=We:(w(a?"function name is required":"view name is required"),s=We),s}function Mn(o,i){let n=i,
+`,S)),O)}function ve(o,i,n,a,s,e,c,f){let S=[{},{},{}],T=0,F={},m={},D={},O,G,z;Me(s),Me(a),Me(!i||n),Me(f),f.value=0,O=
+!1,z=s,i?D=2:n?D=1:D=0,m=S[T],c?(G=!0,b(F)):G=!1,b(m),r(m,"^(");let ee=0,Q;for(;(Q=z[ee])!=l;)Q=='"'?(O&&z[ee+1]=='"'?(K(
+m,'"'),G&&K(F,'"'),ee++):O=!O,ee++):!O&&ut(Q)?(K(m,fn(Q)),G&&K(F,fn(Q)),ee++):!O&&Q=="*"?(r(m,".*"),G&&K(F,"*"),ee++):!O&&
+Q=="?"?(K(m,"."),G&&K(F,"?"),ee++):!O&&Q=="."?(G=!1,f.value++,T<D?(r(m,")$"),m=S[++T],b(m),r(m,"^("),ee++):(K(m,Q),ee++)):
+Q=="$"?(r(m,"\\$"),G&&K(F,"$"),ee++):(((O||e)&&Z("|*+?()[]{}.^$\\",Q)!=l||Q=="["&&z[ee+1]=="]")&&K(m,"\\"),G&&K(F,Q),K(m,
+Q),ee++);r(m,")$"),a&&(r(a,m.data),m=S[--T]),n&&T>=0&&(r(n,m.data),m=S[--T]),i&&T>=0&&(c?r(i,F.data):r(i,m.data))}function Ke(o){
+let i;switch(o){case rt:case lt:case ot:case Rt:case _t:case gt:case Et:case ct:case Tt:case pt:case At:i="r";break;default:
+i="l";break}return i}function v(o,i,n,a,s){let e={},c,f,S;for(xe(e,i.topt,i.title,Hn(o),x(o)),Me(i.translate_columns==l||
+i.translate_columns==null||i.n_translate_columns>=e.ncolumns),c=0;c<e.ncolumns;c++)ae(e,wn(o,c),i.translate_header,Ke(It(
+o,c)));for(f=0;f<e.nrows;f++)for(S=0;S<e.ncolumns;S++){let T,F=!1,m;ie(o,f,S)?T=i.nullPrint?i.nullPrint:"":(T=g(o,f,S),e.
+aligns[S]=="r"&&i.topt.numericLocale&&(T=format_numeric_locale(T),F=!0)),m=i.translate_columns&&i.translate_columns[S],j(
+e,T,m,F)}if(i.footers)for(let T of i.footers)y(e,T);ze(e,n,a,s)}function xe(o,i,n,a,s){o.opt=i,o.title=n,o.ncolumns=a,o.
+nrows=s,o.headers=[],o.cells=[],o.footers=l,o.aligns=[]}function ae(o,i,n,a){n&&(i=R(i)),o.headers.push(i),o.header=i,o.
+aligns.push(a),o.align=a}function j(o,i,n,a){n&&(i=R(i)),o.cells.push(i),o.cell=i}function y(o,i){o.footers==l&&(o.footers=
+[]),o.footers.push(i),o.footer=i}function te(o,i){o.footers&&o.footers.pop(),y(o,i)}function ze(o,i,n,a){P({...o},E)}async function Mn(o,i,n,a){
+let s=An,e=Z(n,"+")!=l,c={},f,S={value:Ya},T=a?sn:on;return b(c),f=Pe(o,Sn,l,!0),f?await Wn(T,f,S)&&await vn(T,S.value,c)?
+e?Gn(c.data,a):P(c.data):s=Ve:(M(a?"function name is required":"view name is required"),s=Ve),s}function Gn(o,i){let n=i,
 a=0,s="";o=o.trimEnd().split(`
-`);for(let e of o)n&&(ye(e,"AS ",3)==0||ye(e,"BEGIN ",6)==0||ye(e,"RETURN ",7)==0)&&(n=!1),n||a++,n?s+=ae(`        %s
-`,e):s+=ae(`%-7d %s
-`,a,e);U(s)}async function Gn(o,i,n){let a=!0,s={};b(s);let e;switch(o){case en:N(s,`/* %s */
-`,R("Get function's OID")),r(s,"SELECT "),Fe(s,i,c.db),p(s,"::pg_catalog.%s::pg_catalog.oid",Z(i,"(")!==l?"regprocedure":
-"regproc");break;case nn:N(s,`/* %s */
-`,R("Get view's OID")),r(s,"SELECT "),Fe(s,i,c.db),r(s,"::pg_catalog.regclass::pg_catalog.oid");break}try{e=await u(s.data),
-e&&W(e)==1?n.value=_n(A(e,0,0)):(w("Error when querying"),a=!1)}catch(E){w("ERROR:  "+E.message),a=!1}return a}async function Wn(o,i,n){
-let a=!0,s={};b(s);let e;switch(o){case en:N(s,`/* %s */
-`,R("Get function's definition")),p(s,"SELECT pg_catalog.pg_get_functiondef(%u)",i);break;case nn:N(s,`/* %s */
-`,R("Get view's definition and details")),c.sversion>=90400?p(s,"SELECT nspname, relname, relkind, pg_catalog.pg_get_vie\
+`);for(let e of o)n&&(We(e,"AS ",3)==0||We(e,"BEGIN ",6)==0||We(e,"RETURN ",7)==0)&&(n=!1),n||a++,n?s+=se(`        %s
+`,e):s+=se(`%-7d %s
+`,a,e);P(s)}async function Wn(o,i,n){let a=!0,s={};b(s);let e;switch(o){case sn:N(s,`/* %s */
+`,R("Get function's OID")),r(s,"SELECT "),Ge(s,i,E.db),p(s,"::pg_catalog.%s::pg_catalog.oid",Z(i,"(")!==l?"regprocedure":
+"regproc");break;case on:N(s,`/* %s */
+`,R("Get view's OID")),r(s,"SELECT "),Ge(s,i,E.db),r(s,"::pg_catalog.regclass::pg_catalog.oid");break}try{e=await u(s.data),
+e&&x(e)==1?n.value=Nn(g(e,0,0)):(M("Error when querying"),a=!1)}catch(c){M("ERROR:  "+c.message),a=!1}return a}async function vn(o,i,n){
+let a=!0,s={};b(s);let e;switch(o){case sn:N(s,`/* %s */
+`,R("Get function's definition")),p(s,"SELECT pg_catalog.pg_get_functiondef(%u)",i);break;case on:N(s,`/* %s */
+`,R("Get view's definition and details")),E.sversion>=90400?p(s,"SELECT nspname, relname, relkind, pg_catalog.pg_get_vie\
 wdef(c.oid, true), pg_catalog.array_remove(pg_catalog.array_remove(c.reloptions,'check_option=local'),'check_option=casc\
 aded') AS reloptions, CASE WHEN 'check_option=local' = ANY (c.reloptions) THEN 'LOCAL'::text WHEN 'check_option=cascaded\
 ' = ANY (c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption FROM pg_catalog.pg_class c LEFT JOIN pg_catalo\
 g.pg_namespace n ON c.relnamespace = n.oid WHERE c.oid = %u",i):p(s,"SELECT nspname, relname, relkind, pg_catalog.pg_get\
 _viewdef(c.oid, true), c.reloptions AS reloptions, NULL AS checkoption FROM pg_catalog.pg_class c LEFT JOIN pg_catalog.p\
-g_namespace n ON c.relnamespace = n.oid WHERE c.oid = %u",i);break}if(e=await u(s.data),e&&W(e)==1){switch(an(n),o){case en:
-r(n,A(e,0,0));break;case nn:let E=A(e,0,0),f=A(e,0,1),S=A(e,0,2),T=A(e,0,3),F=A(e,0,4),m=A(e,0,5);S[0]===Be?r(n,"CREATE \
-OR REPLACE VIEW "):(w('"%s.%s" is not a view',E,f),a=!1),p(n,"%s.",be(E)),r(n,be(f)),F!=l&&Ce(F)>2&&(r(n,`
- WITH (`),vn(n,F,"",c.encoding,c.db.standard_strings)||(w("could not parse reloptions array"),a=!1),j(n,")")),p(n,` AS
+g_namespace n ON c.relnamespace = n.oid WHERE c.oid = %u",i);break}if(e=await u(s.data),e&&x(e)==1){switch(rn(n),o){case sn:
+r(n,g(e,0,0));break;case on:let c=g(e,0,0),f=g(e,0,1),S=g(e,0,2),T=g(e,0,3),F=g(e,0,4),m=g(e,0,5);S[0]===je?r(n,"CREATE \
+OR REPLACE VIEW "):(M('"%s.%s" is not a view',c,f),a=!1),p(n,"%s.",He(c)),r(n,He(f)),F!=l&&he(F)>2&&(r(n,`
+ WITH (`),xn(n,F,"",E.encoding,E.db.standard_strings)||(M("could not parse reloptions array"),a=!1),K(n,")")),p(n,` AS
 %s`,T),n.len>0&&n.data[n.len-1]==";"&&(n.data=n.data.slice(0,n.len-1)),m&&m[0]!=l&&p(n,`
  WITH %s CHECK OPTION`,m);break}n.len>0&&n.data[n.len-1]!=`
-`&&j(n,`
-`)}else w("Error when querying"),a=!1;return a}function vn(o,i,n,a,s){let e=[],E={},f;if(!Bn(i,e,E))return!1;for(E=E.value,
-f=0;f<E;f++){let S=e[f],[T,F]=S.split("=");F??(F=""),f>0&&r(o,", "),p(o,"%s%s=",n,be(T)),h(be(F),F)==0?r(o,F):Nn(o,F,a,s)}
-return!0}function Bn(o,i,n){let a,s,e;if(a=Ce(o),n.value=0,a<2||o[0]!="{"||o[a-1]!="}")return!1;let E=0;for(E++,e=0;o[E]!=
-"}";){if(o[E]==l)return!1;for(s="";o[E]!="}"&&o[E]!=",";){if(o[E]==l)return!1;if(o[E]!='"')s+=o[E++];else{for(E++;o[E]!=
-'"';){if(o[E]==l||o[E]=="\\"&&(E++,o[E]==l))return!1;s+=o[E++]}E++}}i[e]=s,o[E]==","&&E++,e++}return o[E+1]&&o[E+1]!=l?!1:
-(n.value=e,!0)}function be(o){let i={};b(i);let n=!1;return Wa?n=!0:o[0]>="a"&&o[0]<="z"||o[0]=="_"?/[^a-z0-9_]/.test(o)&&
+`&&K(n,`
+`)}else M("Error when querying"),a=!1;return a}function xn(o,i,n,a,s){let e=[],c={},f;if(!Bn(i,e,c))return!1;for(c=c.value,
+f=0;f<c;f++){let S=e[f],[T,F]=S.split("=");F??(F=""),f>0&&r(o,", "),p(o,"%s%s=",n,He(T)),H(He(F),F)==0?r(o,F):On(o,F,a,s)}
+return!0}function Bn(o,i,n){let a,s,e;if(a=he(o),n.value=0,a<2||o[0]!="{"||o[a-1]!="}")return!1;let c=0;for(c++,e=0;o[c]!=
+"}";){if(o[c]==l)return!1;for(s="";o[c]!="}"&&o[c]!=",";){if(o[c]==l)return!1;if(o[c]!='"')s+=o[c++];else{for(c++;o[c]!=
+'"';){if(o[c]==l||o[c]=="\\"&&(c++,o[c]==l))return!1;s+=o[c++]}c++}}i[e]=s,o[c]==","&&c++,e++}return o[c+1]&&o[c+1]!=l?!1:
+(n.value=e,!0)}function He(o){let i={};b(i);let n=!1;return va?n=!0:o[0]>="a"&&o[0]<="z"||o[0]=="_"?/[^a-z0-9_]/.test(o)&&
 (n=!0):n=!0,n||new Set(["all","analyse","analyze","and","any","array","as","asc","asymmetric","authorization","between",
 "bigint","binary","bit","boolean","both","case","cast","char","character","check","coalesce","collate","collation","colu\
 mn","concurrently","constraint","create","cross","current_catalog","current_date","current_role","current_schema","curre\
@@ -2167,54 +2167,54 @@ null","null","nullif","numeric","offset","on","only","or","order","out","outer",
 "some","substring","symmetric","system_user","table","tablesample","then","time","timestamp","to","trailing","treat","tr\
 im","true","union","unique","user","using","values","varchar","variadic","verbose","when","where","window","with","xmlat\
 tributes","xmlconcat","xmlelement","xmlexists","xmlforest","xmlnamespaces","xmlparse","xmlpi","xmlroot","xmlserialize","\
-xmltable"]).has(o)&&(n=!0),n?(j(i,'"'),j(i,o.replace(/"/g,'""')),j(i,'"')):r(i,o),i.data}async function xn(o,i,n){let a,
-s,e;return s=Le(o,Ie,l,!0),e=Z(n,"+")!=l,a=await qn(s,e),a?Tn:We}async function Yn(o,i,n){let a=Tn,s=!0,e,E,f;switch(e=Le(
-o,Ie,l,!0),E=Z(n,"+")!=l,f=Z(n,"S")!=l,n[1]){case void 0:case"+":case"S":e?s=await $n(e,E,f):s=await fn("tvmsE",l,E,f);break;case"\
-A":{let S=l;switch(e&&n[2]!=l&&n[2]!="+"&&(S=Le(o,Ie,l,!0)),n[2]){case void 0:case"+":s=await Vn(e,E);break;case"c":s=await Fa(
-e,S,E);break;case"f":s=await ya(e,S,E);break;case"o":s=await ha(e,S,E);break;case"p":s=await Ha(e,S,E);break;default:a=ce;
-break}}break;case"a":s=await kn(e,E,f);break;case"b":s=await Xn(e,E);break;case"c":ye(n,"dconfig",7)==0?s=await ra(e,E,f):
-s=await oa(e,E,f);break;case"C":s=await ca(e,E);break;case"d":ye(n,"ddp",3)==0?s=await Qn(e):s=await Zn(e,f);break;case"\
-D":s=await ia(e,E,f);break;case"f":switch(n[2]){case void 0:case"+":case"S":case"a":case"n":case"p":case"t":case"w":s=await Sn(
-o,n,e,E,f);break;default:a=ce;break}break;case"g":s=await mn(e,E,f);break;case"l":s=await wa(E);break;case"L":s=await sa(
-e,E,f);break;case"n":s=await Ta(e,E,f);break;case"o":s=await Sn(o,n,e,E,f);break;case"O":s=await pa(e,E,f);break;case"p":
-s=await zn(e,f);break;case"P":switch(n[2]){case void 0:case"+":case"t":case"i":case"n":s=await ta(n.slice(2),e,E);break;default:
-a=ce;break}break;case"T":s=await Jn(e,E,f);break;case"t":case"v":case"m":case"i":case"s":case"E":s=await fn(n[1],e,E,f);
-break;case"r":if(n[2]=="d"&&n[3]=="s"){let S=l;e&&(S=Le(o,Ie,l,!0)),s=await na(e,S)}else n[2]=="g"?s=await aa(e,f):a=ce;
-break;case"R":switch(n[2]){case"p":E?s=await Ua(e):s=await ba(e);break;case"s":s=await Pa(e,E);break;default:a=ce}break;case"\
-u":s=await mn(e,E,f);break;case"F":switch(n[2]){case void 0:case"+":s=await Sa(e,E);break;case"p":s=await Ra(e,E);break;case"\
-d":s=await ga(e,E);break;case"t":s=await Na(e,E);break;default:a=ce;break}break;case"e":switch(n[2]){case"s":s=await da(
-e,E);break;case"u":s=await ua(e,E);break;case"w":s=await Oa(e,E);break;case"t":s=await La(e,E);break;default:a=ce;break}
-break;case"x":E?s=await Ca(e):s=await Ia(e);break;case"X":s=await Ea(e,E);break;case"y":s=await la(e,E);break;default:a=
-ce}return s||(a=We),a}async function Sn(o,i,n,a,s){let e,E=[],f=0;if(n){let S;for(;(S=Le(o,Ie,l,!0))!=l&&(E[f++]=S,!(f>=
-va)););}return i[1]=="f"?e=await jn(i.slice(2),n,E,f,a,s):e=await Kn(n,E,f,a,s),e}async function qn(o,i){let n,a={},s=c.
-popt;return b(a),N(a,`/* %s */
+xmltable"]).has(o)&&(n=!0),n?(K(i,'"'),K(i,o.replace(/"/g,'""')),K(i,'"')):r(i,o),i.data}async function Yn(o,i,n){let a,
+s,e;return s=Pe(o,Fe,l,!0),e=Z(n,"+")!=l,a=await kn(s,e),a?An:Ve}async function qn(o,i,n){let a=An,s=!0,e,c,f;switch(e=Pe(
+o,Fe,l,!0),c=Z(n,"+")!=l,f=Z(n,"S")!=l,n[1]){case void 0:case"+":case"S":e?(E.popt.expanded=0,s=await ea(e,c,f)):s=await Ln(
+"tvmsE",l,c,f);break;case"A":{let S=l;switch(e&&n[2]!=l&&n[2]!="+"&&(S=Pe(o,Fe,l,!0)),n[2]){case void 0:case"+":case"x":
+s=await Xn(e,c);break;case"c":s=await ha(e,S,c);break;case"f":s=await ya(e,S,c);break;case"o":s=await Ha(e,S,c);break;case"\
+p":s=await wa(e,S,c);break;default:a=Ae;break}}break;case"a":s=await Vn(e,c,f);break;case"b":s=await jn(e,c);break;case"\
+c":We(n,"dconfig",7)==0?s=await la(e,c,f):s=await ra(e,c,f);break;case"C":s=await pa(e,c);break;case"d":We(n,"ddp",3)==0?
+s=await $n(e):s=await Zn(e,f);break;case"D":s=await oa(e,c,f);break;case"f":switch(n[2]){case void 0:case"+":case"S":case"\
+a":case"n":case"p":case"t":case"w":case"x":s=await dn(o,n,e,c,f);break;default:a=Ae;break}break;case"g":s=await un(e,c,f);
+break;case"l":s=await Ma(c);break;case"L":s=await ia(e,c,f);break;case"n":s=await Ra(e,c,f);break;case"o":s=await dn(o,n,
+e,c,f);break;case"O":s=await Ta(e,c,f);break;case"p":s=await Qn(e,f);break;case"P":switch(n[2]){case void 0:case"+":case"\
+t":case"i":case"n":case"x":s=await sa(n.slice(2),e,c);break;default:a=Ae;break}break;case"T":s=await Kn(e,c,f);break;case"\
+t":case"v":case"m":case"i":case"s":case"E":s=await Ln(n[1],e,c,f);break;case"r":if(n[2]=="d"&&n[3]=="s"){let S=l;e&&(S=Pe(
+o,Fe,l,!0)),s=await aa(e,S)}else n[2]=="g"?s=await ta(e,f):a=Ae;break;case"R":switch(n[2]){case"p":c?s=await Pa(e):s=await Ua(
+e);break;case"s":s=await Fa(e,c);break;default:a=Ae}break;case"u":s=await un(e,c,f);break;case"F":switch(n[2]){case void 0:case"\
++":case"x":s=await ma(e,c);break;case"p":s=await _a(e,c);break;case"d":s=await Na(e,c);break;case"t":s=await Sa(e,c);break;default:
+a=Ae;break}break;case"e":switch(n[2]){case"s":s=await ua(e,c);break;case"u":s=await La(e,c);break;case"w":s=await da(e,c);
+break;case"t":s=await Ia(e,c);break;default:a=Ae;break}break;case"x":c?s=await Da(e):s=await Ca(e);break;case"X":s=await ca(
+e,c);break;case"y":s=await Ea(e,c);break;default:a=Ae}return s||(a=Ve),a}async function dn(o,i,n,a,s){let e,c=[],f=0;if(n){
+let S;for(;(S=Pe(o,Fe,l,!0))!=l&&(c[f++]=S,!(f>=xa)););}return i[1]=="f"?e=await Jn(i.slice(2),n,c,f,a,s):e=await zn(n,c,
+f,a,s),e}async function kn(o,i){let n,a={},s=E.popt;return b(a),N(a,`/* %s */
 `,R("Get matching databases")),p(a,`SELECT
   d.datname as "%s",
   pg_catalog.pg_get_userbyid(d.datdba) as "%s",
   pg_catalog.pg_encoding_to_char(d.encoding) as "%s",
-`,t("Name"),t("Owner"),t("Encoding")),c.sversion>=15e4?p(a,`  CASE d.datlocprovider WHEN 'b' THEN 'builtin' WHEN 'c' THE\
+`,t("Name"),t("Owner"),t("Encoding")),E.sversion>=15e4?p(a,`  CASE d.datlocprovider WHEN 'b' THEN 'builtin' WHEN 'c' THE\
 N 'libc' WHEN 'i' THEN 'icu' END AS "%s",
 `,t("Locale Provider")):p(a,`  'libc' AS "%s",
 `,t("Locale Provider")),p(a,`  d.datcollate as "%s",
   d.datctype as "%s",
-`,t("Collate"),t("Ctype")),c.sversion>=17e4?p(a,`  d.datlocale as "%s",
-`,t("Locale")):c.sversion>=15e4?p(a,`  d.daticulocale as "%s",
+`,t("Collate"),t("Ctype")),E.sversion>=17e4?p(a,`  d.datlocale as "%s",
+`,t("Locale")):E.sversion>=15e4?p(a,`  d.daticulocale as "%s",
 `,t("Locale")):p(a,`  NULL as "%s",
-`,t("Locale")),c.sversion>=16e4?p(a,`  d.daticurules as "%s",
+`,t("Locale")),E.sversion>=16e4?p(a,`  d.daticurules as "%s",
 `,t("ICU Rules")):p(a,`  NULL as "%s",
-`,t("ICU Rules")),r(a,"  "),re(a,"d.datacl"),i&&p(a,`,
+`,t("ICU Rules")),r(a,"  "),Ee(a,"d.datacl"),i&&p(a,`,
   CASE WHEN pg_catalog.has_database_privilege(d.datname, 'CONNECT')
        %s       THEN pg_catalog.pg_size_pretty(pg_catalog.pg_database_size(d.datname))
        ELSE 'No Access'
   END as "%s",
   t.spcname as "%s",
-  pg_catalog.shobj_description(d.oid, 'pg_database') as "%s"`,c.sversion>=1e5?`OR pg_catalog.pg_has_role('pg_read_all_st\
+  pg_catalog.shobj_description(d.oid, 'pg_database') as "%s"`,E.sversion>=1e5?`OR pg_catalog.pg_has_role('pg_read_all_st\
 ats', 'USAGE')
 `:"",t("Size"),t("Tablespace"),t("Description")),r(a,`
 FROM pg_catalog.pg_database d
 `),i&&r(a,`  JOIN pg_catalog.pg_tablespace t on d.dattablespace = t.oid
-`),o&&!P(a,o,!1,!1,l,"d.datname",l,l,l,1)||(r(a,"ORDER BY 1;"),n=await u(a.data),!n)?!1:(s.nullPrint=l,s.title=R("List o\
-f databases"),s.translate_header=!0,v(n,s,c.queryFout,!1,c.logfile),!0)}async function kn(o,i,n){let a={},s,e=c.popt;return b(
+`),o&&!U(a,o,!1,!1,l,"d.datname",l,l,l,1)||(r(a,"ORDER BY 1;"),n=await u(a.data),!n)?!1:(s.nullPrint=l,s.title=R("List o\
+f databases"),s.translate_header=!0,v(n,s,E.queryFout,!1,E.logfile),!0)}async function Vn(o,i,n){let a={},s,e=E.popt;return b(
 a),N(a,`/* %s */
 `,R("Get matching aggregates")),p(a,`SELECT n.nspname as "%s",
   p.proname AS "%s",
@@ -2223,7 +2223,7 @@ a),N(a,`/* %s */
     THEN CAST('*' AS pg_catalog.text)
     ELSE pg_catalog.pg_get_function_arguments(p.oid)
   END AS "%s",
-`,t("Schema"),t("Name"),t("Result data type"),t("Argument data types")),c.sversion>=11e4?p(a,`  pg_catalog.obj_descripti\
+`,t("Schema"),t("Name"),t("Result data type"),t("Argument data types")),E.sversion>=11e4?p(a,`  pg_catalog.obj_descripti\
 on(p.oid, 'pg_proc') as "%s"
 FROM pg_catalog.pg_proc p
      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
@@ -2234,35 +2234,35 @@ FROM pg_catalog.pg_proc p
 WHERE p.proisagg
 `,t("Description")),!n&&!o&&r(a,`      AND n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
-`),!P(a,o,!0,!1,"n.nspname","p.proname",l,"pg_catalog.pg_function_is_visible(p.oid)",l,3)||(r(a,"ORDER BY 1, 2, 4;"),s=await u(
-a.data),!s)?!1:(e.nullPrint=l,e.title=R("List of aggregate functions"),e.translate_header=!0,v(s,e,c.queryFout,!1,c.logfile),
-!0)}async function Vn(o,i){let n={},a,s=c.popt,e=[!1,!0,!1,!1];if(c.sversion<90600){let E;return w("The server (version \
-%s) does not support access methods.",Se(c.sversion,!1,E,Ne(E))),!0}return b(n),N(n,`/* %s */
+`),!U(a,o,!0,!1,"n.nspname","p.proname",l,"pg_catalog.pg_function_is_visible(p.oid)",l,3)||(r(a,"ORDER BY 1, 2, 4;"),s=await u(
+a.data),!s)?!1:(e.nullPrint=l,e.title=R("List of aggregate functions"),e.translate_header=!0,v(s,e,E.queryFout,!1,E.logfile),
+!0)}async function Xn(o,i){let n={},a,s=E.popt,e=[!1,!0,!1,!1];if(E.sversion<90600){let c;return M("The server (version \
+%s) does not support access methods.",Ie(E.sversion,!1,c,Le(c))),!0}return b(n),N(n,`/* %s */
 `,R("Get matching access methods")),p(n,`SELECT amname AS "%s",
   CASE amtype WHEN 'i' THEN '%s' WHEN 't' THEN '%s' END AS "%s"`,t("Name"),t("Index"),t("Table"),t("Type")),i&&p(n,`,
   amhandler AS "%s",
   pg_catalog.obj_description(oid, 'pg_am') AS "%s"`,t("Handler"),t("Description")),r(n,`
 FROM pg_catalog.pg_am
-`),!P(n,o,!1,!1,l,"amname",l,l,l,1)||(r(n,"ORDER BY 1;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of acce\
-ss methods"),s.translate_header=!0,s.translate_columns=e,s.n_translate_columns=Q(e),v(a,s,c.queryFout,!1,c.logfile),!0)}
-async function Xn(o,i){let n={},a,s=c.popt;return b(n),N(n,`/* %s */
+`),!U(n,o,!1,!1,l,"amname",l,l,l,1)||(r(n,"ORDER BY 1;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of acce\
+ss methods"),s.translate_header=!0,s.translate_columns=e,s.n_translate_columns=$(e),v(a,s,E.queryFout,!1,E.logfile),!0)}
+async function jn(o,i){let n={},a,s=E.popt;return b(n),N(n,`/* %s */
 `,R("Get matching tablespaces")),p(n,`SELECT spcname AS "%s",
   pg_catalog.pg_get_userbyid(spcowner) AS "%s",
   pg_catalog.pg_tablespace_location(oid) AS "%s"`,t("Name"),t("Owner"),t("Location")),i&&(r(n,`,
-  `),re(n,"spcacl"),p(n,`,
+  `),Ee(n,"spcacl"),p(n,`,
   spcoptions AS "%s",
   pg_catalog.pg_size_pretty(pg_catalog.pg_tablespace_size(oid)) AS "%s",
   pg_catalog.shobj_description(oid, 'pg_tablespace') AS "%s"`,t("Options"),t("Size"),t("Description"))),r(n,`
 FROM pg_catalog.pg_tablespace
-`),!P(n,o,!1,!1,l,"spcname",l,l,l,1)||(r(n,"ORDER BY 1;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of tab\
-lespaces"),s.translate_header=!0,v(a,s,c.queryFout,!1,c.logfile),!0)}async function jn(o,i,n,a,s,e){let E="anptwSx+",f=Z(
-o,"a")!=l,S=Z(o,"n")!=l,T=Z(o,"p")!=l,F=Z(o,"t")!=l,m=Z(o,"w")!=l,C,O={},M,K=c.popt,$=[!1,!1,!1,!1,!0,!0,!0,!1,!0,!0,!1,
-!1,!1,!1],z=[!1,!1,!1,!1,!0,!0,!1,!0,!0,!1,!1,!1,!1];if(Ce(o)!=mt(o,E))return w(`\\df only takes [${E}] as options`),!0;
-if(T&&c.sversion<11e4){let Y;return w('\\df does not take a "%c" option with server version %s',"p",Se(c.sversion,!1,Y,Ne(
-Y))),!0}!f&&!S&&!T&&!F&&!m&&(f=S=F=m=!0,c.sversion>=11e4&&(T=!0)),b(O),N(O,`/* %s */
+`),!U(n,o,!1,!1,l,"spcname",l,l,l,1)||(r(n,"ORDER BY 1;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of tab\
+lespaces"),s.translate_header=!0,v(a,s,E.queryFout,!1,E.logfile),!0)}async function Jn(o,i,n,a,s,e){let c="anptwSx+",f=Z(
+o,"a")!=l,S=Z(o,"n")!=l,T=Z(o,"p")!=l,F=Z(o,"t")!=l,m=Z(o,"w")!=l,D,O={},G,z=E.popt,ee=[!1,!1,!1,!1,!0,!0,!0,!1,!0,!0,!1,
+!1,!1,!1],Q=[!1,!1,!1,!1,!0,!0,!1,!0,!0,!1,!1,!1,!1];if(he(o)!=Ot(o,c))return M(`\\df only takes [${c}] as options`),!0;
+if(T&&E.sversion<11e4){let X;return M('\\df does not take a "%c" option with server version %s',"p",Ie(E.sversion,!1,X,Le(
+X))),!0}!f&&!S&&!T&&!F&&!m&&(f=S=F=m=!0,E.sversion>=11e4&&(T=!0)),b(O),N(O,`/* %s */
 `,R("Get matching functions")),p(O,`SELECT n.nspname as "%s",
   p.proname as "%s",
-`,t("Schema"),t("Name")),c.sversion>=11e4?p(O,`  pg_catalog.pg_get_function_result(p.oid) as "%s",
+`,t("Schema"),t("Name")),E.sversion>=11e4?p(O,`  pg_catalog.pg_get_function_result(p.oid) as "%s",
   pg_catalog.pg_get_function_arguments(p.oid) as "%s",
  CASE p.prokind
   WHEN 'a' THEN '%s'
@@ -2283,7 +2283,7 @@ O,`,
   WHEN p.provolatile = 'i' THEN '%s'
   WHEN p.provolatile = 's' THEN '%s'
   WHEN p.provolatile = 'v' THEN '%s'
- END as "%s"`,t("immutable"),t("stable"),t("volatile"),t("Volatility")),c.sversion>=90600&&p(O,`,
+ END as "%s"`,t("immutable"),t("stable"),t("volatile"),t("Volatility")),E.sversion>=90600&&p(O,`,
  CASE
   WHEN p.proparallel = 'r' THEN '%s'
   WHEN p.proparallel = 's' THEN '%s'
@@ -2293,38 +2293,38 @@ O,`,
  CASE WHEN prosecdef THEN '%s' ELSE '%s' END AS "%s",
  CASE WHEN p.proleakproof THEN '%s' ELSE '%s' END as "%s"`,t("Owner"),t("definer"),t("invoker"),t("Security"),t("yes"),t(
 "no"),t("Leakproof?")),r(O,`,
- `),re(O,"p.proacl"),p(O,`,
+ `),Ee(O,"p.proacl"),p(O,`,
  l.lanname as "%s"`,t("Language")),p(O,`,
  CASE WHEN l.lanname IN ('internal', 'c') THEN p.prosrc END as "%s"`,t("Internal name")),p(O,`,
  pg_catalog.obj_description(p.oid, 'pg_proc') as "%s"`,t("Description"))),r(O,`
 FROM pg_catalog.pg_proc p
      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
-`);for(let Y=0;Y<a;Y++)p(O,`     LEFT JOIN pg_catalog.pg_type t%d ON t%d.oid = p.proargtypes[%d]
+`);for(let X=0;X<a;X++)p(O,`     LEFT JOIN pg_catalog.pg_type t%d ON t%d.oid = p.proargtypes[%d]
      LEFT JOIN pg_catalog.pg_namespace nt%d ON nt%d.oid = t%d.typnamespace
-`,Y,Y,Y,Y,Y,Y);if(s&&r(O,`     LEFT JOIN pg_catalog.pg_language l ON l.oid = p.prolang
-`),C=!1,!(S&&f&&T&&F&&m))if(S)f||(C?r(O,"      AND "):(r(O,"WHERE "),C=!0),c.sversion>=11e4?r(O,`p.prokind <> 'a'
+`,X,X,X,X,X,X);if(s&&r(O,`     LEFT JOIN pg_catalog.pg_language l ON l.oid = p.prolang
+`),D=!1,!(S&&f&&T&&F&&m))if(S)f||(D?r(O,"      AND "):(r(O,"WHERE "),D=!0),E.sversion>=11e4?r(O,`p.prokind <> 'a'
 `):r(O,`NOT p.proisagg
-`)),!T&&c.sversion>=11e4&&(C?r(O,"      AND "):(r(O,"WHERE "),C=!0),r(O,`p.prokind <> 'p'
-`)),F||(C?r(O,"      AND "):(r(O,"WHERE "),C=!0),r(O,`p.prorettype <> 'pg_catalog.trigger'::pg_catalog.regtype
-`)),m||(C?r(O,"      AND "):(r(O,"WHERE "),C=!0),c.sversion>=11e4?r(O,`p.prokind <> 'w'
+`)),!T&&E.sversion>=11e4&&(D?r(O,"      AND "):(r(O,"WHERE "),D=!0),r(O,`p.prokind <> 'p'
+`)),F||(D?r(O,"      AND "):(r(O,"WHERE "),D=!0),r(O,`p.prorettype <> 'pg_catalog.trigger'::pg_catalog.regtype
+`)),m||(D?r(O,"      AND "):(r(O,"WHERE "),D=!0),E.sversion>=11e4?r(O,`p.prokind <> 'w'
 `):r(O,`NOT p.proiswindow
-`));else{let Y=!1;r(O,`WHERE (
-       `),C=!0,f&&(c.sversion>=11e4?r(O,`p.prokind = 'a'
+`));else{let X=!1;r(O,`WHERE (
+       `),D=!0,f&&(E.sversion>=11e4?r(O,`p.prokind = 'a'
 `):r(O,`p.proisagg
-`),Y=!0),F&&(Y&&r(O,"       OR "),r(O,`p.prorettype = 'pg_catalog.trigger'::pg_catalog.regtype
-`),Y=!0),T&&(Y&&r(O,"       OR "),r(O,`p.prokind = 'p'
-`),Y=!0),m&&(Y&&r(O,"       OR "),c.sversion>=11e4?r(O,`p.prokind = 'w'
+`),X=!0),F&&(X&&r(O,"       OR "),r(O,`p.prorettype = 'pg_catalog.trigger'::pg_catalog.regtype
+`),X=!0),T&&(X&&r(O,"       OR "),r(O,`p.prokind = 'p'
+`),X=!0),m&&(X&&r(O,"       OR "),E.sversion>=11e4?r(O,`p.prokind = 'w'
 `):r(O,`p.proiswindow
 `)),r(O,`      )
-`)}if(!P(O,i,C,!1,"n.nspname","p.proname",l,"pg_catalog.pg_function_is_visible(p.oid)",l,3))return!1;for(let Y=0;Y<a;Y++)
-if(h(n[Y],"-")!=0){let He,we,Me,Oe;if(He=ae("nt%d.nspname",Y),we=ae("t%d.typname",Y),Me=ae("pg_catalog.format_type(t%d.o\
-id, NULL)",Y),Oe=ae("pg_catalog.pg_type_is_visible(t%d.oid)",Y),!P(O,ln(n[Y]),!0,!1,He,we,Me,Oe,l,3))return!1}else p(O,`\
+`)}if(!U(O,i,D,!1,"n.nspname","p.proname",l,"pg_catalog.pg_function_is_visible(p.oid)",l,3))return!1;for(let X=0;X<a;X++)
+if(H(n[X],"-")!=0){let Be,Ye,qe,De;if(Be=se("nt%d.nspname",X),Ye=se("t%d.typname",X),qe=se("pg_catalog.format_type(t%d.o\
+id, NULL)",X),De=se("pg_catalog.pg_type_is_visible(t%d.oid)",X),!U(O,pn(n[X]),!0,!1,Be,Ye,qe,De,l,3))return!1}else p(O,`\
   AND t%d.typname IS NULL
-`,Y);return!e&&!i&&r(O,`      AND n.nspname <> 'pg_catalog'
+`,X);return!e&&!i&&r(O,`      AND n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
-`),r(O,"ORDER BY 1, 2, 4;"),M=await u(O.data),M?(K.nullPrint=l,K.title=R("List of functions"),K.translate_header=!0,c.sversion>=
-90600?(K.translate_columns=$,K.n_translate_columns=Q($)):(K.translate_columns=z,K.n_translate_columns=Q(z)),v(M,K,c.queryFout,
-!1,c.logfile),!0):!1}async function Jn(o,i,n){let a={},s,e=c.popt;return b(a),N(a,`/* %s */
+`),r(O,"ORDER BY 1, 2, 4;"),G=await u(O.data),G?(z.nullPrint=l,z.title=R("List of functions"),z.translate_header=!0,E.sversion>=
+90600?(z.translate_columns=ee,z.n_translate_columns=$(ee)):(z.translate_columns=Q,z.n_translate_columns=$(Q)),v(G,z,E.queryFout,
+!1,E.logfile),!0):!1}async function Kn(o,i,n){let a={},s,e=E.popt;return b(a),N(a,`/* %s */
 `,R("Get matching types")),p(a,`SELECT n.nspname as "%s",
   pg_catalog.format_type(t.oid, NULL) AS "%s",
 `,t("Schema"),t("Name")),i&&(p(a,`  t.typname AS "%s",
@@ -2344,23 +2344,23 @@ id, NULL)",Y),Oe=ae("pg_catalog.pg_type_is_visible(t%d.oid)",Y),!P(O,ln(n[Y]),!0
       E'\\n'
   ) AS "%s",
   pg_catalog.pg_get_userbyid(t.typowner) AS "%s",
-`,t("Internal name"),t("Size"),t("Elements"),t("Owner")),re(a,"t.typacl"),r(a,`,
+`,t("Internal name"),t("Size"),t("Elements"),t("Owner")),Ee(a,"t.typacl"),r(a,`,
   `)),p(a,`  pg_catalog.obj_description(t.oid, 'pg_type') as "%s"
 `,t("Description")),r(a,`FROM pg_catalog.pg_type t
      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
 `),r(a,"WHERE (t.typrelid = 0 "),r(a,`OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid))
-`),(o==l||sn(o,"[]")==l)&&r(a,`  AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typa\
+`),(o==l||En(o,"[]")==l)&&r(a,`  AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typa\
 rray = t.oid)
 `),!n&&!o&&r(a,`      AND n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
-`),!P(a,ln(o),!0,!1,"n.nspname","t.typname","pg_catalog.format_type(t.oid, NULL)","pg_catalog.pg_type_is_visible(t.oid)",
+`),!U(a,pn(o),!0,!1,"n.nspname","t.typname","pg_catalog.format_type(t.oid, NULL)","pg_catalog.pg_type_is_visible(t.oid)",
 l,3)||(r(a,"ORDER BY 1, 2;"),s=await u(a.data),!s)?!1:(e.nullPrint=l,e.title=R("List of data types"),e.translate_header=
-!0,v(s,e,c.queryFout,!1,c.logfile),!0)}function ln(o){let i=["decimal","numeric","float","double precision","int","integ\
+!0,v(s,e,E.queryFout,!1,E.logfile),!0)}function pn(o){let i=["decimal","numeric","float","double precision","int","integ\
 er","bool[]","boolean[]","decimal[]","numeric[]","float[]","double precision[]","float4[]","real[]","float8[]","double p\
 recision[]","int[]","integer[]","int2[]","smallint[]","int4[]","integer[]","int8[]","bigint[]","time[]","time without ti\
 me zone[]","timetz[]","time with time zone[]","timestamp[]","timestamp without time zone[]","timestamptz[]","timestamp w\
 ith time zone[]","varbit[]","bit varying[]","varchar[]","character varying[]",l];if(o==l)return l;for(let n=0;i[n]!=l;n+=
-2)if(dt(o,i[n])==0)return i[n+1];return o}async function Kn(o,i,n,a,s){let e={},E,f=c.popt,S=[!1,!1,!1,!1,!1,!1,!0,!1];if(b(
+2)if(Lt(o,i[n])==0)return i[n+1];return o}async function zn(o,i,n,a,s){let e={},c,f=E.popt,S=[!1,!1,!1,!1,!1,!1,!0,!1];if(b(
 e),N(e,`/* %s */
 `,R("Get matching operators")),p(e,`SELECT n.nspname as "%s",
   o.oprname AS "%s",
@@ -2382,25 +2382,25 @@ FROM pg_catalog.pg_operator o
 `),a&&r(e,`     LEFT JOIN pg_catalog.pg_proc p ON p.oid = o.oprcode
 `),!s&&!o&&r(e,`WHERE n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
-`),!P(e,o,!s&&!o,!0,"n.nspname","o.oprname",l,"pg_catalog.pg_operator_is_visible(o.oid)",l,3))return!1;n==1&&r(e,`  AND \
+`),!U(e,o,!s&&!o,!0,"n.nspname","o.oprname",l,"pg_catalog.pg_operator_is_visible(o.oid)",l,3))return!1;n==1&&r(e,`  AND \
 o.oprleft = 0
-`);for(let T=0;T<n;T++)if(h(i[T],"-")!=0){let F,m,C,O;if(F=ae("nt%d.nspname",T),m=ae("t%d.typname",T),C=ae("pg_catalog.f\
-ormat_type(t%d.oid, NULL)",T),O=ae("pg_catalog.pg_type_is_visible(t%d.oid)",T),!P(e,ln(i[T]),!0,!1,F,m,C,O,l,3))return!1}else
+`);for(let T=0;T<n;T++)if(H(i[T],"-")!=0){let F,m,D,O;if(F=se("nt%d.nspname",T),m=se("t%d.typname",T),D=se("pg_catalog.f\
+ormat_type(t%d.oid, NULL)",T),O=se("pg_catalog.pg_type_is_visible(t%d.oid)",T),!U(e,pn(i[T]),!0,!1,F,m,D,O,l,3))return!1}else
 p(e,`  AND t%d.typname IS NULL
-`,T);return r(e,"ORDER BY 1, 2, 3, 4;"),E=await u(e.data),E?(f.nullPrint=l,f.title=R("List of operators"),f.translate_header=
-!0,f.translate_columns=S,f.n_translate_columns=Q(S),v(E,f,c.queryFout,!1,c.logfile),!0):!1}async function zn(o,i){let n={},
-a,s=c.popt,e=[!1,!1,!0,!1,!1,!1];return b(n),N(n,`/* %s */
+`,T);return r(e,"ORDER BY 1, 2, 3, 4;"),c=await u(e.data),c?(f.nullPrint=l,f.title=R("List of operators"),f.translate_header=
+!0,f.translate_columns=S,f.n_translate_columns=$(S),v(c,f,E.queryFout,!1,E.logfile),!0):!1}async function Qn(o,i){let n={},
+a,s=E.popt,e=[!1,!1,!0,!1,!1,!1];return b(n),N(n,`/* %s */
 `,R("Get access privileges of matching relations")),p(n,`SELECT n.nspname as "%s",
   c.relname as "%s",
   CASE c.relkind WHEN 'r' THEN '%s' WHEN 'v' THEN '%s' WHEN 'm' THEN '%s' WHEN 'S' THEN '%s' WHEN 'f' THEN '%s' WHEN 'p'\
  THEN '%s' END as "%s",
   `,t("Schema"),t("Name"),t("table"),t("view"),t("materialized view"),t("sequence"),t("foreign table"),t("partitioned ta\
-ble"),t("Type")),re(n,"c.relacl"),p(n,`,
+ble"),t("Type")),Ee(n,"c.relacl"),p(n,`,
   pg_catalog.array_to_string(ARRAY(
     SELECT attname || E':\\n  ' || pg_catalog.array_to_string(attacl, E'\\n  ')
     FROM pg_catalog.pg_attribute a
     WHERE attrelid = c.oid AND NOT attisdropped AND attacl IS NOT NULL
-  ), E'\\n') AS "%s"`,t("Column privileges")),c.sversion>=90500&&c.sversion<1e5&&p(n,`,
+  ), E'\\n') AS "%s"`,t("Column privileges")),E.sversion>=90500&&E.sversion<1e5&&p(n,`,
   pg_catalog.array_to_string(ARRAY(
     SELECT polname
     || CASE WHEN polcmd != '*' THEN
@@ -2426,7 +2426,7 @@ ble"),t("Type")),re(n,"c.relacl"),p(n,`,
        END
     FROM pg_catalog.pg_policy pol
     WHERE polrelid = c.oid), E'\\n')
-    AS "%s"`,t("Policies")),c.sversion>=1e5&&p(n,`,
+    AS "%s"`,t("Policies")),E.sversion>=1e5&&p(n,`,
   pg_catalog.array_to_string(ARRAY(
     SELECT polname
     || CASE WHEN NOT polpermissive THEN
@@ -2461,21 +2461,21 @@ FROM pg_catalog.pg_class c
 WHERE c.relkind IN ('r','v','m','S','f','p')
 `),!i&&!o&&r(n,`      AND n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
-`),!P(n,o,!0,!1,"n.nspname","c.relname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3)||(r(n,"ORDER BY 1, 2;"),a=await u(
+`),!U(n,o,!0,!1,"n.nspname","c.relname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3)||(r(n,"ORDER BY 1, 2;"),a=await u(
 n.data),!a)?!1:(s.nullPrint=l,N(n,R("Access privileges")),s.title=n.data,s.translate_header=!0,s.translate_columns=e,s.n_translate_columns=
-Q(e),v(a,s,c.queryFout,!1,c.logfile),!0)}async function Qn(o){let i={},n,a=c.popt,s=[!1,!1,!0,!1];return b(i),N(i,`/* %s\
+$(e),v(a,s,E.queryFout,!1,E.logfile),!0)}async function $n(o){let i={},n,a=E.popt,s=[!1,!1,!0,!1];return b(i),N(i,`/* %s\
  */
 `,R("Get matching default ACLs")),p(i,`SELECT pg_catalog.pg_get_userbyid(d.defaclrole) AS "%s",
   n.nspname AS "%s",
   CASE d.defaclobjtype     WHEN '%c' THEN '%s' WHEN '%c' THEN '%s' WHEN '%c' THEN '%s'    WHEN '%c' THEN '%s' WHEN '%c' \
 THEN '%s' WHEN '%c' THEN '%s' END AS "%s",
-  `,t("Owner"),t("Schema"),Ja,t("table"),Ka,t("sequence"),za,t("function"),Qa,t("type"),Za,t("schema"),$a,t("large objec\
-t"),t("Type")),re(i,"d.defaclacl"),r(i,`
+  `,t("Owner"),t("Schema"),Ka,t("table"),za,t("sequence"),Qa,t("function"),$a,t("type"),Za,t("schema"),et,t("large objec\
+t"),t("Type")),Ee(i,"d.defaclacl"),r(i,`
 FROM pg_catalog.pg_default_acl d
      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = d.defaclnamespace
-`),!P(i,o,!1,!1,l,"n.nspname","pg_catalog.pg_get_userbyid(d.defaclrole)",l,l,3)||(r(i,"ORDER BY 1, 2, 3;"),n=await u(i.data),
+`),!U(i,o,!1,!1,l,"n.nspname","pg_catalog.pg_get_userbyid(d.defaclrole)",l,l,3)||(r(i,"ORDER BY 1, 2, 3;"),n=await u(i.data),
 !n)?!1:(a.nullPrint=l,N(i,R("Default access privileges")),a.title=i.data,a.translate_header=!0,a.translate_columns=s,a.n_translate_columns=
-Q(s),v(n,a,c.queryFout,!1,c.logfile),!0)}async function Zn(o,i){let n={},a,s=c.popt,e=[!1,!1,!0,!1];return b(n),N(n,`/* \
+$(s),v(n,a,E.queryFout,!1,E.logfile),!0)}async function Zn(o,i){let n={},a,s=E.popt,e=[!1,!1,!0,!1];return b(n),N(n,`/* \
 %s */
 `,R("Get matching object comments")),p(n,`SELECT DISTINCT tt.nspname AS "%s", tt.name AS "%s", tt.object AS "%s", d.desc\
 ription AS "%s"
@@ -2488,7 +2488,7 @@ FROM (
     LEFT JOIN pg_catalog.pg_namespace n     ON n.oid = c.relnamespace
 `,t("table constraint")),!i&&!o&&r(n,`WHERE n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
-`),!P(n,o,!i&&!o,!1,"n.nspname","pgc.conname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3)||(p(n,`UNION ALL
+`),!U(n,o,!i&&!o,!1,"n.nspname","pgc.conname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3)||(p(n,`UNION ALL
   SELECT pgc.oid as oid, pgc.tableoid AS tableoid,
   n.nspname as nspname,
   CAST(pgc.conname AS pg_catalog.text) as name,  CAST('%s' AS pg_catalog.text) as object
@@ -2497,7 +2497,7 @@ FROM (
     LEFT JOIN pg_catalog.pg_namespace n     ON n.oid = t.typnamespace
 `,t("domain constraint")),!i&&!o&&r(n,`WHERE n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
-`),!P(n,o,!i&&!o,!1,"n.nspname","pgc.conname",l,"pg_catalog.pg_type_is_visible(t.oid)",l,3))||(p(n,`UNION ALL
+`),!U(n,o,!i&&!o,!1,"n.nspname","pgc.conname",l,"pg_catalog.pg_type_is_visible(t.oid)",l,3))||(p(n,`UNION ALL
   SELECT o.oid as oid, o.tableoid as tableoid,
   n.nspname as nspname,
   CAST(o.opcname AS pg_catalog.text) as name,
@@ -2507,7 +2507,7 @@ FROM (
     JOIN pg_catalog.pg_namespace n ON n.oid = o.opcnamespace
 `,t("operator class")),!i&&!o&&r(n,`      AND n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
-`),!P(n,o,!0,!1,"n.nspname","o.opcname",l,"pg_catalog.pg_opclass_is_visible(o.oid)",l,3))||(p(n,`UNION ALL
+`),!U(n,o,!0,!1,"n.nspname","o.opcname",l,"pg_catalog.pg_opclass_is_visible(o.oid)",l,3))||(p(n,`UNION ALL
   SELECT opf.oid as oid, opf.tableoid as tableoid,
   n.nspname as nspname,
   CAST(opf.opfname AS pg_catalog.text) AS name,
@@ -2517,7 +2517,7 @@ FROM (
     JOIN pg_catalog.pg_namespace n ON opf.opfnamespace = n.oid
 `,t("operator family")),!i&&!o&&r(n,`      AND n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
-`),!P(n,o,!0,!1,"n.nspname","opf.opfname",l,"pg_catalog.pg_opfamily_is_visible(opf.oid)",l,3))||(p(n,`UNION ALL
+`),!U(n,o,!0,!1,"n.nspname","opf.opfname",l,"pg_catalog.pg_opfamily_is_visible(opf.oid)",l,3))||(p(n,`UNION ALL
   SELECT r.oid as oid, r.tableoid as tableoid,
   n.nspname as nspname,
   CAST(r.rulename AS pg_catalog.text) as name,  CAST('%s' AS pg_catalog.text) as object
@@ -2527,7 +2527,7 @@ FROM (
   WHERE r.rulename != '_RETURN'
 `,t("rule")),!i&&!o&&r(n,`      AND n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
-`),!P(n,o,!0,!1,"n.nspname","r.rulename",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3))||(p(n,`UNION ALL
+`),!U(n,o,!0,!1,"n.nspname","r.rulename",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3))||(p(n,`UNION ALL
   SELECT t.oid as oid, t.tableoid as tableoid,
   n.nspname as nspname,
   CAST(t.tgname AS pg_catalog.text) as name,  CAST('%s' AS pg_catalog.text) as object
@@ -2536,10 +2536,10 @@ FROM (
        LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
 `,t("trigger")),!i&&!o&&r(n,`WHERE n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
-`),!P(n,o,!i&&!o,!1,"n.nspname","t.tgname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3))||(r(n,`) AS tt
+`),!U(n,o,!i&&!o,!1,"n.nspname","t.tgname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3))||(r(n,`) AS tt
   JOIN pg_catalog.pg_description d ON (tt.oid = d.objoid AND tt.tableoid = d.classoid AND d.objsubid = 0)
 `),r(n,"ORDER BY 1, 2, 3;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("Object descriptions"),s.translate_header=
-!0,s.translate_columns=e,s.n_translate_columns=Q(e),v(a,s,c.queryFout,!1,c.logfile),!0)}async function $n(o,i,n){let a={},
+!0,s.translate_columns=e,s.n_translate_columns=$(e),v(a,s,E.queryFout,!1,E.logfile),!0)}async function ea(o,i,n){let a={},
 s,e;if(b(a),N(a,`/* %s */
 `,R("Get matching relations to describe")),r(a,`SELECT c.oid,
   n.nspname,
@@ -2548,12 +2548,12 @@ FROM pg_catalog.pg_class c
      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
 `),!n&&!o&&r(a,`WHERE n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
-`),!P(a,o,!n&&!o,!1,"n.nspname","c.relname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3)||(r(a,"ORDER BY 2, 3;"),s=await u(
-a.data),!s))return!1;if(W(s)==0)return c.quiet||(o?w('Did not find any relation named "%s".',o):w("Did not find any rela\
-tions.")),!1;for(e=0;e<W(s);e++){let E,f,S;if(E=A(s,e,0),f=A(s,e,1),S=A(s,e,2),!await ea(f,S,E,i)||X)return!1}return!0}async function ea(o,i,n,a){
-let s=!1,e={},E=l,f=c.popt.topt,S={},T,F=l,m=[],C={},O={},M,K=-1,$=-1,z=-1,Y=-1,He=-1,we=-1,Me=-1,Oe=-1,je=-1,Je=-1,Ke=-1,
-ze=-1,Qe=-1,Ze=-1,pn,d={},$e=!1;if(f.default_footer=!1,f.expanded=!1,b(e),b(C),b(O),N(e,`/* %s */
-`,R("Get general information about one relation")),c.sversion>=12e4?p(e,`SELECT c.relchecks, c.relkind, c.relhasindex, c\
+`),!U(a,o,!n&&!o,!1,"n.nspname","c.relname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3)||(r(a,"ORDER BY 2, 3;"),s=await u(
+a.data),!s))return!1;if(x(s)==0)return E.quiet||(o?M('Did not find any relation named "%s".',o):M("Did not find any rela\
+tions.")),!1;for(e=0;e<x(s);e++){let c,f,S;if(c=g(s,e,0),f=g(s,e,1),S=g(s,e,2),!await na(f,S,c,i)||B)return!1}return!0}async function na(o,i,n,a){
+let s=!1,e={},c=l,f=E.popt.topt,S={},T,F=l,m=[],D={},O={},G,z=-1,ee=-1,Q=-1,X=-1,Be=-1,Ye=-1,qe=-1,De=-1,Qe=-1,$e=-1,Ze=-1,
+en=-1,nn=-1,an=-1,_n,d={},tn=!1;if(f.default_footer=!1,f.expanded=!1,b(e),b(D),b(O),N(e,`/* %s */
+`,R("Get general information about one relation")),E.sversion>=12e4?p(e,`SELECT c.relchecks, c.relkind, c.relhasindex, c\
 .relhasrules, c.relhastriggers, c.relrowsecurity, c.relforcerowsecurity, false AS relhasoids, c.relispartition, %s, c.re\
 ltablespace, CASE WHEN c.reloftype = 0 THEN '' ELSE c.reloftype::pg_catalog.regtype::pg_catalog.text END, c.relpersisten\
 ce, c.relreplident, am.amname
@@ -2562,21 +2562,21 @@ FROM pg_catalog.pg_class c
 LEFT JOIN pg_catalog.pg_am am ON (c.relam = am.oid)
 WHERE c.oid = '%s';`,a?`pg_catalog.array_to_string(c.reloptions || array(select 'toast.' || x from pg_catalog.unnest(tc.\
 reloptions) x), ', ')
-`:"''",n):c.sversion>=1e5?p(e,`SELECT c.relchecks, c.relkind, c.relhasindex, c.relhasrules, c.relhastriggers, c.relrowse\
+`:"''",n):E.sversion>=1e5?p(e,`SELECT c.relchecks, c.relkind, c.relhasindex, c.relhasrules, c.relhastriggers, c.relrowse\
 curity, c.relforcerowsecurity, c.relhasoids, c.relispartition, %s, c.reltablespace, CASE WHEN c.reloftype = 0 THEN '' EL\
 SE c.reloftype::pg_catalog.regtype::pg_catalog.text END, c.relpersistence, c.relreplident
 FROM pg_catalog.pg_class c
  LEFT JOIN pg_catalog.pg_class tc ON (c.reltoastrelid = tc.oid)
 WHERE c.oid = '%s';`,a?`pg_catalog.array_to_string(c.reloptions || array(select 'toast.' || x from pg_catalog.unnest(tc.\
 reloptions) x), ', ')
-`:"''",n):c.sversion>=90500?p(e,`SELECT c.relchecks, c.relkind, c.relhasindex, c.relhasrules, c.relhastriggers, c.relrow\
+`:"''",n):E.sversion>=90500?p(e,`SELECT c.relchecks, c.relkind, c.relhasindex, c.relhasrules, c.relhastriggers, c.relrow\
 security, c.relforcerowsecurity, c.relhasoids, false as relispartition, %s, c.reltablespace, CASE WHEN c.reloftype = 0 T\
 HEN '' ELSE c.reloftype::pg_catalog.regtype::pg_catalog.text END, c.relpersistence, c.relreplident
 FROM pg_catalog.pg_class c
  LEFT JOIN pg_catalog.pg_class tc ON (c.reltoastrelid = tc.oid)
 WHERE c.oid = '%s';`,a?`pg_catalog.array_to_string(c.reloptions || array(select 'toast.' || x from pg_catalog.unnest(tc.\
 reloptions) x), ', ')
-`:"''",n):c.sversion>=90400?p(e,`SELECT c.relchecks, c.relkind, c.relhasindex, c.relhasrules, c.relhastriggers, false, f\
+`:"''",n):E.sversion>=90400?p(e,`SELECT c.relchecks, c.relkind, c.relhasindex, c.relhasrules, c.relhastriggers, false, f\
 alse, c.relhasoids, false as relispartition, %s, c.reltablespace, CASE WHEN c.reloftype = 0 THEN '' ELSE c.reloftype::pg\
 _catalog.regtype::pg_catalog.text END, c.relpersistence, c.relreplident
 FROM pg_catalog.pg_class c
@@ -2590,13 +2590,13 @@ FROM pg_catalog.pg_class c
  LEFT JOIN pg_catalog.pg_class tc ON (c.reltoastrelid = tc.oid)
 WHERE c.oid = '%s';`,a?`pg_catalog.array_to_string(c.reloptions || array(select 'toast.' || x from pg_catalog.unnest(tc.\
 reloptions) x), ', ')
-`:"''",n),E=await u(e.data),!E)return s;if(W(E)==0)return c.quiet||w("Did not find any relation with OID %s.",n),s;if(d.
-checks=In(A(E,0,0)),d.relkind=A(E,0,1),d.hasindex=h(A(E,0,2),"t")==0,d.hasrules=h(A(E,0,3),"t")==0,d.hastriggers=h(A(E,0,
-4),"t")==0,d.rowsecurity=h(A(E,0,5),"t")==0,d.forcerowsecurity=h(A(E,0,6),"t")==0,d.hasoids=h(A(E,0,7),"t")==0,d.ispartition=
-h(A(E,0,8),"t")==0,d.reloptions=Ae(A(E,0,9)),d.tablespace=_n(A(E,0,10)),d.reloftype=h(A(E,0,11),"")!=0?Ae(A(E,0,11)):l,d.
-relpersistence=A(E,0,12),d.relreplident=c.sversion>=90400?A(E,0,13):"d",c.sversion>=12e4?d.relam=te(E,0,14)?l:Ae(A(E,0,14)):
-d.relam=l,E=l,d.relkind==st){let _=l,L=c.popt,y=[l,l,l];if(N(e,`/* %s */
-`,R("Get sequence information")),c.sversion>=1e5?(p(e,`SELECT pg_catalog.format_type(seqtypid, NULL) AS "%s",
+`:"''",n),c=await u(e.data),!c)return s;if(x(c)==0)return E.quiet||M("Did not find any relation with OID %s.",n),s;if(d.
+checks=bn(g(c,0,0)),d.relkind=g(c,0,1),d.hasindex=H(g(c,0,2),"t")==0,d.hasrules=H(g(c,0,3),"t")==0,d.hastriggers=H(g(c,0,
+4),"t")==0,d.rowsecurity=H(g(c,0,5),"t")==0,d.forcerowsecurity=H(g(c,0,6),"t")==0,d.hasoids=H(g(c,0,7),"t")==0,d.ispartition=
+H(g(c,0,8),"t")==0,d.reloptions=me(g(c,0,9)),d.tablespace=Nn(g(c,0,10)),d.reloftype=H(g(c,0,11),"")!=0?me(g(c,0,11)):l,d.
+relpersistence=g(c,0,12),d.relreplident=E.sversion>=90400?g(c,0,13):"d",E.sversion>=12e4?d.relam=ie(c,0,14)?l:me(g(c,0,14)):
+d.relam=l,c=l,d.relkind==it){let _=l,I=E.popt,h=[l,l,l];if(N(e,`/* %s */
+`,R("Get sequence information")),E.sversion>=1e5?(p(e,`SELECT pg_catalog.format_type(seqtypid, NULL) AS "%s",
        seqstart AS "%s",
        seqmin AS "%s",
        seqmax AS "%s",
@@ -2613,7 +2613,7 @@ WHERE seqrelid = '%s';`,n)):(p(e,`SELECT 'bigint' AS "%s",
        CASE WHEN is_cycled THEN '%s' ELSE '%s' END AS "%s",
        cache_value AS "%s"
 `,t("Type"),t("Start"),t("Minimum"),t("Maximum"),t("Increment"),t("yes"),t("no"),t("Cycles?"),t("Cache")),p(e,"FROM %s",
-be(o)),p(e,".%s;",be(i))),E=await u(e.data),!E)return s;if(N(e,`/* %s */
+He(o)),p(e,".%s;",He(i))),c=await u(e.data),!c)return s;if(N(e,`/* %s */
 `,R("Get the column that owns this sequence")),p(e,`SELECT pg_catalog.quote_ident(nspname) || '.' ||
    pg_catalog.quote_ident(relname) || '.' ||
    pg_catalog.quote_ident(attname),
@@ -2627,116 +2627,116 @@ INNER JOIN pg_catalog.pg_attribute a ON (
 WHERE d.classid='pg_catalog.pg_class'::pg_catalog.regclass
  AND d.refclassid='pg_catalog.pg_class'::pg_catalog.regclass
  AND d.objid='%s'
- AND d.deptype IN ('a', 'i')`,n),_=await u(e.data),_){if(W(_)==1)switch(A(_,0,1)[0]){case"a":y[0]=tn(R("Owned by: %s"),A(
-_,0,0));break;case"i":y[0]=tn(R("Sequence for identity column: %s"),A(_,0,0));break}}else return s;if(c.sversion>=19e4&&
+ AND d.deptype IN ('a', 'i')`,n),_=await u(e.data),_){if(x(_)==1)switch(g(_,0,1)[0]){case"a":h[0]=ln(R("Owned by: %s"),g(
+_,0,0));break;case"i":h[0]=ln(R("Sequence for identity column: %s"),g(_,0,0));break}}else return s;if(E.sversion>=19e4&&
 (N(e,`/* %s */
 `,R("Get publications containing this sequence")),p(e,`SELECT pubname FROM pg_catalog.pg_publication p
 WHERE p.puballsequences
  AND pg_catalog.pg_relation_is_publishable('%s')
-ORDER BY 1`,n),_=await u(e.data),_)){let G=W(_);if(G>0){for(N(O,R("Included in publications:")),T=0;T<G;T++)p(O,`
-    "%s"`,A(_,T,0));y[0]==l?y[0]=Ae(O.data):y[1]=Ae(O.data),an(O)}}return d.relpersistence=="u"?N(C,R('Unlogged sequence\
- "%s.%s"'),o,i):N(C,R('Sequence "%s.%s"'),o,i),L.footers=y,L.topt.default_footer=!1,L.title=C.data,L.translate_header=!0,
-v(E,L,c.queryFout,!1,c.logfile),s=!0,s}if((d.relkind==Te||d.relkind==Be||d.relkind==le||d.relkind==Re||d.relkind==Rn||d.
-relkind==Ee)&&($e=!0),M=0,N(e,`/* %s */
-`,R("Get per-column information for one relation")),r(e,"SELECT a.attname"),K=M++,r(e,`,
-  pg_catalog.format_type(a.atttypid, a.atttypmod)`),$=M++,$e&&(r(e,`,
+ORDER BY 1`,n),_=await u(e.data),_)){let W=x(_);if(W>0){for(N(O,R("Included in publications:")),T=0;T<W;T++)p(O,`
+    "%s"`,g(_,T,0));h[0]==l?h[0]=me(O.data):h[1]=me(O.data),rn(O)}}return d.relpersistence=="u"?N(D,R('Unlogged sequence\
+ "%s.%s"'),o,i):N(D,R('Sequence "%s.%s"'),o,i),I.footers=h,I.topt.default_footer=!1,I.title=D.data,I.translate_header=!0,
+v(c,I,E.queryFout,!1,E.logfile),s=!0,s}if((d.relkind==ge||d.relkind==je||d.relkind==pe||d.relkind==Ne||d.relkind==gn||d.
+relkind==Te)&&(tn=!0),G=0,N(e,`/* %s */
+`,R("Get per-column information for one relation")),r(e,"SELECT a.attname"),z=G++,r(e,`,
+  pg_catalog.format_type(a.atttypid, a.atttypmod)`),ee=G++,tn&&(r(e,`,
   (SELECT pg_catalog.pg_get_expr(d.adbin, d.adrelid, true)
    FROM pg_catalog.pg_attrdef d
    WHERE d.adrelid = a.attrelid AND d.adnum = a.attnum AND a.atthasdef),
-  a.attnotnull`),z=M++,Y=M++,r(e,`,
+  a.attnotnull`),Q=G++,X=G++,r(e,`,
   (SELECT c.collname FROM pg_catalog.pg_collation c, pg_catalog.pg_type t
-   WHERE c.oid = a.attcollation AND t.oid = a.atttypid AND a.attcollation <> t.typcollation) AS attcollation`),He=M++,c.
+   WHERE c.oid = a.attcollation AND t.oid = a.atttypid AND a.attcollation <> t.typcollation) AS attcollation`),Be=G++,E.
 sversion>=1e5?r(e,`,
   a.attidentity`):r(e,`,
-  ''::pg_catalog.char AS attidentity`),we=M++,c.sversion>=12e4?r(e,`,
+  ''::pg_catalog.char AS attidentity`),Ye=G++,E.sversion>=12e4?r(e,`,
   a.attgenerated`):r(e,`,
-  ''::pg_catalog.char AS attgenerated`),Me=M++),(d.relkind==de||d.relkind==_e)&&(c.sversion>=11e4&&(p(e,`,
+  ''::pg_catalog.char AS attgenerated`),qe=G++),(d.relkind==be||d.relkind==Se)&&(E.sversion>=11e4&&(p(e,`,
   CASE WHEN a.attnum <= (SELECT i.indnkeyatts FROM pg_catalog.pg_index i WHERE i.indexrelid = '%s') THEN '%s' ELSE '%s' \
-END AS is_key`,n,t("yes"),t("no")),Oe=M++),r(e,`,
-  pg_catalog.pg_get_indexdef(a.attrelid, a.attnum, TRUE) AS indexdef`),je=M++),d.relkind==Re&&(r(e,`,
+END AS is_key`,n,t("yes"),t("no")),De=G++),r(e,`,
+  pg_catalog.pg_get_indexdef(a.attrelid, a.attnum, TRUE) AS indexdef`),Qe=G++),d.relkind==Ne&&(r(e,`,
   CASE WHEN attfdwoptions IS NULL THEN '' ELSE   '(' || pg_catalog.array_to_string(ARRAY(SELECT pg_catalog.quote_ident(o\
 ption_name) || ' ' || pg_catalog.quote_literal(option_value)  FROM   pg_catalog.pg_options_to_table(attfdwoptions)), ', \
-') || ')' END AS attfdwoptions`),Je=M++),a&&(r(e,`,
-  a.attstorage`),Ke=M++,c.sversion>=14e4&&!c.hide_compression&&(d.relkind==Te||d.relkind==Ee||d.relkind==le)&&(r(e,`,
-  a.attcompression AS attcompression`),ze=M++),(d.relkind==Te||d.relkind==de||d.relkind==_e||d.relkind==le||d.relkind==Re||
-d.relkind==Ee)&&(r(e,`,
-  CASE WHEN a.attstattarget=-1 THEN NULL ELSE a.attstattarget END AS attstattarget`),Qe=M++),(d.relkind==Te||d.relkind==
-Be||d.relkind==le||d.relkind==Re||d.relkind==Rn||d.relkind==Ee)&&(r(e,`,
-  pg_catalog.col_description(a.attrelid, a.attnum)`),Ze=M++)),r(e,`
+') || ')' END AS attfdwoptions`),$e=G++),a&&(r(e,`,
+  a.attstorage`),Ze=G++,E.sversion>=14e4&&!E.hide_compression&&(d.relkind==ge||d.relkind==Te||d.relkind==pe)&&(r(e,`,
+  a.attcompression AS attcompression`),en=G++),(d.relkind==ge||d.relkind==be||d.relkind==Se||d.relkind==pe||d.relkind==Ne||
+d.relkind==Te)&&(r(e,`,
+  CASE WHEN a.attstattarget=-1 THEN NULL ELSE a.attstattarget END AS attstattarget`),nn=G++),(d.relkind==ge||d.relkind==
+je||d.relkind==pe||d.relkind==Ne||d.relkind==gn||d.relkind==Te)&&(r(e,`,
+  pg_catalog.col_description(a.attrelid, a.attnum)`),an=G++)),r(e,`
 FROM pg_catalog.pg_attribute a`),p(e,`
 WHERE a.attrelid = '%s' AND a.attnum > 0 AND NOT a.attisdropped`,n),r(e,`
-ORDER BY a.attnum;`),E=await u(e.data),!E)return s;switch(pn=W(E),d.relkind){case Te:d.relpersistence=="u"?N(C,R('Unlogg\
-ed table "%s.%s"'),o,i):N(C,R('Table "%s.%s"'),o,i);break;case Be:N(C,R('View "%s.%s"'),o,i);break;case le:N(C,R('Materi\
-alized view "%s.%s"'),o,i);break;case de:d.relpersistence=="u"?N(C,R('Unlogged index "%s.%s"'),o,i):N(C,R('Index "%s.%s"'),
-o,i);break;case _e:d.relpersistence=="u"?N(C,R('Unlogged partitioned index "%s.%s"'),o,i):N(C,R('Partitioned index "%s.%\
-s"'),o,i);break;case ve:N(C,R('TOAST table "%s.%s"'),o,i);break;case Rn:N(C,R('Composite type "%s.%s"'),o,i);break;case Re:
-N(C,R('Foreign table "%s.%s"'),o,i);break;case Ee:d.relpersistence=="u"?N(C,R('Unlogged partitioned table "%s.%s"'),o,i):
-N(C,R('Partitioned table "%s.%s"'),o,i);break;default:N(C,'?%c? "%s.%s"',d.relkind,o,i);break}for(M=0,m[M++]=t("Column"),
-m[M++]=t("Type"),$e&&(m[M++]=t("Collation"),m[M++]=t("Nullable"),m[M++]=t("Default")),Oe>=0&&(m[M++]=t("Key?")),je>=0&&(m[M++]=
-t("Definition")),Je>=0&&(m[M++]=t("FDW options")),Ke>=0&&(m[M++]=t("Storage")),ze>=0&&(m[M++]=t("Compression")),Qe>=0&&(m[M++]=
-t("Stats target")),Ze>=0&&(m[M++]=t("Description")),Pe(M<=Q(m)),Ve(S,f,C.data,M,pn),T=0;T<M;T++)se(S,m[T],!0,"l");for(T=
-0;T<pn;T++){if(V(S,A(E,T,K),!1,!1),V(S,A(E,T,$),!1,!1),$e){let _,L,y,G=!1;V(S,A(E,T,He),!1,!1),V(S,h(A(E,T,Y),"t")==0?"n\
-ot null":"",!1,!1),_=A(E,T,we),L=A(E,T,Me),_[0]==et?y="generated always as identity":_[0]==nt?y="generated by default as\
- identity":L[0]==at?(y=tn("generated always as (%s) stored",A(E,T,z)),G=!0):L[0]==tt?(y=tn("generated always as (%s)",A(
-E,T,z)),G=!0):y=A(E,T,z),V(S,y,!1,G)}if(Oe>=0&&V(S,A(E,T,Oe),!0,!1),je>=0&&V(S,A(E,T,je),!1,!1),Je>=0&&V(S,A(E,T,Je),!1,
-!1),Ke>=0){let _=A(E,T,Ke);V(S,_[0]=="p"?"plain":_[0]=="m"?"main":_[0]=="x"?"extended":_[0]=="e"?"external":"???",!1,!1)}
-if(ze>=0){let _=A(E,T,ze);V(S,_[0]=="p"?"pglz":_[0]=="l"?"lz4":_[0]==l?"":"???",!1,!1)}Qe>=0&&V(S,A(E,T,Qe),!1,!1),Ze>=0&&
-V(S,A(E,T,Ze),!1,!1)}if(d.ispartition){let _;if(N(e,`/* %s */
+ORDER BY a.attnum;`),c=await u(e.data),!c)return s;switch(_n=x(c),d.relkind){case ge:d.relpersistence=="u"?N(D,R('Unlogg\
+ed table "%s.%s"'),o,i):N(D,R('Table "%s.%s"'),o,i);break;case je:N(D,R('View "%s.%s"'),o,i);break;case pe:N(D,R('Materi\
+alized view "%s.%s"'),o,i);break;case be:d.relpersistence=="u"?N(D,R('Unlogged index "%s.%s"'),o,i):N(D,R('Index "%s.%s"'),
+o,i);break;case Se:d.relpersistence=="u"?N(D,R('Unlogged partitioned index "%s.%s"'),o,i):N(D,R('Partitioned index "%s.%\
+s"'),o,i);break;case Xe:N(D,R('TOAST table "%s.%s"'),o,i);break;case gn:N(D,R('Composite type "%s.%s"'),o,i);break;case Ne:
+N(D,R('Foreign table "%s.%s"'),o,i);break;case Te:d.relpersistence=="u"?N(D,R('Unlogged partitioned table "%s.%s"'),o,i):
+N(D,R('Partitioned table "%s.%s"'),o,i);break;default:N(D,'?%c? "%s.%s"',d.relkind,o,i);break}for(G=0,m[G++]=t("Column"),
+m[G++]=t("Type"),tn&&(m[G++]=t("Collation"),m[G++]=t("Nullable"),m[G++]=t("Default")),De>=0&&(m[G++]=t("Key?")),Qe>=0&&(m[G++]=
+t("Definition")),$e>=0&&(m[G++]=t("FDW options")),Ze>=0&&(m[G++]=t("Storage")),en>=0&&(m[G++]=t("Compression")),nn>=0&&(m[G++]=
+t("Stats target")),an>=0&&(m[G++]=t("Description")),Me(G<=$(m)),xe(S,f,D.data,G,_n),T=0;T<G;T++)ae(S,m[T],!0,"l");for(T=
+0;T<_n;T++){if(j(S,g(c,T,z),!1,!1),j(S,g(c,T,ee),!1,!1),tn){let _,I,h,W=!1;j(S,g(c,T,Be),!1,!1),j(S,H(g(c,T,X),"t")==0?"\
+not null":"",!1,!1),_=g(c,T,Ye),I=g(c,T,qe),_[0]==nt?h="generated always as identity":_[0]==at?h="generated by default a\
+s identity":I[0]==tt?(h=ln("generated always as (%s) stored",g(c,T,Q)),W=!0):I[0]==st?(h=ln("generated always as (%s)",g(
+c,T,Q)),W=!0):h=g(c,T,Q),j(S,h,!1,W)}if(De>=0&&j(S,g(c,T,De),!0,!1),Qe>=0&&j(S,g(c,T,Qe),!1,!1),$e>=0&&j(S,g(c,T,$e),!1,
+!1),Ze>=0){let _=g(c,T,Ze);j(S,_[0]=="p"?"plain":_[0]=="m"?"main":_[0]=="x"?"extended":_[0]=="e"?"external":"???",!1,!1)}
+if(en>=0){let _=g(c,T,en);j(S,_[0]=="p"?"pglz":_[0]=="l"?"lz4":_[0]==l?"":"???",!1,!1)}nn>=0&&j(S,g(c,T,nn),!1,!1),an>=0&&
+j(S,g(c,T,an),!1,!1)}if(d.ispartition){let _;if(N(e,`/* %s */
 `,R("Get partitioning information for this partition")),r(e,`SELECT inhparent::pg_catalog.regclass,
   pg_catalog.pg_get_expr(c.relpartbound, c.oid),
-  `),r(e,c.sversion>=14e4?"inhdetachpending":"false as inhdetachpending"),a&&r(e,`,
+  `),r(e,E.sversion>=14e4?"inhdetachpending":"false as inhdetachpending"),a&&r(e,`,
   pg_catalog.pg_get_partition_constraintdef(c.oid)`),p(e,`
 FROM pg_catalog.pg_class c JOIN pg_catalog.pg_inherits i ON c.oid = inhrelid
-WHERE c.oid = '%s';`,n),_=await u(e.data),!_)return s;if(W(_)>0){let L=A(_,0,0),y=A(_,0,1),G=A(_,0,2);if(N(O,R("Partitio\
-n of: %s %s%s"),L,y,h(G,"t")==0?" DETACH PENDING":""),H(S,O.data),a){let x=l;te(_,0,3)||(x=A(_,0,3)),x==l||x[0]==l?N(O,R(
-"No partition constraint")):N(O,R("Partition constraint: %s"),x),H(S,O.data)}}}if(d.relkind==Ee){let _;if(N(e,`/* %s */
+WHERE c.oid = '%s';`,n),_=await u(e.data),!_)return s;if(x(_)>0){let I=g(_,0,0),h=g(_,0,1),W=g(_,0,2);if(N(O,R("Partitio\
+n of: %s %s%s"),I,h,H(W,"t")==0?" DETACH PENDING":""),y(S,O.data),a){let q=l;ie(_,0,3)||(q=g(_,0,3)),q==l||q[0]==l?N(O,R(
+"No partition constraint")):N(O,R("Partition constraint: %s"),q),y(S,O.data)}}}if(d.relkind==Te){let _;if(N(e,`/* %s */
 `,R("Get partitioning information for this table")),p(e,"SELECT pg_catalog.pg_get_partkeydef('%s'::pg_catalog.oid);",n),
-_=await u(e.data),!_)return s;if(W(_)==1){let L=A(_,0,0);N(O,R("Partition key: %s"),L),H(S,O.data)}}if(d.relkind==ve){let _;
+_=await u(e.data),!_)return s;if(x(_)==1){let I=g(_,0,0);N(O,R("Partition key: %s"),I),y(S,O.data)}}if(d.relkind==Xe){let _;
 if(N(e,`/* %s */
 `,R("Get the table that owns this TOAST table")),p(e,`SELECT n.nspname, c.relname
 FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-WHERE reltoastrelid = '%s';`,n),_=await u(e.data),!_)return s;if(W(_)==1){let L=A(_,0,0),y=A(_,0,1);N(O,R('Owning table:\
- "%s.%s"'),L,y),H(S,O.data)}}if(d.relkind==de||d.relkind==_e){let _;if(N(e,`/* %s */
+WHERE reltoastrelid = '%s';`,n),_=await u(e.data),!_)return s;if(x(_)==1){let I=g(_,0,0),h=g(_,0,1);N(O,R('Owning table:\
+ "%s.%s"'),I,h),y(S,O.data)}}if(d.relkind==be||d.relkind==Se){let _;if(N(e,`/* %s */
 `,R("Get index details")),r(e,`SELECT i.indisunique, i.indisprimary, i.indisclustered, i.indisvalid,
   (NOT i.indimmediate) AND EXISTS (SELECT 1 FROM pg_catalog.pg_constraint WHERE conrelid = i.indrelid AND conindid = i.i\
 ndexrelid AND contype IN ('p','u','x') AND condeferrable) AS condeferrable,
   (NOT i.indimmediate) AND EXISTS (SELECT 1 FROM pg_catalog.pg_constraint WHERE conrelid = i.indrelid AND conindid = i.i\
 ndexrelid AND contype IN ('p','u','x') AND condeferred) AS condeferred,
-`),c.sversion>=90400?r(e,`i.indisreplident,
+`),E.sversion>=90400?r(e,`i.indisreplident,
 `):r(e,`false AS indisreplident,
-`),c.sversion>=15e4?r(e,`i.indnullsnotdistinct,
+`),E.sversion>=15e4?r(e,`i.indnullsnotdistinct,
 `):r(e,`false AS indnullsnotdistinct,
 `),p(e,`  a.amname, c2.relname, pg_catalog.pg_get_expr(i.indpred, i.indrelid, true)
 FROM pg_catalog.pg_index i, pg_catalog.pg_class c, pg_catalog.pg_class c2, pg_catalog.pg_am a
 WHERE i.indexrelid = c.oid AND c.oid = '%s' AND c.relam = a.oid
-AND i.indrelid = c2.oid;`,n),_=await u(e.data),_){if(W(_)!=1)return s;{let L=A(_,0,0),y=A(_,0,1),G=A(_,0,2),x=A(_,0,3),ee=A(
-_,0,4),ge=A(_,0,5),ie=A(_,0,6),Ge=A(_,0,7),Ma=A(_,0,8),Ga=A(_,0,9),On=A(_,0,10);h(y,"t")==0?N(O,R("primary key, ")):h(L,
-"t")==0?h(Ge,"t")==0?N(O,R("unique nulls not distinct, ")):N(O,R("unique, ")):an(O),p(O,R('%s, for table "%s.%s"'),Ma,o,
-Ga),Ce(On)&&p(O,R(", predicate (%s)"),On),h(G,"t")==0&&r(O,R(", clustered")),h(x,"t")!=0&&r(O,R(", invalid")),h(ee,"t")==
-0&&r(O,R(", deferrable")),h(ge,"t")==0&&r(O,R(", initially deferred")),h(ie,"t")==0&&r(O,R(", replica identity")),H(S,O.
-data),d.relkind==de&&await En(S,d.relkind,d.tablespace,!0)}}else return s}else if(d.relkind==Te||d.relkind==le||d.relkind==
-Re||d.relkind==Ee||d.relkind==_e||d.relkind==ve){let _=l,L=0;if(d.hasindex){if(N(e,`/* %s */
+AND i.indrelid = c2.oid;`,n),_=await u(e.data),_){if(x(_)!=1)return s;{let I=g(_,0,0),h=g(_,0,1),W=g(_,0,2),q=g(_,0,3),ne=g(
+_,0,4),ue=g(_,0,5),le=g(_,0,6),ke=g(_,0,7),Ga=g(_,0,8),Wa=g(_,0,9),In=g(_,0,10);H(h,"t")==0?N(O,R("primary key, ")):H(I,
+"t")==0?H(ke,"t")==0?N(O,R("unique nulls not distinct, ")):N(O,R("unique, ")):rn(O),p(O,R('%s, for table "%s.%s"'),Ga,o,
+Wa),he(In)&&p(O,R(", predicate (%s)"),In),H(W,"t")==0&&r(O,R(", clustered")),H(q,"t")!=0&&r(O,R(", invalid")),H(ne,"t")==
+0&&r(O,R(", deferrable")),H(ue,"t")==0&&r(O,R(", initially deferred")),H(le,"t")==0&&r(O,R(", replica identity")),y(S,O.
+data),d.relkind==be&&await Tn(S,d.relkind,d.tablespace,!0)}}else return s}else if(d.relkind==ge||d.relkind==pe||d.relkind==
+Ne||d.relkind==Te||d.relkind==Se||d.relkind==Xe){let _=l,I=0;if(d.hasindex){if(N(e,`/* %s */
 `,R("Get indexes for this table")),r(e,`SELECT c2.relname, i.indisprimary, i.indisunique, i.indisclustered, i.indisvalid\
 , pg_catalog.pg_get_indexdef(i.indexrelid, 0, true),
-  pg_catalog.pg_get_constraintdef(con.oid, true), contype, condeferrable, condeferred`),c.sversion>=90400?r(e,", i.indis\
-replident"):r(e,", false AS indisreplident"),r(e,", c2.reltablespace"),c.sversion>=18e4?r(e,", con.conperiod"):r(e,", fa\
+  pg_catalog.pg_get_constraintdef(con.oid, true), contype, condeferrable, condeferred`),E.sversion>=90400?r(e,", i.indis\
+replident"):r(e,", false AS indisreplident"),r(e,", c2.reltablespace"),E.sversion>=18e4?r(e,", con.conperiod"):r(e,", fa\
 lse AS conperiod"),p(e,`
 FROM pg_catalog.pg_class c, pg_catalog.pg_class c2, pg_catalog.pg_index i
   LEFT JOIN pg_catalog.pg_constraint con ON (conrelid = i.indrelid AND conindid = i.indexrelid AND contype IN ('p','u','\
 x'))
 WHERE c.oid = '%s' AND c.oid = i.indrelid AND i.indexrelid = c2.oid
-ORDER BY i.indisprimary DESC, c2.relname;`,n),_=await u(e.data),_)L=W(_);else return s;if(L>0)for(H(S,R("Indexes:")),T=0;T<
-L;T++){if(N(e,'    "%s"',A(_,T,0)),h(A(_,T,7),"x")==0||h(A(_,T,12),"t")==0)p(e," %s",A(_,T,6));else{let y,G;h(A(_,T,1),"\
-t")==0?r(e," PRIMARY KEY,"):h(A(_,T,2),"t")==0&&(h(A(_,T,7),"u")==0?r(e," UNIQUE CONSTRAINT,"):r(e," UNIQUE,")),y=A(_,T,
-5),G=sn(y," USING "),G!=l&&(y=y.slice(G+7)),p(e," %s",y),h(A(_,T,8),"t")==0&&r(e," DEFERRABLE"),h(A(_,T,9),"t")==0&&r(e,
-" INITIALLY DEFERRED")}h(A(_,T,3),"t")==0&&r(e," CLUSTER"),h(A(_,T,4),"t")!=0&&r(e," INVALID"),h(A(_,T,10),"t")==0&&r(e,
-" REPLICA IDENTITY"),H(S,e.data),await En(S,de,_n(A(_,T,11)),!1)}}if(d.checks){if(N(e,`/* %s */
+ORDER BY i.indisprimary DESC, c2.relname;`,n),_=await u(e.data),_)I=x(_);else return s;if(I>0)for(y(S,R("Indexes:")),T=0;T<
+I;T++){if(N(e,'    "%s"',g(_,T,0)),H(g(_,T,7),"x")==0||H(g(_,T,12),"t")==0)p(e," %s",g(_,T,6));else{let h,W;H(g(_,T,1),"\
+t")==0?r(e," PRIMARY KEY,"):H(g(_,T,2),"t")==0&&(H(g(_,T,7),"u")==0?r(e," UNIQUE CONSTRAINT,"):r(e," UNIQUE,")),h=g(_,T,
+5),W=En(h," USING "),W!=l&&(h=h.slice(W+7)),p(e," %s",h),H(g(_,T,8),"t")==0&&r(e," DEFERRABLE"),H(g(_,T,9),"t")==0&&r(e,
+" INITIALLY DEFERRED")}H(g(_,T,3),"t")==0&&r(e," CLUSTER"),H(g(_,T,4),"t")!=0&&r(e," INVALID"),H(g(_,T,10),"t")==0&&r(e,
+" REPLICA IDENTITY"),y(S,e.data),await Tn(S,be,Nn(g(_,T,11)),!1)}}if(d.checks){if(N(e,`/* %s */
 `,R("Get check constraints for this table")),p(e,`SELECT r.conname, pg_catalog.pg_get_constraintdef(r.oid, true)
 FROM pg_catalog.pg_constraint r
 WHERE r.conrelid = '%s' AND r.contype = 'c'
-ORDER BY 1;`,n),_=await u(e.data),_)L=W(_);else return s;if(L>0)for(H(S,R("Check constraints:")),T=0;T<L;T++)N(e,'    "%\
-s" %s',A(_,T,0),A(_,T,1)),H(S,e.data)}if(N(e,`/* %s */
-`,R("Get foreign key constraints for this table")),c.sversion>=12e4&&(d.ispartition||d.relkind==Ee)?p(e,`SELECT conrelid\
+ORDER BY 1;`,n),_=await u(e.data),_)I=x(_);else return s;if(I>0)for(y(S,R("Check constraints:")),T=0;T<I;T++)N(e,'    "%\
+s" %s',g(_,T,0),g(_,T,1)),y(S,e.data)}if(N(e,`/* %s */
+`,R("Get foreign key constraints for this table")),E.sversion>=12e4&&(d.ispartition||d.relkind==Te)?p(e,`SELECT conrelid\
  = '%s'::pg_catalog.regclass AS sametable,
        conname,
        pg_catalog.pg_get_constraintdef(oid, true) AS condef,
@@ -2749,11 +2749,11 @@ ORDER BY sametable DESC, conname;`,n,n):(p(e,`SELECT true as sametable, conname,
   conrelid::pg_catalog.regclass AS ontable
 FROM pg_catalog.pg_constraint r
 WHERE r.conrelid = '%s' AND r.contype = 'f'
-`,n),c.sversion>=12e4&&p(e,`     AND conparentid = 0
-`),p(e,"ORDER BY conname")),_=await u(e.data),_)L=W(_);else return s;if(L>0){let y=ue(_,"sametable"),G=ue(_,"conname"),x=ue(
-_,"condef"),ee=ue(_,"ontable");for(H(S,R("Foreign-key constraints:")),T=0;T<L;T++)h(A(_,T,y),"f")==0?N(e,'    TABLE "%s"\
- CONSTRAINT "%s" %s',A(_,T,ee),A(_,T,G),A(_,T,x)):N(e,'    "%s" %s',A(_,T,G),A(_,T,x)),H(S,e.data)}if(N(e,`/* %s */
-`,R("Get foreign keys referencing this table")),c.sversion>=12e4?p(e,`SELECT conname, conrelid::pg_catalog.regclass AS o\
+`,n),E.sversion>=12e4&&p(e,`     AND conparentid = 0
+`),p(e,"ORDER BY conname")),_=await u(e.data),_)I=x(_);else return s;if(I>0){let h=Ue(_,"sametable"),W=Ue(_,"conname"),q=Ue(
+_,"condef"),ne=Ue(_,"ontable");for(y(S,R("Foreign-key constraints:")),T=0;T<I;T++)H(g(_,T,h),"f")==0?N(e,'    TABLE "%s"\
+ CONSTRAINT "%s" %s',g(_,T,ne),g(_,T,W),g(_,T,q)):N(e,'    "%s" %s',g(_,T,W),g(_,T,q)),y(S,e.data)}if(N(e,`/* %s */
+`,R("Get foreign keys referencing this table")),E.sversion>=12e4?p(e,`SELECT conname, conrelid::pg_catalog.regclass AS o\
 ntable,
        pg_catalog.pg_get_constraintdef(oid, true) AS condef
   FROM pg_catalog.pg_constraint c
@@ -2764,10 +2764,10 @@ ORDER BY conname;`,n,n):p(e,`SELECT conname, conrelid::pg_catalog.regclass AS on
        pg_catalog.pg_get_constraintdef(oid, true) AS condef
   FROM pg_catalog.pg_constraint
  WHERE confrelid = %s AND contype = 'f'
-ORDER BY conname;`,n),_=await u(e.data),_)L=W(_);else return s;if(L>0){let y=ue(_,"conname"),G=ue(_,"ontable"),x=ue(_,"c\
-ondef");for(H(S,R("Referenced by:")),T=0;T<L;T++)N(e,'    TABLE "%s" CONSTRAINT "%s" %s',A(_,T,G),A(_,T,y),A(_,T,x)),H(S,
-e.data)}if(c.sversion>=90500){if(N(e,`/* %s */
-`,R("Get row-level policies for this table")),r(e,"SELECT pol.polname,"),c.sversion>=1e5?r(e,` pol.polpermissive,
+ORDER BY conname;`,n),_=await u(e.data),_)I=x(_);else return s;if(I>0){let h=Ue(_,"conname"),W=Ue(_,"ontable"),q=Ue(_,"c\
+ondef");for(y(S,R("Referenced by:")),T=0;T<I;T++)N(e,'    TABLE "%s" CONSTRAINT "%s" %s',g(_,T,W),g(_,T,h),g(_,T,q)),y(S,
+e.data)}if(E.sversion>=90500){if(N(e,`/* %s */
+`,R("Get row-level policies for this table")),r(e,"SELECT pol.polname,"),E.sversion>=1e5?r(e,` pol.polpermissive,
 `):r(e,` 't' as polpermissive,
 `),p(e,`  CASE WHEN pol.polroles = '{0}' THEN NULL ELSE pg_catalog.array_to_string(array(select rolname from pg_catalog.\
 pg_roles where oid = any (pol.polroles) order by 1),',') END,
@@ -2780,15 +2780,15 @@ pg_roles where oid = any (pol.polroles) order by 1),',') END,
     WHEN 'd' THEN 'DELETE'
     END AS cmd
 FROM pg_catalog.pg_policy pol
-WHERE pol.polrelid = '%s' ORDER BY 1;`,n),_=await u(e.data),_)L=W(_);else return s;for(d.rowsecurity&&!d.forcerowsecurity&&
-L>0&&H(S,R("Policies:")),d.rowsecurity&&d.forcerowsecurity&&L>0&&H(S,R("Policies (forced row security enabled):")),d.rowsecurity&&
-!d.forcerowsecurity&&L==0&&H(S,R("Policies (row security enabled): (none)")),d.rowsecurity&&d.forcerowsecurity&&L==0&&H(
-S,R("Policies (forced row security enabled): (none)")),!d.rowsecurity&&L>0&&H(S,R("Policies (row security disabled):")),
-T=0;T<L;T++)N(e,'    POLICY "%s"',A(_,T,0)),A(_,T,1)=="f"&&r(e," AS RESTRICTIVE"),te(_,T,5)||p(e," FOR %s",A(_,T,5)),te(
+WHERE pol.polrelid = '%s' ORDER BY 1;`,n),_=await u(e.data),_)I=x(_);else return s;for(d.rowsecurity&&!d.forcerowsecurity&&
+I>0&&y(S,R("Policies:")),d.rowsecurity&&d.forcerowsecurity&&I>0&&y(S,R("Policies (forced row security enabled):")),d.rowsecurity&&
+!d.forcerowsecurity&&I==0&&y(S,R("Policies (row security enabled): (none)")),d.rowsecurity&&d.forcerowsecurity&&I==0&&y(
+S,R("Policies (forced row security enabled): (none)")),!d.rowsecurity&&I>0&&y(S,R("Policies (row security disabled):")),
+T=0;T<I;T++)N(e,'    POLICY "%s"',g(_,T,0)),g(_,T,1)=="f"&&r(e," AS RESTRICTIVE"),ie(_,T,5)||p(e," FOR %s",g(_,T,5)),ie(
 _,T,2)||p(e,`
-      TO %s`,A(_,T,2)),te(_,T,3)||p(e,`
-      USING (%s)`,A(_,T,3)),te(_,T,4)||p(e,`
-      WITH CHECK (%s)`,A(_,T,4)),H(S,e.data)}if(c.sversion>=14e4){if(N(e,`/* %s */
+      TO %s`,g(_,T,2)),ie(_,T,3)||p(e,`
+      USING (%s)`,g(_,T,3)),ie(_,T,4)||p(e,`
+      WITH CHECK (%s)`,g(_,T,4)),y(S,e.data)}if(E.sversion>=14e4){if(N(e,`/* %s */
 `,R("Get extended statistics for this table")),p(e,`SELECT oid, stxrelid::pg_catalog.regclass, stxnamespace::pg_catalog.\
 regnamespace::pg_catalog.text AS nsp, stxname,
 pg_catalog.pg_get_statisticsobjdef_columns(oid) AS columns,
@@ -2798,11 +2798,11 @@ pg_catalog.pg_get_statisticsobjdef_columns(oid) AS columns,
 stxstattarget
 FROM pg_catalog.pg_statistic_ext
 WHERE stxrelid = '%s'
-ORDER BY nsp, stxname;`,n),_=await u(e.data),_)L=W(_);else return s;if(L>0)for(H(S,R("Statistics objects:")),T=0;T<L;T++){
-let y=!1,G,x,ee,ge,ie;G=h(A(_,T,5),"t")==0,x=h(A(_,T,6),"t")==0,ee=h(A(_,T,7),"t")==0,N(e,"    "),p(e,'"%s.%s"',A(_,T,2),
-A(_,T,3)),ge=G&&x&&ee,ie=G||x||ee,ie&&!ge&&(r(e," ("),G&&(r(e,"ndistinct"),y=!0),x&&(p(e,"%sdependencies",y?", ":""),y=!0),
-ee&&p(e,"%smcv",y?", ":""),j(e,")")),p(e," ON %s FROM %s",A(_,T,4),A(_,T,1)),!te(_,T,8)&&h(A(_,T,8),"-1")!=0&&p(e,"; STA\
-TISTICS %s",A(_,T,8)),H(S,e.data)}}else if(c.sversion>=1e5){if(N(e,`/* %s */
+ORDER BY nsp, stxname;`,n),_=await u(e.data),_)I=x(_);else return s;if(I>0)for(y(S,R("Statistics objects:")),T=0;T<I;T++){
+let h=!1,W,q,ne,ue,le;W=H(g(_,T,5),"t")==0,q=H(g(_,T,6),"t")==0,ne=H(g(_,T,7),"t")==0,N(e,"    "),p(e,'"%s.%s"',g(_,T,2),
+g(_,T,3)),ue=W&&q&&ne,le=W||q||ne,le&&!ue&&(r(e," ("),W&&(r(e,"ndistinct"),h=!0),q&&(p(e,"%sdependencies",h?", ":""),h=!0),
+ne&&p(e,"%smcv",h?", ":""),K(e,")")),p(e," ON %s FROM %s",g(_,T,4),g(_,T,1)),!ie(_,T,8)&&H(g(_,T,8),"-1")!=0&&p(e,"; STA\
+TISTICS %s",g(_,T,8)),y(S,e.data)}}else if(E.sversion>=1e5){if(N(e,`/* %s */
 `,R("Get extended statistics for this table")),r(e,`SELECT oid, stxrelid::pg_catalog.regclass, stxnamespace::pg_catalog.\
 regnamespace AS nsp, stxname,
   (SELECT pg_catalog.string_agg(pg_catalog.quote_ident(attname),', ')
@@ -2812,23 +2812,23 @@ regnamespace AS nsp, stxname,
   'd' = any(stxkind) AS ndist_enabled,
   'f' = any(stxkind) AS deps_enabled,
   'm' = any(stxkind) AS mcv_enabled,
-`),c.sversion>=13e4?r(e,`  stxstattarget
+`),E.sversion>=13e4?r(e,`  stxstattarget
 `):r(e,`  -1 AS stxstattarget
 `),p(e,`FROM pg_catalog.pg_statistic_ext
 WHERE stxrelid = '%s'
-ORDER BY 1;`,n),_=await u(e.data),_)L=W(_);else return s;if(L>0)for(H(S,R("Statistics objects:")),T=0;T<L;T++){let y=!1;
-N(e,"    "),p(e,'"%s.%s" (',A(_,T,2),A(_,T,3)),h(A(_,T,5),"t")==0&&(r(e,"ndistinct"),y=!0),h(A(_,T,6),"t")==0&&(p(e,"%sd\
-ependencies",y?", ":""),y=!0),h(A(_,T,7),"t")==0&&p(e,"%smcv",y?", ":""),p(e,") ON %s FROM %s",A(_,T,4),A(_,T,1)),h(A(_,
-T,8),"-1")!=0&&p(e,"; STATISTICS %s",A(_,T,8)),H(S,e.data)}}if(d.hasrules&&d.relkind!=le){if(N(e,`/* %s */
+ORDER BY 1;`,n),_=await u(e.data),_)I=x(_);else return s;if(I>0)for(y(S,R("Statistics objects:")),T=0;T<I;T++){let h=!1;
+N(e,"    "),p(e,'"%s.%s" (',g(_,T,2),g(_,T,3)),H(g(_,T,5),"t")==0&&(r(e,"ndistinct"),h=!0),H(g(_,T,6),"t")==0&&(p(e,"%sd\
+ependencies",h?", ":""),h=!0),H(g(_,T,7),"t")==0&&p(e,"%smcv",h?", ":""),p(e,") ON %s FROM %s",g(_,T,4),g(_,T,1)),H(g(_,
+T,8),"-1")!=0&&p(e,"; STATISTICS %s",g(_,T,8)),y(S,e.data)}}if(d.hasrules&&d.relkind!=pe){if(N(e,`/* %s */
 `,R("Get rules for this relation")),p(e,`SELECT r.rulename, trim(trailing ';' from pg_catalog.pg_get_ruledef(r.oid, true\
 )), ev_enabled
 FROM pg_catalog.pg_rewrite r
-WHERE r.ev_class = '%s' ORDER BY 1;`,n),_=await u(e.data),_)L=W(_);else return s;if(L>0){let y,G;for(G=0;G<4;G++)for(y=!1,
-T=0;T<L;T++){let x,ee=!1;switch(G){case 0:A(_,T,2)=="O"&&(ee=!0);break;case 1:A(_,T,2)=="D"&&(ee=!0);break;case 2:A(_,T,
-2)=="A"&&(ee=!0);break;case 3:A(_,T,2)=="R"&&(ee=!0);break}if(ee){if(!y){switch(G){case 0:N(e,R("Rules:"));break;case 1:
+WHERE r.ev_class = '%s' ORDER BY 1;`,n),_=await u(e.data),_)I=x(_);else return s;if(I>0){let h,W;for(W=0;W<4;W++)for(h=!1,
+T=0;T<I;T++){let q,ne=!1;switch(W){case 0:g(_,T,2)=="O"&&(ne=!0);break;case 1:g(_,T,2)=="D"&&(ne=!0);break;case 2:g(_,T,
+2)=="A"&&(ne=!0);break;case 3:g(_,T,2)=="R"&&(ne=!0);break}if(ne){if(!h){switch(W){case 0:N(e,R("Rules:"));break;case 1:
 N(e,R("Disabled rules:"));break;case 2:N(e,R("Rules firing always:"));break;case 3:N(e,R("Rules firing on replica only:"));
-break}H(S,e.data),y=!0}x=A(_,T,1),x=x.slice(12),N(e,"    %s",x),H(S,e.data)}}}}if(c.sversion>=1e5){if(N(e,`/* %s */
-`,R("Get publications that publish this table")),c.sversion>=15e4?(p(e,`SELECT pubname
+break}y(S,e.data),h=!0}q=g(_,T,1),q=q.slice(12),N(e,"    %s",q),y(S,e.data)}}}}if(E.sversion>=1e5){if(N(e,`/* %s */
+`,R("Get publications that publish this table")),E.sversion>=15e4?(p(e,`SELECT pubname
      , NULL
      , NULL
 FROM pg_catalog.pg_publication p
@@ -2847,7 +2847,7 @@ SELECT pubname
      JOIN pg_catalog.pg_publication_rel pr ON p.oid = pr.prpubid
      JOIN pg_catalog.pg_class c ON c.oid = pr.prrelid
 WHERE pr.prrelid = '%s'
-`,n,n,n),c.sversion>=19e4?p(e,` AND NOT pr.prexcept
+`,n,n,n),E.sversion>=19e4?p(e,` AND NOT pr.prexcept
 UNION
 SELECT pubname
      , NULL
@@ -2877,16 +2877,16 @@ SELECT pubname
      , NULL
 FROM pg_catalog.pg_publication p
 WHERE p.puballtables AND pg_catalog.pg_relation_is_publishable('%s')
-ORDER BY 1;`,n,n),_=await u(e.data),_)L=W(_);else return s;for(L>0&&H(S,R("Included in publications:")),T=0;T<L;T++)N(e,
-'    "%s"',A(_,T,0)),te(_,T,2)||p(e," (%s)",A(_,T,2)),te(_,T,1)||p(e," WHERE %s",A(_,T,1)),H(S,e.data)}if(c.sversion>=19e4){
+ORDER BY 1;`,n,n),_=await u(e.data),_)I=x(_);else return s;for(I>0&&y(S,R("Included in publications:")),T=0;T<I;T++)N(e,
+'    "%s"',g(_,T,0)),ie(_,T,2)||p(e," (%s)",g(_,T,2)),ie(_,T,1)||p(e," WHERE %s",g(_,T,1)),y(S,e.data)}if(E.sversion>=19e4){
 if(N(e,`/* %s */
 `,R("Get publications that exclude this table")),p(e,`SELECT pubname
 FROM pg_catalog.pg_publication p
 JOIN pg_catalog.pg_publication_rel pr ON p.oid = pr.prpubid
 WHERE (pr.prrelid = '%s' OR pr.prrelid = pg_catalog.pg_partition_root('%s'))
 AND pr.prexcept
-ORDER BY 1;`,n,n),_=await u(e.data),_)L=W(_);else return s;for(L>0&&H(S,R("Excluded from publications:")),T=0;T<L;T++)N(
-e,'    "%s"',A(_,T,0)),H(S,e.data)}if(a){if(N(e,`/* %s */
+ORDER BY 1;`,n,n),_=await u(e.data),_)I=x(_);else return s;for(I>0&&y(S,R("Excluded from publications:")),T=0;T<I;T++)N(
+e,'    "%s"',g(_,T,0)),y(S,e.data)}if(a){if(N(e,`/* %s */
 `,R("Get not-null constraints for this table")),p(e,`SELECT c.conname, a.attname, c.connoinherit,
   c.conislocal, c.coninhcount <> 0,
   c.convalidated
@@ -2895,20 +2895,20 @@ FROM pg_catalog.pg_constraint c JOIN
     (a.attrelid = c.conrelid AND a.attnum = c.conkey[1])
 WHERE c.contype = 'n' AND
   c.conrelid = '%s'::pg_catalog.regclass
-ORDER BY a.attnum`,n),_=await u(e.data),_)L=W(_);else return s;for(L>0&&H(S,R("Not-null constraints:")),T=0;T<L;T++){let y=A(
-_,T,3)[0]=="t",G=A(_,T,4)[0]=="t",x=A(_,T,5)[0]=="t";N(e,'    "%s" NOT NULL "%s"%s%s',A(_,T,0),A(_,T,1),A(_,T,2)[0]=="t"?
-" NO INHERIT":y&&G?R(" (local, inherited)"):G?R(" (inherited)"):"",x?"":" NOT VALID"),H(S,e.data)}}}if((d.relkind==Be||d.
-relkind==le)&&a){let _;if(N(e,`/* %s */
+ORDER BY a.attnum`,n),_=await u(e.data),_)I=x(_);else return s;for(I>0&&y(S,R("Not-null constraints:")),T=0;T<I;T++){let h=g(
+_,T,3)[0]=="t",W=g(_,T,4)[0]=="t",q=g(_,T,5)[0]=="t";N(e,'    "%s" NOT NULL "%s"%s%s',g(_,T,0),g(_,T,1),g(_,T,2)[0]=="t"?
+" NO INHERIT":h&&W?R(" (local, inherited)"):W?R(" (inherited)"):"",q?"":" NOT VALID"),y(S,e.data)}}}if((d.relkind==je||d.
+relkind==pe)&&a){let _;if(N(e,`/* %s */
 `,R("Get view's definition")),p(e,"SELECT pg_catalog.pg_get_viewdef('%s'::pg_catalog.oid, true);",n),_=await u(e.data),!_)
-return s;W(_)>0&&(F=Ae(A(_,0,0)))}if(F){let _=l;if(H(S,R("View definition:")),H(S,F),d.hasrules){if(N(e,`/* %s */
+return s;x(_)>0&&(F=me(g(_,0,0)))}if(F){let _=l;if(y(S,R("View definition:")),y(S,F),d.hasrules){if(N(e,`/* %s */
 `,R("Get rules for this view")),p(e,`SELECT r.rulename, trim(trailing ';' from pg_catalog.pg_get_ruledef(r.oid, true))
 FROM pg_catalog.pg_rewrite r
-WHERE r.ev_class = '%s' AND r.rulename != '_RETURN' ORDER BY 1;`,n),_=await u(e.data),!_)return s;if(W(_)>0)for(H(S,R("R\
-ules:")),T=0;T<W(_);T++){let L;L=A(_,T,1),L=L.slice(12),N(e," %s",L),H(S,e.data)}}}if(d.hastriggers){let _,L;if(N(e,`/* \
+WHERE r.ev_class = '%s' AND r.rulename != '_RETURN' ORDER BY 1;`,n),_=await u(e.data),!_)return s;if(x(_)>0)for(y(S,R("R\
+ules:")),T=0;T<x(_);T++){let I;I=g(_,T,1),I=I.slice(12),N(e," %s",I),y(S,e.data)}}}if(d.hastriggers){let _,I;if(N(e,`/* \
 %s */
 `,R("Get triggers for this relation")),r(e,`SELECT t.tgname, pg_catalog.pg_get_triggerdef(t.oid, true), t.tgenabled, t.t\
 gisinternal,
-`),c.sversion>=13e4?r(e,`  CASE WHEN t.tgparentid != 0 THEN
+`),E.sversion>=13e4?r(e,`  CASE WHEN t.tgparentid != 0 THEN
     (SELECT u.tgrelid::pg_catalog.regclass
      FROM pg_catalog.pg_trigger AS u,
           pg_catalog.pg_partition_ancestors(t.tgrelid) WITH ORDINALITY AS a(relid, depth)
@@ -2918,38 +2918,38 @@ gisinternal,
   END AS parent
 `):r(e,`  NULL AS parent
 `),p(e,`FROM pg_catalog.pg_trigger t
-WHERE t.tgrelid = '%s' AND `,n),c.sversion>=11e4&&c.sversion<15e4?r(e,`(NOT t.tgisinternal OR (t.tgisinternal AND t.tgen\
+WHERE t.tgrelid = '%s' AND `,n),E.sversion>=11e4&&E.sversion<15e4?r(e,`(NOT t.tgisinternal OR (t.tgisinternal AND t.tgen\
 abled = 'D') 
     OR EXISTS (SELECT 1 FROM pg_catalog.pg_depend WHERE objid = t.oid 
         AND refclassid = 'pg_catalog.pg_trigger'::pg_catalog.regclass))`):r(e,"(NOT t.tgisinternal OR (t.tgisinternal AN\
 D t.tgenabled = 'D'))"),r(e,`
-ORDER BY 1;`),_=await u(e.data),_)L=W(_);else return s;if(L>0){let y,G;for(G=0;G<=4;G++)for(y=!1,T=0;T<L;T++){let x,ee,ge,
-ie,Ge;switch(ie=A(_,T,2),Ge=A(_,T,3),x=!1,G){case 0:(ie=="O"||ie=="t")&&(x=!0);break;case 1:(ie=="D"||ie=="f")&&Ge=="f"&&
-(x=!0);break;case 2:(ie=="D"||ie=="f")&&Ge=="t"&&(x=!0);break;case 3:ie=="A"&&(x=!0);break;case 4:ie=="R"&&(x=!0);break}
-if(x!=!1){if(y==!1){switch(G){case 0:N(e,R("Triggers:"));break;case 1:N(e,R("Disabled user triggers:"));break;case 2:N(e,
+ORDER BY 1;`),_=await u(e.data),_)I=x(_);else return s;if(I>0){let h,W;for(W=0;W<=4;W++)for(h=!1,T=0;T<I;T++){let q,ne,ue,
+le,ke;switch(le=g(_,T,2),ke=g(_,T,3),q=!1,W){case 0:(le=="O"||le=="t")&&(q=!0);break;case 1:(le=="D"||le=="f")&&ke=="f"&&
+(q=!0);break;case 2:(le=="D"||le=="f")&&ke=="t"&&(q=!0);break;case 3:le=="A"&&(q=!0);break;case 4:le=="R"&&(q=!0);break}
+if(q!=!1){if(h==!1){switch(W){case 0:N(e,R("Triggers:"));break;case 1:N(e,R("Disabled user triggers:"));break;case 2:N(e,
 R("Disabled internal triggers:"));break;case 3:N(e,R("Triggers firing always:"));break;case 4:N(e,R("Triggers firing on \
-replica only:"));break}H(S,e.data),y=!0}ee=A(_,T,1),ge=sn(ee," TRIGGER "),ge!=l&&(ee=ee.slice(ge+9)),N(e,"    %s",ee),te(
-_,T,4)||p(e,", ON TABLE %s",A(_,T,4)),H(S,e.data)}}}}if(d.relkind==Te||d.relkind==le||d.relkind==Re||d.relkind==Ee||d.relkind==
-_e||d.relkind==ve){let _,L,y;if(_=d.relkind==Ee||d.relkind==_e,d.relkind==Re){let G;if(N(e,`/* %s */
+replica only:"));break}y(S,e.data),h=!0}ne=g(_,T,1),ue=En(ne," TRIGGER "),ue!=l&&(ne=ne.slice(ue+9)),N(e,"    %s",ne),ie(
+_,T,4)||p(e,", ON TABLE %s",g(_,T,4)),y(S,e.data)}}}}if(d.relkind==ge||d.relkind==pe||d.relkind==Ne||d.relkind==Te||d.relkind==
+Se||d.relkind==Xe){let _,I,h;if(_=d.relkind==Te||d.relkind==Se,d.relkind==Ne){let W;if(N(e,`/* %s */
 `,R("Get foreign server for this table")),p(e,`SELECT s.srvname,
   pg_catalog.array_to_string(ARRAY(
     SELECT pg_catalog.quote_ident(option_name) || ' ' || pg_catalog.quote_literal(option_value)
     FROM pg_catalog.pg_options_to_table(ftoptions)),  ', ')
 FROM pg_catalog.pg_foreign_table f,
      pg_catalog.pg_foreign_server s
-WHERE f.ftrelid = '%s' AND s.oid = f.ftserver;`,n),L=await u(e.data),L){if(W(L)!=1)return s}else return s;N(e,R("Server:\
- %s"),A(L,0,0)),H(S,e.data),G=A(L,0,1),G&&G[0]!=l&&(N(e,R("FDW options: (%s)"),G),H(S,e.data))}if(N(e,`/* %s */
+WHERE f.ftrelid = '%s' AND s.oid = f.ftserver;`,n),I=await u(e.data),I){if(x(I)!=1)return s}else return s;N(e,R("Server:\
+ %s"),g(I,0,0)),y(S,e.data),W=g(I,0,1),W&&W[0]!=l&&(N(e,R("FDW options: (%s)"),W),y(S,e.data))}if(N(e,`/* %s */
 `,R("Get inheritance parent tables")),p(e,`SELECT c.oid::pg_catalog.regclass
 FROM pg_catalog.pg_class c, pg_catalog.pg_inherits i
 WHERE c.oid = i.inhparent AND i.inhrelid = '%s'
   AND c.relkind != 'p' AND c.relkind != 'I'
-ORDER BY inhseqno;`,n),L=await u(e.data),L){let G=R("Inherits");for(y=W(L),y>0&&(N(e,"%s:",G),H(S,e.data)),T=0;T<y;T++)N(
-e,"    %s",A(L,T,0)),H(S,e.data)}else return s;if(N(e,`/* %s */
-`,R("Get child tables")),c.sversion>=14e4?p(e,`SELECT c.oid::pg_catalog.regclass, c.relkind, inhdetachpending, pg_catalo\
+ORDER BY inhseqno;`,n),I=await u(e.data),I){let W=R("Inherits");for(h=x(I),h>0&&(N(e,"%s:",W),y(S,e.data)),T=0;T<h;T++)N(
+e,"    %s",g(I,T,0)),y(S,e.data)}else return s;if(N(e,`/* %s */
+`,R("Get child tables")),E.sversion>=14e4?p(e,`SELECT c.oid::pg_catalog.regclass, c.relkind, inhdetachpending, pg_catalo\
 g.pg_get_expr(c.relpartbound, c.oid)
 FROM pg_catalog.pg_class c, pg_catalog.pg_inherits i
 WHERE c.oid = i.inhrelid AND i.inhparent = '%s'
-ORDER BY pg_catalog.pg_get_expr(c.relpartbound, c.oid) = 'DEFAULT', c.oid::pg_catalog.regclass::pg_catalog.text;`,n):c.sversion>=
+ORDER BY pg_catalog.pg_get_expr(c.relpartbound, c.oid) = 'DEFAULT', c.oid::pg_catalog.regclass::pg_catalog.text;`,n):E.sversion>=
 1e5?p(e,`SELECT c.oid::pg_catalog.regclass, c.relkind, false AS inhdetachpending, pg_catalog.pg_get_expr(c.relpartbound,\
  c.oid)
 FROM pg_catalog.pg_class c, pg_catalog.pg_inherits i
@@ -2958,54 +2958,54 @@ ORDER BY pg_catalog.pg_get_expr(c.relpartbound, c.oid) = 'DEFAULT', c.oid::pg_ca
 `SELECT c.oid::pg_catalog.regclass, c.relkind, false AS inhdetachpending, NULL
 FROM pg_catalog.pg_class c, pg_catalog.pg_inherits i
 WHERE c.oid = i.inhrelid AND i.inhparent = '%s'
-ORDER BY c.oid::pg_catalog.regclass::pg_catalog.text;`,n),L=await u(e.data),!L)return s;if(y=W(L),_&&y==0)N(e,R("Number \
-of partitions: %d"),y),H(S,e.data);else if(!a)y>0&&(_?N(e,R("Number of partitions: %d (Use \\d+ to list them.)"),y):N(e,
-R("Number of child tables: %d (Use \\d+ to list them.)"),y),H(S,e.data));else{let G=R(_?"Partitions":"Child tables");for(y>
-0&&(N(e,"%s:",G),H(S,e.data)),T=0;T<y;T++){let x=A(L,T,1);N(e,"    %s",A(L,T,0)),te(L,T,3)||p(e," %s",A(L,T,3)),x==Ee||x==
-_e?r(e,", PARTITIONED"):x==Re&&r(e,", FOREIGN"),h(A(L,T,2),"t")==0&&r(e," (DETACH PENDING)"),H(S,e.data)}}if(d.reloftype&&
-(N(e,R("Typed table of type: %s"),d.reloftype),H(S,e.data)),a&&(d.relkind==Te||d.relkind==le)&&d.relreplident!="i"&&(h(o,
-"pg_catalog")!=0&&d.relreplident!="d"||h(o,"pg_catalog")==0&&d.relreplident!="n")){let G=R("Replica Identity");N(e,"%s: \
-%s",G,d.relreplident=="f"?"FULL":d.relreplident=="n"?"NOTHING":"???"),H(S,e.data)}a&&d.relkind!=le&&d.hasoids&&H(S,R("Ha\
-s OIDs: yes")),await En(S,d.relkind,d.tablespace,!0),a&&d.relam!=l&&!c.hide_tableam&&(N(e,R("Access method: %s"),d.relam),
-H(S,e.data))}if(a&&d.reloptions&&d.reloptions[0]!=l){let _=R("Options");N(e,"%s: %s",_,d.reloptions),H(S,e.data)}return Xe(
-S,c.queryFout,!1,c.logfile),s=!0,s}async function En(o,i,n,a){if((i==Te||i==le||i==de||i==Ee||i==_e||i==ve)&&n!=0){let s=l,
+ORDER BY c.oid::pg_catalog.regclass::pg_catalog.text;`,n),I=await u(e.data),!I)return s;if(h=x(I),_&&h==0)N(e,R("Number \
+of partitions: %d"),h),y(S,e.data);else if(!a)h>0&&(_?N(e,R("Number of partitions: %d (Use \\d+ to list them.)"),h):N(e,
+R("Number of child tables: %d (Use \\d+ to list them.)"),h),y(S,e.data));else{let W=R(_?"Partitions":"Child tables");for(h>
+0&&(N(e,"%s:",W),y(S,e.data)),T=0;T<h;T++){let q=g(I,T,1);N(e,"    %s",g(I,T,0)),ie(I,T,3)||p(e," %s",g(I,T,3)),q==Te||q==
+Se?r(e,", PARTITIONED"):q==Ne&&r(e,", FOREIGN"),H(g(I,T,2),"t")==0&&r(e," (DETACH PENDING)"),y(S,e.data)}}if(d.reloftype&&
+(N(e,R("Typed table of type: %s"),d.reloftype),y(S,e.data)),a&&(d.relkind==ge||d.relkind==pe)&&d.relreplident!="i"&&(H(o,
+"pg_catalog")!=0&&d.relreplident!="d"||H(o,"pg_catalog")==0&&d.relreplident!="n")){let W=R("Replica Identity");N(e,"%s: \
+%s",W,d.relreplident=="f"?"FULL":d.relreplident=="n"?"NOTHING":"???"),y(S,e.data)}a&&d.relkind!=pe&&d.hasoids&&y(S,R("Ha\
+s OIDs: yes")),await Tn(S,d.relkind,d.tablespace,!0),a&&d.relam!=l&&!E.hide_tableam&&(N(e,R("Access method: %s"),d.relam),
+y(S,e.data))}if(a&&d.reloptions&&d.reloptions[0]!=l){let _=R("Options");N(e,"%s: %s",_,d.reloptions),y(S,e.data)}return ze(
+S,E.queryFout,!1,E.logfile),s=!0,s}async function Tn(o,i,n,a){if((i==ge||i==pe||i==be||i==Te||i==Se||i==Xe)&&n!=0){let s=l,
 e={};if(b(e),N(e,`/* %s */
 `,R("Get tablespace information for this relation")),p(e,`SELECT spcname FROM pg_catalog.pg_tablespace
-WHERE oid = '%u';`,n),s=await u(e.data),!s)return;W(s)>0&&(a?(N(e,R('Tablespace: "%s"'),A(s,0,0)),H(o,e.data)):(N(e,"%s",
-o.footer),p(e,R(', tablespace "%s"'),A(s,0,0)),Hn(o,e.data)))}}async function mn(o,i,n){let a={},s,e={},E=c.popt.topt,f=2,
-S=0,T,F,m="l",C;if(E.default_footer=!1,b(a),N(a,`/* %s */
+WHERE oid = '%u';`,n),s=await u(e.data),!s)return;x(s)>0&&(a?(N(e,R('Tablespace: "%s"'),g(s,0,0)),y(o,e.data)):(N(e,"%s",
+o.footer),p(e,R(', tablespace "%s"'),g(s,0,0)),te(o,e.data)))}}async function un(o,i,n){let a={},s,e={},c=E.popt.topt,f=2,
+S=0,T,F,m="l",D;if(c.default_footer=!1,b(a),N(a,`/* %s */
 `,R("Get matching roles")),r(a,`SELECT r.rolname, r.rolsuper, r.rolinherit,
   r.rolcreaterole, r.rolcreatedb, r.rolcanlogin,
   r.rolconnlimit, r.rolvaliduntil`),i&&(r(a,`
 , pg_catalog.shobj_description(r.oid, 'pg_authid') AS description`),f++),r(a,`
-, r.rolreplication`),c.sversion>=90500&&r(a,`
+, r.rolreplication`),E.sversion>=90500&&r(a,`
 , r.rolbypassrls`),r(a,`
 FROM pg_catalog.pg_roles r
 `),!n&&!o&&r(a,`WHERE r.rolname !~ '^pg_'
-`),!P(a,o,!1,!1,l,"r.rolname",l,l,l,1)||(r(a,"ORDER BY 1;"),s=await u(a.data),!s))return!1;for(S=W(s),C=[],Ve(e,E,R("Lis\
-t of roles"),f,S),se(e,t("Role name"),!0,m),se(e,t("Attributes"),!0,m),i&&se(e,t("Description"),!0,m),T=0;T<S;T++)V(e,A(
-s,T,0),!1,!1),an(a),h(A(s,T,1),"t")==0&&fe(a,R("Superuser")),h(A(s,T,2),"t")!=0&&fe(a,R("No inheritance")),h(A(s,T,3),"t")==
-0&&fe(a,R("Create role")),h(A(s,T,4),"t")==0&&fe(a,R("Create DB")),h(A(s,T,5),"t")!=0&&fe(a,R("Cannot login")),h(A(s,T,i?
-9:8),"t")==0&&fe(a,R("Replication")),c.sversion>=90500&&h(A(s,T,i?10:9),"t")==0&&fe(a,R("Bypass RLS")),F=In(A(s,T,6)),F>=
-0&&(a.len>0&&j(a,`
-`),F==0?r(a,R("No connections")):p(a,ngettext("%d connection","%d connections",F),F)),h(A(s,T,7),"")!=0&&(a.len>0&&j(a,`\
+`),!U(a,o,!1,!1,l,"r.rolname",l,l,l,1)||(r(a,"ORDER BY 1;"),s=await u(a.data),!s))return!1;for(S=x(s),D=[],xe(e,c,R("Lis\
+t of roles"),f,S),ae(e,t("Role name"),!0,m),ae(e,t("Attributes"),!0,m),i&&ae(e,t("Description"),!0,m),T=0;T<S;T++)j(e,g(
+s,T,0),!1,!1),rn(a),H(g(s,T,1),"t")==0&&Ce(a,R("Superuser")),H(g(s,T,2),"t")!=0&&Ce(a,R("No inheritance")),H(g(s,T,3),"t")==
+0&&Ce(a,R("Create role")),H(g(s,T,4),"t")==0&&Ce(a,R("Create DB")),H(g(s,T,5),"t")!=0&&Ce(a,R("Cannot login")),H(g(s,T,i?
+9:8),"t")==0&&Ce(a,R("Replication")),E.sversion>=90500&&H(g(s,T,i?10:9),"t")==0&&Ce(a,R("Bypass RLS")),F=bn(g(s,T,6)),F>=
+0&&(a.len>0&&K(a,`
+`),F==0?r(a,R("No connections")):p(a,ngettext("%d connection","%d connections",F),F)),H(g(s,T,7),"")!=0&&(a.len>0&&K(a,`\
 
-`),r(a,R("Password valid until ")),r(a,A(s,T,7))),C[T]=Ae(a.data),V(e,C[T],!1,!1),i&&V(e,A(s,T,8),!1,!1);return Xe(e,c.queryFout,
-!1,c.logfile),!0}function fe(o,i){o.len>0&&r(o,", "),r(o,i)}async function na(o,i){let n={},a,s=c.popt,e={};return b(n),
+`),r(a,R("Password valid until ")),r(a,g(s,T,7))),D[T]=me(a.data),j(e,D[T],!1,!1),i&&j(e,g(s,T,8),!1,!1);return ze(e,E.queryFout,
+!1,E.logfile),!0}function Ce(o,i){o.len>0&&r(o,", "),r(o,i)}async function aa(o,i){let n={},a,s=E.popt,e={};return b(n),
 N(n,`/* %s */
 `,R("Get per-database and per-role settings")),p(n,`SELECT rolname AS "%s", datname AS "%s",
 pg_catalog.array_to_string(setconfig, E'\\n') AS "%s"
 FROM pg_catalog.pg_db_role_setting s
 LEFT JOIN pg_catalog.pg_database d ON d.oid = setdatabase
 LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
-`,t("Role"),t("Database"),t("Settings")),!P(n,o,!1,!1,l,"r.rolname",l,l,e,1)||!P(n,i,e.value,!1,l,"d.datname",l,l,l,1)||
-(r(n,"ORDER BY 1, 2;"),a=await u(n.data),!a)?!1:(W(a)==0&&!c.quiet?o&&i?w('Did not find any settings for role "%s" and d\
-atabase "%s".',o,i):o?w('Did not find any settings for role "%s".',o):w("Did not find any settings."):(s.nullPrint=l,s.title=
-R("List of settings"),s.translate_header=!0,v(a,s,c.queryFout,!1,c.logfile)),!0)}async function aa(o,i){let n={},a,s=c.popt;
+`,t("Role"),t("Database"),t("Settings")),!U(n,o,!1,!1,l,"r.rolname",l,l,e,1)||!U(n,i,e.value,!1,l,"d.datname",l,l,l,1)||
+(r(n,"ORDER BY 1, 2;"),a=await u(n.data),!a)?!1:(x(a)==0&&!E.quiet?o&&i?M('Did not find any settings for role "%s" and d\
+atabase "%s".',o,i):o?M('Did not find any settings for role "%s".',o):M("Did not find any settings."):(s.nullPrint=l,s.title=
+R("List of settings"),s.translate_header=!0,v(a,s,E.queryFout,!1,E.logfile)),!0)}async function ta(o,i){let n={},a,s=E.popt;
 return b(n),N(n,`/* %s */
 `,R("Get matching role grants")),p(n,`SELECT m.rolname AS "%s", r.rolname AS "%s",
   pg_catalog.concat_ws(', ',
-`,t("Role name"),t("Member of")),c.sversion>=16e4?r(n,`    CASE WHEN pam.admin_option THEN 'ADMIN' END,
+`,t("Role name"),t("Member of")),E.sversion>=16e4?r(n,`    CASE WHEN pam.admin_option THEN 'ADMIN' END,
     CASE WHEN pam.inherit_option THEN 'INHERIT' END,
     CASE WHEN pam.set_option THEN 'SET' END
 `):r(n,`    CASE WHEN pam.admin_option THEN 'ADMIN' END,
@@ -3018,65 +3018,65 @@ return b(n),N(n,`/* %s */
      LEFT JOIN pg_catalog.pg_roles r ON (pam.roleid = r.oid)
      LEFT JOIN pg_catalog.pg_roles g ON (pam.grantor = g.oid)
 `),!i&&!o&&r(n,`WHERE m.rolname !~ '^pg_'
-`),!P(n,o,!1,!1,l,"m.rolname",l,l,l,1)||(r(n,`ORDER BY 1, 2, 4;
-`),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of role grants"),s.translate_header=!0,v(a,s,c.queryFout,!1,c.
-logfile),!0)}async function fn(o,i,n,a){let s=Z(o,"t")!=l,e=Z(o,"i")!=l,E=Z(o,"v")!=l,f=Z(o,"m")!=l,S=Z(o,"s")!=l,T=Z(o,
-"E")!=l,F,m={},C,O=c.popt,M,K=[!1,!1,!0,!1,!1,!1,!1,!1,!1];return F=s+e+E+f+S+T,F==0&&(s=E=f=S=T=!0),b(m),N(m,`/* %s */
+`),!U(n,o,!1,!1,l,"m.rolname",l,l,l,1)||(r(n,`ORDER BY 1, 2, 4;
+`),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of role grants"),s.translate_header=!0,v(a,s,E.queryFout,!1,E.
+logfile),!0)}async function Ln(o,i,n,a){let s=Z(o,"t")!=l,e=Z(o,"i")!=l,c=Z(o,"v")!=l,f=Z(o,"m")!=l,S=Z(o,"s")!=l,T=Z(o,
+"E")!=l,F,m={},D,O=E.popt,G,z=[!1,!1,!0,!1,!1,!1,!1,!1,!1];return F=s+e+c+f+S+T,F==0&&(s=c=f=S=T=!0),b(m),N(m,`/* %s */
 `,R("Get matching relations")),p(m,`SELECT n.nspname as "%s",
   c.relname as "%s",
   CASE c.relkind WHEN 'r' THEN '%s' WHEN 'v' THEN '%s' WHEN 'm' THEN '%s' WHEN 'i' THEN '%s' WHEN 'S' THEN '%s' WHEN 't'\
  THEN '%s' WHEN 'f' THEN '%s' WHEN 'p' THEN '%s' WHEN 'I' THEN '%s' END as "%s",
   pg_catalog.pg_get_userbyid(c.relowner) as "%s"`,t("Schema"),t("Name"),t("table"),t("view"),t("materialized view"),t("i\
 ndex"),t("sequence"),t("TOAST table"),t("foreign table"),t("partitioned table"),t("partitioned index"),t("Type"),t("Owne\
-r")),M=4,e&&(p(m,`,
-  c2.relname as "%s"`,t("Table")),M++),n&&(p(m,`,
+r")),G=4,e&&(p(m,`,
+  c2.relname as "%s"`,t("Table")),G++),n&&(p(m,`,
   CASE c.relpersistence WHEN 'p' THEN '%s' WHEN 't' THEN '%s' WHEN 'u' THEN '%s' END as "%s"`,t("permanent"),t("temporar\
-y"),t("unlogged"),t("Persistence")),K[M]=!0,c.sversion>=12e4&&!c.hide_tableam&&(s||f||e)&&p(m,`,
+y"),t("unlogged"),t("Persistence")),z[G]=!0,E.sversion>=12e4&&!E.hide_tableam&&(s||f||e)&&p(m,`,
   am.amname as "%s"`,t("Access method")),p(m,`,
   pg_catalog.pg_size_pretty(pg_catalog.pg_table_size(c.oid)) as "%s",
   pg_catalog.obj_description(c.oid, 'pg_class') as "%s"`,t("Size"),t("Description"))),r(m,`
 FROM pg_catalog.pg_class c
-     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace`),c.sversion>=12e4&&!c.hide_tableam&&(s||f||e)&&r(m,`\
+     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace`),E.sversion>=12e4&&!E.hide_tableam&&(s||f||e)&&r(m,`\
 
      LEFT JOIN pg_catalog.pg_am am ON am.oid = c.relam`),e&&r(m,`
      LEFT JOIN pg_catalog.pg_index i ON i.indexrelid = c.oid
      LEFT JOIN pg_catalog.pg_class c2 ON i.indrelid = c2.oid`),r(m,`
-WHERE c.relkind IN (`),s&&(r(m,"'r','p',"),(a||i)&&r(m,"'t',")),E&&r(m,"'v',"),f&&r(m,"'m',"),e&&r(m,"'i','I',"),S&&r(m,
+WHERE c.relkind IN (`),s&&(r(m,"'r','p',"),(a||i)&&r(m,"'t',")),c&&r(m,"'v',"),f&&r(m,"'m',"),e&&r(m,"'i','I',"),S&&r(m,
 "'S',"),(a||i)&&r(m,"'s',"),T&&r(m,"'f',"),r(m,"''"),r(m,`)
 `),!a&&!i&&r(m,`      AND n.nspname <> 'pg_catalog'
       AND n.nspname !~ '^pg_toast'
       AND n.nspname <> 'information_schema'
-`),!P(m,i,!0,!1,"n.nspname","c.relname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3)||(r(m,"ORDER BY 1,2;"),C=await u(
-m.data),!C)?!1:(W(C)==0&&!c.quiet?i?F!=1?w('Did not find any relations named "%s".',i):s?w('Did not find any tables name\
-d "%s".',i):e?w('Did not find any indexes named "%s".',i):E?w('Did not find any views named "%s".',i):f?w('Did not find \
-any materialized views named "%s".',i):S?w('Did not find any sequences named "%s".',i):T?w('Did not find any foreign tab\
-les named "%s".',i):pg_log_error_internal('Did not find any ??? named "%s".',i):F!=1?w("Did not find any relations."):s?
-w("Did not find any tables."):e?w("Did not find any indexes."):E?w("Did not find any views."):f?w("Did not find any mate\
-rialized views."):S?w("Did not find any sequences."):T?w("Did not find any foreign tables."):pg_log_error_internal("Did \
+`),!U(m,i,!0,!1,"n.nspname","c.relname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3)||(r(m,"ORDER BY 1,2;"),D=await u(
+m.data),!D)?!1:(x(D)==0&&!E.quiet?i?F!=1?M('Did not find any relations named "%s".',i):s?M('Did not find any tables name\
+d "%s".',i):e?M('Did not find any indexes named "%s".',i):c?M('Did not find any views named "%s".',i):f?M('Did not find \
+any materialized views named "%s".',i):S?M('Did not find any sequences named "%s".',i):T?M('Did not find any foreign tab\
+les named "%s".',i):pg_log_error_internal('Did not find any ??? named "%s".',i):F!=1?M("Did not find any relations."):s?
+M("Did not find any tables."):e?M("Did not find any indexes."):c?M("Did not find any views."):f?M("Did not find any mate\
+rialized views."):S?M("Did not find any sequences."):T?M("Did not find any foreign tables."):pg_log_error_internal("Did \
 not find any ??? relations."):(O.nullPrint=l,O.title=F!=1?R("List of relations"):s?R("List of tables"):e?R("List of inde\
-xes"):E?R("List of views"):f?R("List of materialized views"):S?R("List of sequences"):T?R("List of foreign tables"):"Lis\
-t of ???",O.translate_header=!0,O.translate_columns=K,O.n_translate_columns=Q(K),v(C,O,c.queryFout,!1,c.logfile)),!0)}async function ta(o,i,n){
-let a=Z(o,"t")!=l,s=Z(o,"i")!=l,e=Z(o,"n")!=l,E={},f={},S,T=c.popt,F=[!1,!1,!1,!1,!1,!1,!1,!1,!1,!1],m,C=!1;if(c.sversion<
-1e5){let O;return w("The server (version %s) does not support declarative table partitioning.",Se(c.sversion,!1,O,Ne(O))),
+xes"):c?R("List of views"):f?R("List of materialized views"):S?R("List of sequences"):T?R("List of foreign tables"):"Lis\
+t of ???",O.translate_header=!0,O.translate_columns=z,O.n_translate_columns=$(z),v(D,O,E.queryFout,!1,E.logfile)),!0)}async function sa(o,i,n){
+let a=Z(o,"t")!=l,s=Z(o,"i")!=l,e=Z(o,"n")!=l,c={},f={},S,T=E.popt,F=[!1,!1,!1,!1,!1,!1,!1,!1,!1,!1],m,D=!1;if(E.sversion<
+1e5){let O;return M("The server (version %s) does not support declarative table partitioning.",Ie(E.sversion,!1,O,Le(O))),
 !0}return!a&&!s&&(a=s=!0),s&&!a?m=R("List of partitioned indexes"):a&&!s?m=R("List of partitioned tables"):(m=R("List of\
- partitioned relations"),C=!0),b(E),N(E,`/* %s */
-`,R("Get matching partitioned relations")),p(E,`SELECT n.nspname as "%s",
+ partitioned relations"),D=!0),b(c),N(c,`/* %s */
+`,R("Get matching partitioned relations")),p(c,`SELECT n.nspname as "%s",
   c.relname as "%s",
-  pg_catalog.pg_get_userbyid(c.relowner) as "%s"`,t("Schema"),t("Name"),t("Owner")),C&&(p(E,`,
+  pg_catalog.pg_get_userbyid(c.relowner) as "%s"`,t("Schema"),t("Name"),t("Owner")),D&&(p(c,`,
   CASE c.relkind WHEN 'p' THEN '%s' WHEN 'I' THEN '%s' END as "%s"`,t("partitioned table"),t("partitioned index"),t("Typ\
-e")),F[3]=!0),(e||i)&&p(E,`,
-  inh.inhparent::pg_catalog.regclass as "%s"`,t("Parent name")),s&&p(E,`,
- c2.oid::pg_catalog.regclass as "%s"`,t("Table")),n&&(p(E,`,
-  am.amname as "%s"`,t("Access method")),e&&p(E,`,
-  s.dps as "%s"`,t("Leaf partition size")),p(E,`,
-  s.tps as "%s"`,t("Total size")),p(E,`,
-  pg_catalog.obj_description(c.oid, 'pg_class') as "%s"`,t("Description"))),r(E,`
+e")),F[3]=!0),(e||i)&&p(c,`,
+  inh.inhparent::pg_catalog.regclass as "%s"`,t("Parent name")),s&&p(c,`,
+ c2.oid::pg_catalog.regclass as "%s"`,t("Table")),n&&(p(c,`,
+  am.amname as "%s"`,t("Access method")),e&&p(c,`,
+  s.dps as "%s"`,t("Leaf partition size")),p(c,`,
+  s.tps as "%s"`,t("Total size")),p(c,`,
+  pg_catalog.obj_description(c.oid, 'pg_class') as "%s"`,t("Description"))),r(c,`
 FROM pg_catalog.pg_class c
-     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace`),s&&r(E,`
+     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace`),s&&r(c,`
      LEFT JOIN pg_catalog.pg_index i ON i.indexrelid = c.oid
-     LEFT JOIN pg_catalog.pg_class c2 ON i.indrelid = c2.oid`),(e||i)&&r(E,`
-     LEFT JOIN pg_catalog.pg_inherits inh ON c.oid = inh.inhrelid`),n&&(r(E,`
-     LEFT JOIN pg_catalog.pg_am am ON c.relam = am.oid`),c.sversion<12e4?r(E,`,
+     LEFT JOIN pg_catalog.pg_class c2 ON i.indrelid = c2.oid`),(e||i)&&r(c,`
+     LEFT JOIN pg_catalog.pg_inherits inh ON c.oid = inh.inhrelid`),n&&(r(c,`
+     LEFT JOIN pg_catalog.pg_am am ON c.relam = am.oid`),E.sversion<12e4?r(c,`,
      LATERAL (WITH RECURSIVE d
                 AS (SELECT inhrelid AS oid, 1 AS level
                       FROM pg_catalog.pg_inherits
@@ -3088,21 +3088,21 @@ FROM pg_catalog.pg_class c
                 SELECT pg_catalog.pg_size_pretty(sum(pg_catalog.pg_table_size(d.oid))) AS tps,
                        pg_catalog.pg_size_pretty(sum(
              CASE WHEN d.level = 1 THEN pg_catalog.pg_table_size(d.oid) ELSE 0 END)) AS dps
-               FROM d) s`):r(E,`,
+               FROM d) s`):r(c,`,
      LATERAL (SELECT pg_catalog.pg_size_pretty(sum(
                  CASE WHEN ppt.isleaf AND ppt.level = 1
                       THEN pg_catalog.pg_table_size(ppt.relid) ELSE 0 END)) AS dps,
                      pg_catalog.pg_size_pretty(sum(pg_catalog.pg_table_size(ppt.relid))) AS tps
-              FROM pg_catalog.pg_partition_tree(c.oid) ppt) s`)),r(E,`
-WHERE c.relkind IN (`),a&&r(E,"'p',"),s&&r(E,"'I',"),r(E,"''"),r(E,`)
-`),r(E,!e&&!i?` AND NOT c.relispartition
-`:""),i||r(E,`      AND n.nspname <> 'pg_catalog'
+              FROM pg_catalog.pg_partition_tree(c.oid) ppt) s`)),r(c,`
+WHERE c.relkind IN (`),a&&r(c,"'p',"),s&&r(c,"'I',"),r(c,"''"),r(c,`)
+`),r(c,!e&&!i?` AND NOT c.relispartition
+`:""),i||r(c,`      AND n.nspname <> 'pg_catalog'
       AND n.nspname !~ '^pg_toast'
       AND n.nspname <> 'information_schema'
-`),!P(E,i,!0,!1,"n.nspname","c.relname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3)||(p(E,'ORDER BY "Schema", %s%s"Na\
-me";',C?'"Type" DESC, ':"",e||i?'"Parent name" NULLS FIRST, ':""),S=await u(E.data),!S)?!1:(b(f),r(f,m),T.nullPrint=l,T.
-title=f.data,T.translate_header=!0,T.translate_columns=F,T.n_translate_columns=Q(F),v(S,T,c.queryFout,!1,c.logfile),!0)}
-async function sa(o,i,n){let a={},s,e=c.popt;return b(a),N(a,`/* %s */
+`),!U(c,i,!0,!1,"n.nspname","c.relname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3)||(p(c,'ORDER BY "Schema", %s%s"Na\
+me";',D?'"Type" DESC, ':"",e||i?'"Parent name" NULLS FIRST, ':""),S=await u(c.data),!S)?!1:(b(f),r(f,m),T.nullPrint=l,T.
+title=f.data,T.translate_header=!0,T.translate_columns=F,T.n_translate_columns=$(F),v(S,T,E.queryFout,!1,E.logfile),!0)}
+async function ia(o,i,n){let a={},s,e=E.popt;return b(a),N(a,`/* %s */
 `,R("Get matching procedural languages")),p(a,`SELECT l.lanname AS "%s",
        pg_catalog.pg_get_userbyid(l.lanowner) as "%s",
        l.lanpltrusted AS "%s"`,t("Name"),t("Owner"),t("Trusted")),i&&(p(a,`,
@@ -3110,15 +3110,15 @@ async function sa(o,i,n){let a={},s,e=c.popt;return b(a),N(a,`/* %s */
        l.lanplcallfoid::pg_catalog.regprocedure AS "%s",
        l.lanvalidator::pg_catalog.regprocedure AS "%s",
        l.laninline::pg_catalog.regprocedure AS "%s",
-       `,t("Internal language"),t("Call handler"),t("Validator"),t("Inline handler")),re(a,"l.lanacl")),p(a,`,
+       `,t("Internal language"),t("Call handler"),t("Validator"),t("Inline handler")),Ee(a,"l.lanacl")),p(a,`,
        d.description AS "%s"
 FROM pg_catalog.pg_language l
 LEFT JOIN pg_catalog.pg_description d
   ON d.classoid = l.tableoid AND d.objoid = l.oid
   AND d.objsubid = 0
-`,t("Description")),o&&!P(a,o,!1,!1,l,"l.lanname",l,l,l,2)||(!n&&!o&&r(a,`WHERE l.lanplcallfoid != 0
+`,t("Description")),o&&!U(a,o,!1,!1,l,"l.lanname",l,l,l,2)||(!n&&!o&&r(a,`WHERE l.lanplcallfoid != 0
 `),r(a,"ORDER BY 1;"),s=await u(a.data),!s)?!1:(e.nullPrint=l,e.title=R("List of languages"),e.translate_header=!0,v(s,e,
-c.queryFout,!1,c.logfile),!0)}async function ia(o,i,n){let a={},s,e=c.popt;return b(a),N(a,`/* %s */
+E.queryFout,!1,E.logfile),!0)}async function oa(o,i,n){let a={},s,e=E.popt;return b(a),N(a,`/* %s */
 `,R("Get matching domains")),p(a,`SELECT n.nspname as "%s",
        t.typname as "%s",
        pg_catalog.format_type(t.typbasetype, t.typtypmod) as "%s",
@@ -3131,7 +3131,7 @@ c.queryFout,!1,c.logfile),!0)}async function ia(o,i,n){let a={},s,e=c.popt;retur
 D r.contype = 'c' ORDER BY r.conname
        ), ' ') as "%s"`,t("Schema"),t("Name"),t("Type"),t("Collation"),t("Nullable"),t("Default"),t("Check")),i&&(r(a,`,\
 
-  `),re(a,"t.typacl"),p(a,`,
+  `),Ee(a,"t.typacl"),p(a,`,
        d.description as "%s"`,t("Description"))),r(a,`
 FROM pg_catalog.pg_type t
      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
@@ -3140,9 +3140,9 @@ FROM pg_catalog.pg_type t
 `),r(a,`WHERE t.typtype = 'd'
 `),!n&&!o&&r(a,`      AND n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
-`),!P(a,o,!0,!1,"n.nspname","t.typname",l,"pg_catalog.pg_type_is_visible(t.oid)",l,3)||(r(a,"ORDER BY 1, 2;"),s=await u(
-a.data),!s)?!1:(e.nullPrint=l,e.title=R("List of domains"),e.translate_header=!0,v(s,e,c.queryFout,!1,c.logfile),!0)}async function oa(o,i,n){
-let a={},s,e=c.popt,E=[!1,!1,!1,!1,!0,!1];return b(a),N(a,`/* %s */
+`),!U(a,o,!0,!1,"n.nspname","t.typname",l,"pg_catalog.pg_type_is_visible(t.oid)",l,3)||(r(a,"ORDER BY 1, 2;"),s=await u(
+a.data),!s)?!1:(e.nullPrint=l,e.title=R("List of domains"),e.translate_header=!0,v(s,e,E.queryFout,!1,E.logfile),!0)}async function ra(o,i,n){
+let a={},s,e=E.popt,c=[!1,!1,!1,!1,!0,!1];return b(a),N(a,`/* %s */
 `,R("Get matching conversions")),p(a,`SELECT n.nspname AS "%s",
        c.conname AS "%s",
        pg_catalog.pg_encoding_to_char(c.conforencoding) AS "%s",
@@ -3158,21 +3158,21 @@ FROM pg_catalog.pg_conversion c
 `),r(a,`WHERE true
 `),!n&&!o&&r(a,`  AND n.nspname <> 'pg_catalog'
   AND n.nspname <> 'information_schema'
-`),!P(a,o,!0,!1,"n.nspname","c.conname",l,"pg_catalog.pg_conversion_is_visible(c.oid)",l,3)||(r(a,"ORDER BY 1, 2;"),s=await u(
-a.data),!s)?!1:(e.nullPrint=l,e.title=R("List of conversions"),e.translate_header=!0,e.translate_columns=E,e.n_translate_columns=
-Q(E),v(s,e,c.queryFout,!1,c.logfile),!0)}async function ra(o,i,n){let a={},s,e=c.popt;return b(a),N(a,`/* %s */
+`),!U(a,o,!0,!1,"n.nspname","c.conname",l,"pg_catalog.pg_conversion_is_visible(c.oid)",l,3)||(r(a,"ORDER BY 1, 2;"),s=await u(
+a.data),!s)?!1:(e.nullPrint=l,e.title=R("List of conversions"),e.translate_header=!0,e.translate_columns=c,e.n_translate_columns=
+$(c),v(s,e,E.queryFout,!1,E.logfile),!0)}async function la(o,i,n){let a={},s,e=E.popt;return b(a),N(a,`/* %s */
 `,R("Get matching configuration parameters")),p(a,'SELECT s.name AS "%s", pg_catalog.current_setting(s.name) AS "%s"',t(
-"Parameter"),t("Value")),i&&(p(a,', s.vartype AS "%s", s.context AS "%s", ',t("Type"),t("Context")),c.sversion>=15e4?re(
+"Parameter"),t("Value")),i&&(p(a,', s.vartype AS "%s", s.context AS "%s", ',t("Type"),t("Context")),E.sversion>=15e4?Ee(
 a,"p.paracl"):p(a,'NULL AS "%s"',t("Access privileges"))),r(a,`
 FROM pg_catalog.pg_settings s
-`),i&&c.sversion>=15e4&&r(a,`  LEFT JOIN pg_catalog.pg_parameter_acl p
+`),i&&E.sversion>=15e4&&r(a,`  LEFT JOIN pg_catalog.pg_parameter_acl p
   ON pg_catalog.lower(s.name) = p.parname
-`),o?he(c.db,a,o,!1,!1,l,"pg_catalog.lower(s.name)",l,l,l,l):r(a,`WHERE s.source <> 'default' AND
+`),o?de(E.db,a,o,!1,!1,l,"pg_catalog.lower(s.name)",l,l,l,l):r(a,`WHERE s.source <> 'default' AND
       s.setting IS DISTINCT FROM s.boot_val
 `),r(a,"ORDER BY 1;"),s=await u(a.data),s?(e.nullPrint=l,o?e.title=R("List of configuration parameters"):e.title=R("List\
- of non-default configuration parameters"),e.translate_header=!0,v(s,e,c.queryFout,!1,c.logfile),!0):!1}async function la(o,i){
-let n={},a,s=c.popt,e=[!1,!1,!1,!0,!1,!1,!1];if(c.sversion<90300){let E;return w("The server (version %s) does not suppo\
-rt event triggers.",Se(c.sversion,!1,E,Ne(E))),!0}return b(n),N(n,`/* %s */
+ of non-default configuration parameters"),e.translate_header=!0,v(s,e,E.queryFout,!1,E.logfile),!0):!1}async function Ea(o,i){
+let n={},a,s=E.popt,e=[!1,!1,!1,!0,!1,!1,!1];if(E.sversion<90300){let c;return M("The server (version %s) does not suppo\
+rt event triggers.",Ie(E.sversion,!1,c,Le(c))),!0}return b(n),N(n,`/* %s */
 `,R("Get matching event triggers")),p(n,`SELECT evtname as "%s", evtevent as "%s", pg_catalog.pg_get_userbyid(e.evtowner\
 ) as "%s",
  case evtenabled when 'O' then '%s'  when 'R' then '%s'  when 'A' then '%s'  when 'D' then '%s' end as "%s",
@@ -3180,14 +3180,14 @@ rt event triggers.",Se(c.sversion,!1,E,Ne(E))),!0}return b(n),N(n,`/* %s */
 )), ', ') as "%s"`,t("Name"),t("Event"),t("Owner"),t("enabled"),t("replica"),t("always"),t("disabled"),t("Enabled"),t("F\
 unction"),t("Tags")),i&&p(n,`,
 pg_catalog.obj_description(e.oid, 'pg_event_trigger') as "%s"`,t("Description")),r(n,`
-FROM pg_catalog.pg_event_trigger e `),!P(n,o,!1,!1,l,"evtname",l,l,l,1)||(r(n,"ORDER BY 1"),a=await u(n.data),!a)?!1:(s.
-nullPrint=l,s.title=R("List of event triggers"),s.translate_header=!0,s.translate_columns=e,s.n_translate_columns=Q(e),v(
-a,s,c.queryFout,!1,c.logfile),!0)}async function Ea(o,i){let n={},a,s=c.popt;if(c.sversion<1e5){let e;return w("The serv\
-er (version %s) does not support extended statistics.",Se(c.sversion,!1,e,Ne(e))),!0}return b(n),N(n,`/* %s */
+FROM pg_catalog.pg_event_trigger e `),!U(n,o,!1,!1,l,"evtname",l,l,l,1)||(r(n,"ORDER BY 1"),a=await u(n.data),!a)?!1:(s.
+nullPrint=l,s.title=R("List of event triggers"),s.translate_header=!0,s.translate_columns=e,s.n_translate_columns=$(e),v(
+a,s,E.queryFout,!1,E.logfile),!0)}async function ca(o,i){let n={},a,s=E.popt;if(E.sversion<1e5){let e;return M("The serv\
+er (version %s) does not support extended statistics.",Ie(E.sversion,!1,e,Le(e))),!0}return b(n),N(n,`/* %s */
 `,R("Get matching extended statistics")),p(n,`SELECT 
 es.stxnamespace::pg_catalog.regnamespace::pg_catalog.text AS "%s", 
 es.stxname AS "%s", 
-`,t("Schema"),t("Name")),c.sversion>=14e4?p(n,`pg_catalog.format('%%s FROM %%s', 
+`,t("Schema"),t("Name")),E.sversion>=14e4?p(n,`pg_catalog.format('%%s FROM %%s', 
   pg_catalog.pg_get_statisticsobjdef_columns(es.oid), 
   es.stxrelid::pg_catalog.regclass) AS "%s"`,t("Definition")):p(n,`pg_catalog.format('%%s FROM %%s', 
   (SELECT pg_catalog.string_agg(pg_catalog.quote_ident(a.attname),', ') 
@@ -3200,15 +3200,15 @@ es.stxrelid::pg_catalog.regclass) AS "%s"`,t("Definition")),p(n,`,
 CASE WHEN 'd' = any(es.stxkind) THEN 'defined' 
 END AS "%s", 
 CASE WHEN 'f' = any(es.stxkind) THEN 'defined' 
-END AS "%s"`,t("Ndistinct"),t("Dependencies")),c.sversion>=12e4&&p(n,`,
+END AS "%s"`,t("Ndistinct"),t("Dependencies")),E.sversion>=12e4&&p(n,`,
 CASE WHEN 'm' = any(es.stxkind) THEN 'defined' 
 END AS "%s" `,t("MCV")),i&&p(n,`, 
 pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
 `,t("Description")),r(n,` 
 FROM pg_catalog.pg_statistic_ext es 
-`),!P(n,o,!1,!1,"es.stxnamespace::pg_catalog.regnamespace::pg_catalog.text","es.stxname",l,"pg_catalog.pg_statistics_obj\
+`),!U(n,o,!1,!1,"es.stxnamespace::pg_catalog.regnamespace::pg_catalog.text","es.stxname",l,"pg_catalog.pg_statistics_obj\
 _is_visible(es.oid)",l,3)||(r(n,"ORDER BY 1, 2;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of extended st\
-atistics"),s.translate_header=!0,v(a,s,c.queryFout,!1,c.logfile),!0)}async function ca(o,i){let n={},a,s=c.popt,e=[!1,!1,
+atistics"),s.translate_header=!0,v(a,s,E.queryFout,!1,E.logfile),!0)}async function pa(o,i){let n={},a,s=E.popt,e=[!1,!1,
 !1,!0,!0,!1];return b(n),N(n,`/* %s */
 `,R("Get matching casts")),p(n,`SELECT pg_catalog.format_type(castsource, NULL) AS "%s",
        pg_catalog.format_type(casttarget, NULL) AS "%s",
@@ -3216,10 +3216,10 @@ atistics"),s.translate_header=!0,v(a,s,c.queryFout,!1,c.logfile),!0)}async funct
             WHEN c.castmethod = '%c' THEN '(with inout)'
             ELSE p.proname
        END AS "%s",
-`,ka,Va,t("Function")),p(n,`       CASE WHEN c.castcontext = '%c' THEN '%s'
+`,Va,Xa,t("Function")),p(n,`       CASE WHEN c.castcontext = '%c' THEN '%s'
             WHEN c.castcontext = '%c' THEN '%s'
             ELSE '%s'
-       END AS "%s"`,ja,t("no"),Xa,t("in assignment"),t("yes"),t("Implicit?")),i&&p(n,`,
+       END AS "%s"`,Ja,t("no"),ja,t("in assignment"),t("yes"),t("Implicit?")),i&&p(n,`,
        CASE WHEN p.proleakproof THEN '%s'
             ELSE '%s'
        END AS "%s",
@@ -3236,26 +3236,26 @@ FROM pg_catalog.pg_cast c LEFT JOIN pg_catalog.pg_proc p
      ON nt.oid = tt.typnamespace
 `),i&&r(n,`     LEFT JOIN pg_catalog.pg_description d
      ON d.classoid = c.tableoid AND d.objoid = c.oid AND d.objsubid = 0
-`),r(n,"WHERE ( (true"),!P(n,o,!0,!1,"ns.nspname","ts.typname","pg_catalog.format_type(ts.oid, NULL)","pg_catalog.pg_typ\
-e_is_visible(ts.oid)",l,3)||(r(n,") OR (true"),!P(n,o,!0,!1,"nt.nspname","tt.typname","pg_catalog.format_type(tt.oid, NU\
+`),r(n,"WHERE ( (true"),!U(n,o,!0,!1,"ns.nspname","ts.typname","pg_catalog.format_type(ts.oid, NULL)","pg_catalog.pg_typ\
+e_is_visible(ts.oid)",l,3)||(r(n,") OR (true"),!U(n,o,!0,!1,"nt.nspname","tt.typname","pg_catalog.format_type(tt.oid, NU\
 LL)","pg_catalog.pg_type_is_visible(tt.oid)",l,3))||(r(n,`) )
 ORDER BY 1, 2;`),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of casts"),s.translate_header=!0,s.translate_columns=
-e,s.n_translate_columns=Q(e),v(a,s,c.queryFout,!1,c.logfile),!0)}async function pa(o,i,n){let a={},s,e=c.popt,E=[!1,!1,!1,
+e,s.n_translate_columns=$(e),v(a,s,E.queryFout,!1,E.logfile),!0)}async function Ta(o,i,n){let a={},s,e=E.popt,c=[!1,!1,!1,
 !1,!1,!1,!1,!0,!1];return b(a),N(a,`/* %s */
 `,R("Get matching collations")),p(a,`SELECT
   n.nspname AS "%s",
   c.collname AS "%s",
-`,t("Schema"),t("Name")),c.sversion>=1e5?p(a,`  CASE c.collprovider WHEN 'd' THEN 'default' WHEN 'b' THEN 'builtin' WHEN\
+`,t("Schema"),t("Name")),E.sversion>=1e5?p(a,`  CASE c.collprovider WHEN 'd' THEN 'default' WHEN 'b' THEN 'builtin' WHEN\
  'c' THEN 'libc' WHEN 'i' THEN 'icu' END AS "%s",
 `,t("Provider")):p(a,`  'libc' AS "%s",
 `,t("Provider")),p(a,`  c.collcollate AS "%s",
   c.collctype AS "%s",
-`,t("Collate"),t("Ctype")),c.sversion>=17e4?p(a,`  c.colllocale AS "%s",
-`,t("Locale")):c.sversion>=15e4?p(a,`  c.colliculocale AS "%s",
+`,t("Collate"),t("Ctype")),E.sversion>=17e4?p(a,`  c.colllocale AS "%s",
+`,t("Locale")):E.sversion>=15e4?p(a,`  c.colliculocale AS "%s",
 `,t("Locale")):p(a,`  c.collcollate AS "%s",
-`,t("Locale")),c.sversion>=16e4?p(a,`  c.collicurules AS "%s",
+`,t("Locale")),E.sversion>=16e4?p(a,`  c.collicurules AS "%s",
 `,t("ICU Rules")):p(a,`  NULL AS "%s",
-`,t("ICU Rules")),c.sversion>=12e4?p(a,`  CASE WHEN c.collisdeterministic THEN '%s' ELSE '%s' END AS "%s"`,t("yes"),t("n\
+`,t("ICU Rules")),E.sversion>=12e4?p(a,`  CASE WHEN c.collisdeterministic THEN '%s' ELSE '%s' END AS "%s"`,t("yes"),t("n\
 o"),t("Deterministic?")):p(a,`  '%s' AS "%s"`,t("yes"),t("Deterministic?")),i&&p(a,`,
   pg_catalog.obj_description(c.oid, 'pg_collation') AS "%s"`,t("Description")),r(a,`
 FROM pg_catalog.pg_collation c, pg_catalog.pg_namespace n
@@ -3263,43 +3263,43 @@ WHERE n.oid = c.collnamespace
 `),!n&&!o&&r(a,`      AND n.nspname <> 'pg_catalog'
       AND n.nspname <> 'information_schema'
 `),r(a,`      AND c.collencoding IN (-1, pg_catalog.pg_char_to_encoding(pg_catalog.getdatabaseencoding()))
-`),!P(a,o,!0,!1,"n.nspname","c.collname",l,"pg_catalog.pg_collation_is_visible(c.oid)",l,3)||(r(a,"ORDER BY 1, 2;"),s=await u(
-a.data),!s)?!1:(e.nullPrint=l,e.title=R("List of collations"),e.translate_header=!0,e.translate_columns=E,e.n_translate_columns=
-Q(E),v(s,e,c.queryFout,!1,c.logfile),!0)}async function Ta(o,i,n){let a={},s,e=c.popt,E=0,f=l;if(b(a),N(a,`/* %s */
+`),!U(a,o,!0,!1,"n.nspname","c.collname",l,"pg_catalog.pg_collation_is_visible(c.oid)",l,3)||(r(a,"ORDER BY 1, 2;"),s=await u(
+a.data),!s)?!1:(e.nullPrint=l,e.title=R("List of collations"),e.translate_header=!0,e.translate_columns=c,e.n_translate_columns=
+$(c),v(s,e,E.queryFout,!1,E.logfile),!0)}async function Ra(o,i,n){let a={},s,e=E.popt,c=0,f=l;if(b(a),N(a,`/* %s */
 `,R("Get matching schemas")),p(a,`SELECT n.nspname AS "%s",
   pg_catalog.pg_get_userbyid(n.nspowner) AS "%s"`,t("Name"),t("Owner")),i&&(r(a,`,
-  `),re(a,"n.nspacl"),p(a,`,
+  `),Ee(a,"n.nspacl"),p(a,`,
   pg_catalog.obj_description(n.oid, 'pg_namespace') AS "%s"`,t("Description"))),r(a,`
 FROM pg_catalog.pg_namespace n
 `),!n&&!o&&r(a,`WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'
-`),!P(a,o,!n&&!o,!1,l,"n.nspname",l,l,l,2)||(r(a,"ORDER BY 1;"),s=await u(a.data),!s))return!1;if(e.nullPrint=l,e.title=
-R("List of schemas"),e.translate_header=!0,o&&c.sversion>=15e4){let S,T;if(N(a,`/* %s */
+`),!U(a,o,!n&&!o,!1,l,"n.nspname",l,l,l,2)||(r(a,"ORDER BY 1;"),s=await u(a.data),!s))return!1;if(e.nullPrint=l,e.title=
+R("List of schemas"),e.translate_header=!0,o&&E.sversion>=15e4){let S,T;if(N(a,`/* %s */
 `,R("Get publications that publish this schema")),p(a,`SELECT pubname 
 FROM pg_catalog.pg_publication p
      JOIN pg_catalog.pg_publication_namespace pn ON p.oid = pn.pnpubid
      JOIN pg_catalog.pg_namespace n ON n.oid = pn.pnnspid 
 WHERE n.nspname = '%s'
-ORDER BY 1`,o),S=await u(a.data),S)E=W(S);else return!1;if(E>0){for(f=[],f[0]=Ae(R("Included in publications:")),T=0;T<E;T++)
-N(a,'    "%s"',A(S,T,0)),f[T+1]=Ae(a.data);f[T+1]=l,e.footers=f}}return v(s,e,c.queryFout,!1,c.logfile),!0}async function Ra(o,i){
-let n={},a,s=c.popt;return i?await _a(o):(b(n),N(n,`/* %s */
+ORDER BY 1`,o),S=await u(a.data),S)c=x(S);else return!1;if(c>0){for(f=[],f[0]=me(R("Included in publications:")),T=0;T<c;T++)
+N(a,'    "%s"',g(S,T,0)),f[T+1]=me(a.data);f[T+1]=l,e.footers=f}}return v(s,e,E.queryFout,!1,E.logfile),!0}async function _a(o,i){
+let n={},a,s=E.popt;return i?await Aa(o):(b(n),N(n,`/* %s */
 `,R("Get matching text search parsers")),p(n,`SELECT
   n.nspname as "%s",
   p.prsname as "%s",
   pg_catalog.obj_description(p.oid, 'pg_ts_parser') as "%s"
 FROM pg_catalog.pg_ts_parser p
 LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.prsnamespace
-`,t("Schema"),t("Name"),t("Description")),!P(n,o,!1,!1,"n.nspname","p.prsname",l,"pg_catalog.pg_ts_parser_is_visible(p.o\
+`,t("Schema"),t("Name"),t("Description")),!U(n,o,!1,!1,"n.nspname","p.prsname",l,"pg_catalog.pg_ts_parser_is_visible(p.o\
 id)",l,3)||(r(n,"ORDER BY 1, 2;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of text search parsers"),s.translate_header=
-!0,v(a,s,c.queryFout,!1,c.logfile),!0))}async function _a(o){let i={},n,a;if(b(i),N(i,`/* %s */
+!0,v(a,s,E.queryFout,!1,E.logfile),!0))}async function Aa(o){let i={},n,a;if(b(i),N(i,`/* %s */
 `,R("Get matching text search parsers")),r(i,`SELECT p.oid,
   n.nspname,
   p.prsname
 FROM pg_catalog.pg_ts_parser p
 LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.prsnamespace
-`),!P(i,o,!1,!1,"n.nspname","p.prsname",l,"pg_catalog.pg_ts_parser_is_visible(p.oid)",l,3)||(r(i,"ORDER BY 1, 2;"),n=await u(
-i.data),!n))return!1;if(W(n)==0)return c.quiet||(o?w('Did not find any text search parser named "%s".',o):w("Did not fin\
-d any text search parsers.")),!1;for(a=0;a<W(n);a++){let s,e=l,E;if(s=A(n,a,0),te(n,a,1)||(e=A(n,a,1)),E=A(n,a,2),!await Aa(
-s,e,E)||X)return!1}return!0}async function Aa(o,i,n){let a={},s,e={},E=c.popt,f=[!0,!1,!1];return b(a),N(a,`/* %s */
+`),!U(i,o,!1,!1,"n.nspname","p.prsname",l,"pg_catalog.pg_ts_parser_is_visible(p.oid)",l,3)||(r(i,"ORDER BY 1, 2;"),n=await u(
+i.data),!n))return!1;if(x(n)==0)return E.quiet||(o?M('Did not find any text search parser named "%s".',o):M("Did not fin\
+d any text search parsers.")),!1;for(a=0;a<x(n);a++){let s,e=l,c;if(s=g(n,a,0),ie(n,a,1)||(e=g(n,a,1)),c=g(n,a,2),!await ga(
+s,e,c)||B)return!1}return!0}async function ga(o,i,n){let a={},s,e={},c=E.popt,f=[!0,!1,!1];return b(a),N(a,`/* %s */
 `,R("Get text search parser details")),p(a,`SELECT '%s' AS "%s",
    p.prsstart::pg_catalog.regproc AS "%s",
    pg_catalog.obj_description(p.prsstart, 'pg_proc') as "%s"
@@ -3329,15 +3329,15 @@ SELECT '%s',
    pg_catalog.obj_description(p.prslextype, 'pg_proc')
  FROM pg_catalog.pg_ts_parser p
  WHERE p.oid = '%s';`,t("Start parse"),t("Method"),t("Function"),t("Description"),o,t("Get next token"),o,t("End parse"),
-o,t("Get headline"),o,t("Get token types"),o),s=await u(a.data),!s||(E.nullPrint=l,b(e),i?N(e,R('Text search parser "%s.\
-%s"'),i,n):N(e,R('Text search parser "%s"'),n),E.title=e.data,E.footers=l,E.topt.default_footer=!1,E.translate_header=!0,
-E.translate_columns=f,E.n_translate_columns=Q(f),v(s,E,c.queryFout,!1,c.logfile),b(a),N(a,`/* %s */
+o,t("Get headline"),o,t("Get token types"),o),s=await u(a.data),!s||(c.nullPrint=l,b(e),i?N(e,R('Text search parser "%s.\
+%s"'),i,n):N(e,R('Text search parser "%s"'),n),c.title=e.data,c.footers=l,c.topt.default_footer=!1,c.translate_header=!0,
+c.translate_columns=f,c.n_translate_columns=$(f),v(s,c,E.queryFout,!1,E.logfile),b(a),N(a,`/* %s */
 `,R("Get text search parser token types")),p(a,`SELECT t.alias as "%s",
   t.description as "%s"
 FROM pg_catalog.ts_token_type( '%s'::pg_catalog.oid ) as t
-ORDER BY 1;`,t("Token name"),t("Description"),o),s=await u(a.data),!s)?!1:(E.nullPrint=l,i?N(e,R('Token types for parser\
- "%s.%s"'),i,n):N(e,R('Token types for parser "%s"'),n),E.title=e.data,E.footers=l,E.topt.default_footer=!0,E.translate_header=
-!0,E.translate_columns=l,E.n_translate_columns=0,v(s,E,c.queryFout,!1,c.logfile),!0)}async function ga(o,i){let n={},a,s=c.
+ORDER BY 1;`,t("Token name"),t("Description"),o),s=await u(a.data),!s)?!1:(c.nullPrint=l,i?N(e,R('Token types for parser\
+ "%s.%s"'),i,n):N(e,R('Token types for parser "%s"'),n),c.title=e.data,c.footers=l,c.topt.default_footer=!0,c.translate_header=
+!0,c.translate_columns=l,c.n_translate_columns=0,v(s,c,E.queryFout,!1,E.logfile),!0)}async function Na(o,i){let n={},a,s=E.
 popt;return b(n),N(n,`/* %s */
 `,R("Get matching text search dictionaries")),p(n,`SELECT
   n.nspname as "%s",
@@ -3350,9 +3350,9 @@ popt;return b(n),N(n,`/* %s */
 `,t("Template"),t("Init options")),p(n,`  pg_catalog.obj_description(d.oid, 'pg_ts_dict') as "%s"
 `,t("Description")),r(n,`FROM pg_catalog.pg_ts_dict d
 LEFT JOIN pg_catalog.pg_namespace n ON n.oid = d.dictnamespace
-`),!P(n,o,!1,!1,"n.nspname","d.dictname",l,"pg_catalog.pg_ts_dict_is_visible(d.oid)",l,3)||(r(n,"ORDER BY 1, 2;"),a=await u(
-n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of text search dictionaries"),s.translate_header=!0,v(a,s,c.queryFout,!1,c.
-logfile),!0)}async function Na(o,i){let n={},a,s=c.popt;return b(n),N(n,`/* %s */
+`),!U(n,o,!1,!1,"n.nspname","d.dictname",l,"pg_catalog.pg_ts_dict_is_visible(d.oid)",l,3)||(r(n,"ORDER BY 1, 2;"),a=await u(
+n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of text search dictionaries"),s.translate_header=!0,v(a,s,E.queryFout,!1,E.
+logfile),!0)}async function Sa(o,i){let n={},a,s=E.popt;return b(n),N(n,`/* %s */
 `,R("Get matching text search templates")),i?p(n,`SELECT
   n.nspname AS "%s",
   t.tmplname AS "%s",
@@ -3365,18 +3365,18 @@ logfile),!0)}async function Na(o,i){let n={},a,s=c.popt;return b(n),N(n,`/* %s *
   pg_catalog.obj_description(t.oid, 'pg_ts_template') AS "%s"
 `,t("Schema"),t("Name"),t("Description")),r(n,`FROM pg_catalog.pg_ts_template t
 LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.tmplnamespace
-`),!P(n,o,!1,!1,"n.nspname","t.tmplname",l,"pg_catalog.pg_ts_template_is_visible(t.oid)",l,3)||(r(n,"ORDER BY 1, 2;"),a=
-await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of text search templates"),s.translate_header=!0,v(a,s,c.queryFout,
-!1,c.logfile),!0)}async function Sa(o,i){let n={},a,s=c.popt;return i?await ma(o):(b(n),N(n,`/* %s */
+`),!U(n,o,!1,!1,"n.nspname","t.tmplname",l,"pg_catalog.pg_ts_template_is_visible(t.oid)",l,3)||(r(n,"ORDER BY 1, 2;"),a=
+await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of text search templates"),s.translate_header=!0,v(a,s,E.queryFout,
+!1,E.logfile),!0)}async function ma(o,i){let n={},a,s=E.popt;return i?await fa(o):(b(n),N(n,`/* %s */
 `,R("Get matching text search configurations")),p(n,`SELECT
    n.nspname as "%s",
    c.cfgname as "%s",
    pg_catalog.obj_description(c.oid, 'pg_ts_config') as "%s"
 FROM pg_catalog.pg_ts_config c
 LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.cfgnamespace
-`,t("Schema"),t("Name"),t("Description")),!P(n,o,!1,!1,"n.nspname","c.cfgname",l,"pg_catalog.pg_ts_config_is_visible(c.o\
+`,t("Schema"),t("Name"),t("Description")),!U(n,o,!1,!1,"n.nspname","c.cfgname",l,"pg_catalog.pg_ts_config_is_visible(c.o\
 id)",l,3)||(r(n,"ORDER BY 1, 2;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of text search configurations"),
-s.translate_header=!0,v(a,s,c.queryFout,!1,c.logfile),!0))}async function ma(o){let i={},n,a;if(b(i),N(i,`/* %s */
+s.translate_header=!0,v(a,s,E.queryFout,!1,E.logfile),!0))}async function fa(o){let i={},n,a;if(b(i),N(i,`/* %s */
 `,R("Get matching text search configurations")),r(i,`SELECT c.oid, c.cfgname,
    n.nspname,
    p.prsname,
@@ -3386,11 +3386,11 @@ FROM pg_catalog.pg_ts_config c
  pg_catalog.pg_ts_parser p
    LEFT JOIN pg_catalog.pg_namespace np ON np.oid = p.prsnamespace
 WHERE  p.oid = c.cfgparser
-`),!P(i,o,!0,!1,"n.nspname","c.cfgname",l,"pg_catalog.pg_ts_config_is_visible(c.oid)",l,3)||(r(i,"ORDER BY 3, 2;"),n=await u(
-i.data),!n))return!1;if(W(n)==0)return c.quiet||(o?w('Did not find any text search configuration named "%s".',o):w("Did \
-not find any text search configurations.")),!1;for(a=0;a<W(n);a++){let s,e,E=l,f,S=l;if(s=A(n,a,0),e=A(n,a,1),te(n,a,2)||
-(E=A(n,a,2)),f=A(n,a,3),te(n,a,4)||(S=A(n,a,4)),!await fa(s,E,e,S,f)||X)return!1}return!0}async function fa(o,i,n,a,s){let e={},
-E={},f,S=c.popt;return b(e),N(e,`/* %s */
+`),!U(i,o,!0,!1,"n.nspname","c.cfgname",l,"pg_catalog.pg_ts_config_is_visible(c.oid)",l,3)||(r(i,"ORDER BY 3, 2;"),n=await u(
+i.data),!n))return!1;if(x(n)==0)return E.quiet||(o?M('Did not find any text search configuration named "%s".',o):M("Did \
+not find any text search configurations.")),!1;for(a=0;a<x(n);a++){let s,e,c=l,f,S=l;if(s=g(n,a,0),e=g(n,a,1),ie(n,a,2)||
+(c=g(n,a,2)),f=g(n,a,3),ie(n,a,4)||(S=g(n,a,4)),!await Oa(s,c,e,S,f)||B)return!1}return!0}async function Oa(o,i,n,a,s){let e={},
+c={},f,S=E.popt;return b(e),N(e,`/* %s */
 `,R("Get text search configuration details")),p(e,`SELECT
   ( SELECT t.alias FROM
     pg_catalog.ts_token_type(c.cfgparser) AS t
@@ -3405,16 +3405,16 @@ E={},f,S=c.popt;return b(e),N(e,`/* %s */
 FROM pg_catalog.pg_ts_config AS c, pg_catalog.pg_ts_config_map AS m
 WHERE c.oid = '%s' AND m.mapcfg = c.oid
 GROUP BY m.mapcfg, m.maptokentype, c.cfgparser
-ORDER BY 1;`,t("Token"),t("Dictionaries"),o),f=await u(e.data),f?(b(E),i?p(E,R('Text search configuration "%s.%s"'),i,n):
-p(E,R('Text search configuration "%s"'),n),a?p(E,R(`
-Parser: "%s.%s"`),a,s):p(E,R(`
-Parser: "%s"`),s),S.nullPrint=l,S.title=E.data,S.footers=l,S.topt.default_footer=!1,S.translate_header=!0,v(f,S,c.queryFout,
-!1,c.logfile),!0):!1}async function Oa(o,i){let n={},a,s=c.popt;return b(n),N(n,`/* %s */
+ORDER BY 1;`,t("Token"),t("Dictionaries"),o),f=await u(e.data),f?(b(c),i?p(c,R('Text search configuration "%s.%s"'),i,n):
+p(c,R('Text search configuration "%s"'),n),a?p(c,R(`
+Parser: "%s.%s"`),a,s):p(c,R(`
+Parser: "%s"`),s),S.nullPrint=l,S.title=c.data,S.footers=l,S.topt.default_footer=!1,S.translate_header=!0,v(f,S,E.queryFout,
+!1,E.logfile),!0):!1}async function da(o,i){let n={},a,s=E.popt;return b(n),N(n,`/* %s */
 `,R("Get matching foreign-data wrappers")),p(n,`SELECT fdw.fdwname AS "%s",
   pg_catalog.pg_get_userbyid(fdw.fdwowner) AS "%s",
   fdw.fdwhandler::pg_catalog.regproc AS "%s",
   fdw.fdwvalidator::pg_catalog.regproc AS "%s"`,t("Name"),t("Owner"),t("Handler"),t("Validator")),i&&(r(n,`,
-  `),re(n,"fdwacl"),p(n,`,
+  `),Ee(n,"fdwacl"),p(n,`,
  CASE WHEN fdwoptions IS NULL THEN '' ELSE   '(' || pg_catalog.array_to_string(ARRAY(SELECT   pg_catalog.quote_ident(opt\
 ion_name) ||  ' ' ||   pg_catalog.quote_literal(option_value)  FROM   pg_catalog.pg_options_to_table(fdwoptions)),  ', '\
 ) || ')'   END AS "%s",
@@ -3422,13 +3422,13 @@ ion_name) ||  ' ' ||   pg_catalog.quote_literal(option_value)  FROM   pg_catalog
 FROM pg_catalog.pg_foreign_data_wrapper fdw
 `),i&&r(n,`LEFT JOIN pg_catalog.pg_description d
        ON d.classoid = fdw.tableoid AND d.objoid = fdw.oid AND d.objsubid = 0
-`),!P(n,o,!1,!1,l,"fdwname",l,l,l,1)||(r(n,"ORDER BY 1;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of for\
-eign-data wrappers"),s.translate_header=!0,v(a,s,c.queryFout,!1,c.logfile),!0)}async function da(o,i){let n={},a,s=c.popt;
+`),!U(n,o,!1,!1,l,"fdwname",l,l,l,1)||(r(n,"ORDER BY 1;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of for\
+eign-data wrappers"),s.translate_header=!0,v(a,s,E.queryFout,!1,E.logfile),!0)}async function ua(o,i){let n={},a,s=E.popt;
 return b(n),N(n,`/* %s */
 `,R("Get matching foreign servers")),p(n,`SELECT s.srvname AS "%s",
   pg_catalog.pg_get_userbyid(s.srvowner) AS "%s",
   f.fdwname AS "%s"`,t("Name"),t("Owner"),t("Foreign-data wrapper")),i&&(r(n,`,
-  `),re(n,"s.srvacl"),p(n,`,
+  `),Ee(n,"s.srvacl"),p(n,`,
   s.srvtype AS "%s",
   s.srvversion AS "%s",
   CASE WHEN srvoptions IS NULL THEN '' ELSE   '(' || pg_catalog.array_to_string(ARRAY(SELECT   pg_catalog.quote_ident(op\
@@ -3439,8 +3439,8 @@ FROM pg_catalog.pg_foreign_server s
      JOIN pg_catalog.pg_foreign_data_wrapper f ON f.oid=s.srvfdw
 `),i&&r(n,`LEFT JOIN pg_catalog.pg_description d
        ON d.classoid = s.tableoid AND d.objoid = s.oid AND d.objsubid = 0
-`),!P(n,o,!1,!1,l,"s.srvname",l,l,l,1)||(r(n,"ORDER BY 1;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of f\
-oreign servers"),s.translate_header=!0,v(a,s,c.queryFout,!1,c.logfile),!0)}async function ua(o,i){let n={},a,s=c.popt;return b(
+`),!U(n,o,!1,!1,l,"s.srvname",l,l,l,1)||(r(n,"ORDER BY 1;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of f\
+oreign servers"),s.translate_header=!0,v(a,s,E.queryFout,!1,E.logfile),!0)}async function La(o,i){let n={},a,s=E.popt;return b(
 n),N(n,`/* %s */
 `,R("Get matching user mappings")),p(n,`SELECT um.srvname AS "%s",
   um.usename AS "%s"`,t("Server"),t("User name")),i&&p(n,`,
@@ -3448,8 +3448,8 @@ n),N(n,`/* %s */
 on_name) ||  ' ' ||   pg_catalog.quote_literal(option_value)  FROM   pg_catalog.pg_options_to_table(umoptions)),  ', ') \
 || ')'   END AS "%s"`,t("FDW options")),r(n,`
 FROM pg_catalog.pg_user_mappings um
-`),!P(n,o,!1,!1,l,"um.srvname","um.usename",l,l,1)||(r(n,"ORDER BY 1, 2;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=
-R("List of user mappings"),s.translate_header=!0,v(a,s,c.queryFout,!1,c.logfile),!0)}async function La(o,i){let n={},a,s=c.
+`),!U(n,o,!1,!1,l,"um.srvname","um.usename",l,l,1)||(r(n,"ORDER BY 1, 2;"),a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=
+R("List of user mappings"),s.translate_header=!0,v(a,s,E.queryFout,!1,E.logfile),!0)}async function Ia(o,i){let n={},a,s=E.
 popt;return b(n),N(n,`/* %s */
 `,R("Get matching foreign tables")),p(n,`SELECT n.nspname AS "%s",
   c.relname AS "%s",
@@ -3464,51 +3464,51 @@ FROM pg_catalog.pg_foreign_table ft
   INNER JOIN pg_catalog.pg_foreign_server s ON s.oid = ft.ftserver
 `),i&&r(n,`   LEFT JOIN pg_catalog.pg_description d
           ON d.classoid = c.tableoid AND d.objoid = c.oid AND d.objsubid = 0
-`),!P(n,o,!1,!1,"n.nspname","c.relname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3)||(r(n,"ORDER BY 1, 2;"),a=await u(
-n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of foreign tables"),s.translate_header=!0,v(a,s,c.queryFout,!1,c.logfile),
-!0)}async function Ia(o){let i={},n,a=c.popt;return b(i),N(i,`/* %s */
+`),!U(n,o,!1,!1,"n.nspname","c.relname",l,"pg_catalog.pg_table_is_visible(c.oid)",l,3)||(r(n,"ORDER BY 1, 2;"),a=await u(
+n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of foreign tables"),s.translate_header=!0,v(a,s,E.queryFout,!1,E.logfile),
+!0)}async function Ca(o){let i={},n,a=E.popt;return b(i),N(i,`/* %s */
 `,R("Get matching installed extensions")),p(i,`SELECT e.extname AS "%s", e.extversion AS "%s", ae.default_version AS "%s\
 ",n.nspname AS "%s", d.description AS "%s"
 FROM pg_catalog.pg_extension e LEFT JOIN pg_catalog.pg_namespace n ON n.oid = e.extnamespace LEFT JOIN pg_catalog.pg_des\
 cription d ON d.objoid = e.oid AND d.classoid = 'pg_catalog.pg_extension'::pg_catalog.regclass LEFT JOIN pg_catalog.pg_a\
 vailable_extensions() ae(name, default_version, comment) ON ae.name = e.extname
-`,t("Name"),t("Version"),t("Default version"),t("Schema"),t("Description")),!P(i,o,!1,!1,l,"e.extname",l,l,l,1)||(r(i,"O\
+`,t("Name"),t("Version"),t("Default version"),t("Schema"),t("Description")),!U(i,o,!1,!1,l,"e.extname",l,l,l,1)||(r(i,"O\
 RDER BY 1;"),n=await u(i.data),!n)?!1:(a.nullPrint=l,a.title=R("List of installed extensions"),a.translate_header=!0,v(n,
-a,c.queryFout,!1,c.logfile),!0)}async function Ca(o){let i={},n,a;if(b(i),N(i,`/* %s */
+a,E.queryFout,!1,E.logfile),!0)}async function Da(o){let i={},n,a;if(b(i),N(i,`/* %s */
 `,R("Get matching installed extensions")),r(i,`SELECT e.extname, e.oid
 FROM pg_catalog.pg_extension e
-`),!P(i,o,!1,!1,l,"e.extname",l,l,l,1)||(r(i,"ORDER BY 1;"),n=await u(i.data),!n))return!1;if(W(n)==0)return c.quiet||(o?
-w('Did not find any extension named "%s".',o):w("Did not find any extensions.")),!1;for(a=0;a<W(n);a++){let s,e;if(s=A(n,
-a,0),e=A(n,a,1),!await Da(s,e)||X)return!1}return!0}async function Da(o,i){let n={},a,s={},e=c.popt;return b(n),N(n,`/* \
+`),!U(i,o,!1,!1,l,"e.extname",l,l,l,1)||(r(i,"ORDER BY 1;"),n=await u(i.data),!n))return!1;if(x(n)==0)return E.quiet||(o?
+M('Did not find any extension named "%s".',o):M("Did not find any extensions.")),!1;for(a=0;a<x(n);a++){let s,e;if(s=g(n,
+a,0),e=g(n,a,1),!await ba(s,e)||B)return!1}return!0}async function ba(o,i){let n={},a,s={},e=E.popt;return b(n),N(n,`/* \
 %s */
 `,R("Get installed extension's contents")),p(n,`SELECT pg_catalog.pg_describe_object(classid, objid, 0) AS "%s"
 FROM pg_catalog.pg_depend
 WHERE refclassid = 'pg_catalog.pg_extension'::pg_catalog.regclass AND refobjid = '%s' AND deptype = 'e'
 ORDER BY 1;`,t("Object description"),i),a=await u(n.data),a?(e.nullPrint=l,b(s),N(s,R('Objects in extension "%s"'),o),e.
-title=s.data,e.translate_header=!0,v(a,e,c.queryFout,!1,c.logfile),!0):!1}async function ba(o){let i={},n,a=c.popt,s=[!1,
-!1,!1,!1,!1,!1,!1,!1,!1,!1];if(c.sversion<1e5){let e;return w("The server (version %s) does not support publications.",Se(
-c.sversion,!1,e,Ne(e))),!0}return b(i),N(i,`/* %s */
+title=s.data,e.translate_header=!0,v(a,e,E.queryFout,!1,E.logfile),!0):!1}async function Ua(o){let i={},n,a=E.popt,s=[!1,
+!1,!1,!1,!1,!1,!1,!1,!1,!1];if(E.sversion<1e5){let e;return M("The server (version %s) does not support publications.",Ie(
+E.sversion,!1,e,Le(e))),!0}return b(i),N(i,`/* %s */
 `,R("Get matching publications")),p(i,`SELECT pubname AS "%s",
   pg_catalog.pg_get_userbyid(pubowner) AS "%s",
-  puballtables AS "%s"`,t("Name"),t("Owner"),t("All tables")),c.sversion>=19e4&&p(i,`,
+  puballtables AS "%s"`,t("Name"),t("Owner"),t("All tables")),E.sversion>=19e4&&p(i,`,
   puballsequences AS "%s"`,t("All sequences")),p(i,`,
   pubinsert AS "%s",
   pubupdate AS "%s",
-  pubdelete AS "%s"`,t("Inserts"),t("Updates"),t("Deletes")),c.sversion>=11e4&&p(i,`,
-  pubtruncate AS "%s"`,t("Truncates")),c.sversion>=18e4&&p(i,`,
+  pubdelete AS "%s"`,t("Inserts"),t("Updates"),t("Deletes")),E.sversion>=11e4&&p(i,`,
+  pubtruncate AS "%s"`,t("Truncates")),E.sversion>=18e4&&p(i,`,
  (CASE pubgencols
     WHEN '%c' THEN 'none'
     WHEN '%c' THEN 'stored'
-   END) AS "%s"`,dn,un,t("Generated columns")),c.sversion>=13e4&&p(i,`,
+   END) AS "%s"`,Cn,Dn,t("Generated columns")),E.sversion>=13e4&&p(i,`,
   pubviaroot AS "%s"`,t("Via root")),r(i,`
 FROM pg_catalog.pg_publication
-`),!P(i,o,!1,!1,l,"pubname",l,l,l,1)||(r(i,"ORDER BY 1;"),n=await u(i.data),!n)?!1:(a.title=R("List of publications"),a.
-translate_header=!0,a.translate_columns=s,a.n_translate_columns=Q(s),v(n,a,c.queryFout,!1,c.logfile),!0)}async function cn(o,i,n,a){
-let s,e=0,E=0;if(s=await u(o.data),s)e=W(s);else return!1;for(e>0&&H(a,i),E=0;E<e;E++)n?N(o,'    "%s"',A(s,E,0)):(N(o,' \
-   "%s.%s"',A(s,E,0),A(s,E,1)),te(s,E,3)||p(o," (%s)",A(s,E,3)),te(s,E,2)||p(o," WHERE %s",A(s,E,2))),H(a,o.data);return!0}
-async function Ua(o){let i={},n,a,s,e,E,f,S=6,T=1,F={},m={};if(c.sversion<1e5){let C;return w("The server (version %s) d\
-oes not support publications.",Se(c.sversion,!1,C,Ne(C))),!0}if(f=c.sversion>=19e4,s=c.sversion>=11e4,e=c.sversion>=18e4,
-E=c.sversion>=13e4,b(i),N(i,`/* %s */
+`),!U(i,o,!1,!1,l,"pubname",l,l,l,1)||(r(i,"ORDER BY 1;"),n=await u(i.data),!n)?!1:(a.title=R("List of publications"),a.
+translate_header=!0,a.translate_columns=s,a.n_translate_columns=$(s),v(n,a,E.queryFout,!1,E.logfile),!0)}async function Rn(o,i,n,a){
+let s,e=0,c=0;if(s=await u(o.data),s)e=x(s);else return!1;for(e>0&&y(a,i),c=0;c<e;c++)n?N(o,'    "%s"',g(s,c,0)):(N(o,' \
+   "%s.%s"',g(s,c,0),g(s,c,1)),ie(s,c,3)||p(o," (%s)",g(s,c,3)),ie(s,c,2)||p(o," WHERE %s",g(s,c,2))),y(a,o.data);return!0}
+async function Pa(o){let i={},n,a,s,e,c,f,S=6,T=1,F={},m={};if(E.sversion<1e5){let D;return M("The server (version %s) d\
+oes not support publications.",Ie(E.sversion,!1,D,Le(D))),!0}if(f=E.sversion>=19e4,s=E.sversion>=11e4,e=E.sversion>=18e4,
+c=E.sversion>=13e4,b(i),N(i,`/* %s */
 `,R("Get details about matching publications")),r(i,`SELECT oid, pubname,
   pg_catalog.pg_get_userbyid(pubowner) AS owner,
   puballtables`),f?r(i,", puballsequences"):r(i,", false AS puballsequences"),r(i,", pubinsert, pubupdate, pubdelete"),s?
@@ -3516,24 +3516,24 @@ r(i,", pubtruncate"):r(i,", false AS pubtruncate"),e?p(i,`, (CASE pubgencols
     WHEN '%c' THEN 'none'
     WHEN '%c' THEN 'stored'
    END) AS "%s"
-`,dn,un,t("Generated columns")):r(i,", 'none' AS pubgencols"),E?r(i,", pubviaroot"):r(i,", false AS pubviaroot"),r(i,", \
+`,Cn,Dn,t("Generated columns")):r(i,", 'none' AS pubgencols"),c?r(i,", pubviaroot"):r(i,", false AS pubviaroot"),r(i,", \
 pg_catalog.obj_description(oid, 'pg_publication')"),r(i,`
 FROM pg_catalog.pg_publication
-`),!P(i,o,!1,!1,l,"pubname",l,l,l,1)||(r(i,"ORDER BY 2;"),a=await u(i.data),!a))return!1;if(W(a)==0)return c.quiet||(o?w(
-'Did not find any publication named "%s".',o):w("Did not find any publications.")),!1;for(f&&S++,s&&S++,e&&S++,E&&S++,n=
-0;n<W(a);n++){let C="l",O=A(a,n,0),M=A(a,n,1),K=h(A(a,n,3),"t")==0,$=c.popt.topt;if(b(F),N(F,R("Publication %s"),M),Ve(m,
-$,F.data,S,T),se(m,t("Owner"),!0,C),se(m,t("All tables"),!0,C),f&&se(m,t("All sequences"),!0,C),se(m,t("Inserts"),!0,C),
-se(m,t("Updates"),!0,C),se(m,t("Deletes"),!0,C),s&&se(m,t("Truncates"),!0,C),e&&se(m,t("Generated columns"),!0,C),E&&se(
-m,t("Via root"),!0,C),se(m,t("Description"),!0,C),V(m,A(a,n,2),!1,!1),V(m,A(a,n,3),!1,!1),f&&V(m,A(a,n,4),!1,!1),V(m,A(a,
-n,5),!1,!1),V(m,A(a,n,6),!1,!1),V(m,A(a,n,7),!1,!1),s&&V(m,A(a,n,8),!1,!1),e&&V(m,A(a,n,9),!1,!1),E&&V(m,A(a,n,10),!1,!1),
-V(m,A(a,n,11),!1,!1),K){if(c.sversion>=19e4&&(N(i,`/* %s */
+`),!U(i,o,!1,!1,l,"pubname",l,l,l,1)||(r(i,"ORDER BY 2;"),a=await u(i.data),!a))return!1;if(x(a)==0)return E.quiet||(o?M(
+'Did not find any publication named "%s".',o):M("Did not find any publications.")),!1;for(f&&S++,s&&S++,e&&S++,c&&S++,n=
+0;n<x(a);n++){let D="l",O=g(a,n,0),G=g(a,n,1),z=H(g(a,n,3),"t")==0,ee=E.popt.topt;if(b(F),N(F,R("Publication %s"),G),xe(
+m,ee,F.data,S,T),ae(m,t("Owner"),!0,D),ae(m,t("All tables"),!0,D),f&&ae(m,t("All sequences"),!0,D),ae(m,t("Inserts"),!0,
+D),ae(m,t("Updates"),!0,D),ae(m,t("Deletes"),!0,D),s&&ae(m,t("Truncates"),!0,D),e&&ae(m,t("Generated columns"),!0,D),c&&
+ae(m,t("Via root"),!0,D),ae(m,t("Description"),!0,D),j(m,g(a,n,2),!1,!1),j(m,g(a,n,3),!1,!1),f&&j(m,g(a,n,4),!1,!1),j(m,
+g(a,n,5),!1,!1),j(m,g(a,n,6),!1,!1),j(m,g(a,n,7),!1,!1),s&&j(m,g(a,n,8),!1,!1),e&&j(m,g(a,n,9),!1,!1),c&&j(m,g(a,n,10),!1,
+!1),j(m,g(a,n,11),!1,!1),z){if(E.sversion>=19e4&&(N(i,`/* %s */
 `,R("Get tables excluded by this publication")),p(i,`SELECT n.nspname || '.' || c.relname
 FROM pg_catalog.pg_class c
      JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
      JOIN pg_catalog.pg_publication_rel pr ON c.oid = pr.prrelid
 WHERE pr.prpubid = '%s' AND pr.prexcept
-ORDER BY 1`,O),!await cn(i,R("Except tables:"),!0,m)))return!1}else if(N(i,`/* %s */
-`,R("Get tables published by this publication")),r(i,"SELECT n.nspname, c.relname"),c.sversion>=15e4?(r(i,", pg_catalog.\
+ORDER BY 1`,O),!await Rn(i,R("Except tables:"),!0,m)))return!1}else if(N(i,`/* %s */
+`,R("Get tables published by this publication")),r(i,"SELECT n.nspname, c.relname"),E.sversion>=15e4?(r(i,", pg_catalog.\
 pg_get_expr(pr.prqual, c.oid)"),r(i,`, (CASE WHEN pr.prattrs IS NOT NULL THEN
      pg_catalog.array_to_string(      ARRAY(SELECT attname
               FROM
@@ -3547,50 +3547,50 @@ FROM pg_catalog.pg_class c,
 WHERE c.relnamespace = n.oid
   AND c.oid = pr.prrelid
   AND pr.prpubid = '%s'
-`,O),c.sversion>=19e4&&r(i,`  AND NOT pr.prexcept
-`),r(i,"ORDER BY 1,2"),!await cn(i,R("Tables:"),!1,m)||c.sversion>=15e4&&(N(i,`/* %s */
+`,O),E.sversion>=19e4&&r(i,`  AND NOT pr.prexcept
+`),r(i,"ORDER BY 1,2"),!await Rn(i,R("Tables:"),!1,m)||E.sversion>=15e4&&(N(i,`/* %s */
 `,R("Get schemas published by this publication")),p(i,`SELECT n.nspname
 FROM pg_catalog.pg_namespace n
      JOIN pg_catalog.pg_publication_namespace pn ON n.oid = pn.pnnspid
 WHERE pn.pnpubid = '%s'
-ORDER BY 1`,O),!await cn(i,R("Tables from schemas:"),!0,m)))return!1;Xe(m,c.queryFout,!1,c.logfile)}return!0}async function Pa(o,i){
-let n={},a,s=c.popt,e=[!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1];if(c.sversion<1e5){let E;return w(
-"The server (version %s) does not support subscriptions.",Se(c.sversion,!1,E,Ne(E))),!0}return b(n),N(n,`/* %s */
+ORDER BY 1`,O),!await Rn(i,R("Tables from schemas:"),!0,m)))return!1;ze(m,E.queryFout,!1,E.logfile)}return!0}async function Fa(o,i){
+let n={},a,s=E.popt,e=[!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1,!1];if(E.sversion<1e5){let c;return M(
+"The server (version %s) does not support subscriptions.",Ie(E.sversion,!1,c,Le(c))),!0}return b(n),N(n,`/* %s */
 `,R("Get matching subscriptions")),p(n,`SELECT subname AS "%s"
 ,  pg_catalog.pg_get_userbyid(subowner) AS "%s"
 ,  subenabled AS "%s"
 ,  subpublications AS "%s"
-`,t("Name"),t("Owner"),t("Enabled"),t("Publication")),i&&(c.sversion>=14e4&&(p(n,`, subbinary AS "%s"
-`,t("Binary")),c.sversion>=16e4?p(n,`, (CASE substream
+`,t("Name"),t("Owner"),t("Enabled"),t("Publication")),i&&(E.sversion>=14e4&&(p(n,`, subbinary AS "%s"
+`,t("Binary")),E.sversion>=16e4?p(n,`, (CASE substream
     WHEN 'f' THEN 'off'
     WHEN 't' THEN 'on'
     WHEN 'p' THEN 'parallel'
    END) AS "%s"
 `,t("Streaming")):p(n,`, substream AS "%s"
-`,t("Streaming"))),c.sversion>=15e4&&p(n,`, subtwophasestate AS "%s"
+`,t("Streaming"))),E.sversion>=15e4&&p(n,`, subtwophasestate AS "%s"
 , subdisableonerr AS "%s"
-`,t("Two-phase commit"),t("Disable on error")),c.sversion>=16e4&&p(n,`, suborigin AS "%s"
+`,t("Two-phase commit"),t("Disable on error")),E.sversion>=16e4&&p(n,`, suborigin AS "%s"
 , subpasswordrequired AS "%s"
 , subrunasowner AS "%s"
-`,t("Origin"),t("Password required"),t("Run as owner?")),c.sversion>=17e4&&p(n,`, subfailover AS "%s"
-`,t("Failover")),c.sversion>=19e4&&(p(n,`, (select srvname from pg_catalog.pg_foreign_server where oid=subserver) AS "%s\
+`,t("Origin"),t("Password required"),t("Run as owner?")),E.sversion>=17e4&&p(n,`, subfailover AS "%s"
+`,t("Failover")),E.sversion>=19e4&&(p(n,`, (select srvname from pg_catalog.pg_foreign_server where oid=subserver) AS "%s\
 "
 `,t("Server")),p(n,`, subretaindeadtuples AS "%s"
 `,t("Retain dead tuples")),p(n,`, submaxretention AS "%s"
 `,t("Max retention duration")),p(n,`, subretentionactive AS "%s"
 `,t("Retention active"))),p(n,`,  subsynccommit AS "%s"
 ,  subconninfo AS "%s"
-`,t("Synchronous commit"),t("Conninfo")),c.sversion>=19e4&&p(n,`, subwalrcvtimeout AS "%s"
-`,t("Receiver timeout")),c.sversion>=15e4&&p(n,`, subskiplsn AS "%s"
+`,t("Synchronous commit"),t("Conninfo")),E.sversion>=19e4&&p(n,`, subwalrcvtimeout AS "%s"
+`,t("Receiver timeout")),E.sversion>=15e4&&p(n,`, subskiplsn AS "%s"
 `,t("Skip LSN")),p(n,`,  pg_catalog.obj_description(oid, 'pg_subscription') AS "%s"
 `,t("Description"))),r(n,`FROM pg_catalog.pg_subscription
 WHERE subdbid = (SELECT oid
                  FROM pg_catalog.pg_database
-                 WHERE datname = pg_catalog.current_database())`),!P(n,o,!0,!1,l,"subname",l,l,l,1)||(r(n,"ORDER BY 1;"),
+                 WHERE datname = pg_catalog.current_database())`),!U(n,o,!0,!1,l,"subname",l,l,l,1)||(r(n,"ORDER BY 1;"),
 a=await u(n.data),!a)?!1:(s.nullPrint=l,s.title=R("List of subscriptions"),s.translate_header=!0,s.translate_columns=e,s.
-n_translate_columns=Q(e),v(a,s,c.queryFout,!1,c.logfile),!0)}function re(o,i){p(o,`CASE WHEN pg_catalog.array_length(%s,\
- 1) = 0 THEN '%s' ELSE pg_catalog.array_to_string(%s, E'\\n') END AS "%s"`,i,t("(none)"),i,t("Access privileges"))}async function Fa(o,i,n){
-let a={},s,e=c.popt,E=!1,f=[!1,!1,!1,!1,!1,!1,!1];if(b(a),N(a,`/* %s */
+n_translate_columns=$(e),v(a,s,E.queryFout,!1,E.logfile),!0)}function Ee(o,i){p(o,`CASE WHEN pg_catalog.array_length(%s,\
+ 1) = 0 THEN '%s' ELSE pg_catalog.array_to_string(%s, E'\\n') END AS "%s"`,i,t("(none)"),i,t("Access privileges"))}async function ha(o,i,n){
+let a={},s,e=E.popt,c=!1,f=[!1,!1,!1,!1,!1,!1,!1];if(b(a),N(a,`/* %s */
 `,R("Get matching operator classes")),p(a,`SELECT
   am.amname AS "%s",
   pg_catalog.format_type(c.opcintype, NULL) AS "%s",
@@ -3622,10 +3622,10 @@ FROM pg_catalog.pg_opclass c
   LEFT JOIN pg_catalog.pg_namespace tn ON tn.oid = t.typnamespace
 `),n&&r(a,`  LEFT JOIN pg_catalog.pg_opfamily of ON of.oid = c.opcfamily
   LEFT JOIN pg_catalog.pg_namespace ofn ON ofn.oid = of.opfnamespace
-`),o){if(E={value:E},!P(a,o,!1,!1,l,"am.amname",l,l,E,1))return!1;E=E.value}return i&&!P(a,i,E,!1,"tn.nspname","t.typnam\
+`),o){if(c={value:c},!U(a,o,!1,!1,l,"am.amname",l,l,c,1))return!1;c=c.value}return i&&!U(a,i,c,!1,"tn.nspname","t.typnam\
 e","pg_catalog.format_type(t.oid, NULL)","pg_catalog.pg_type_is_visible(t.oid)",l,3)||(r(a,"ORDER BY 1, 2, 4;"),s=await u(
 a.data),!s)?!1:(e.nullPrint=l,e.title=R("List of operator classes"),e.translate_header=!0,e.translate_columns=f,e.n_translate_columns=
-Q(f),v(s,e,c.queryFout,!1,c.logfile),!0)}async function ya(o,i,n){let a={},s,e=c.popt,E=!1,f=[!1,!1,!1,!1];if(b(a),N(a,`\
+$(f),v(s,e,E.queryFout,!1,E.logfile),!0)}async function ya(o,i,n){let a={},s,e=E.popt,c=!1,f=[!1,!1,!1,!1];if(b(a),N(a,`\
 /* %s */
 `,R("Get matching operator families")),p(a,`SELECT
   am.amname AS "%s",
@@ -3643,17 +3643,17 @@ Q(f),v(s,e,c.queryFout,!1,c.logfile),!0)}async function ya(o,i,n){let a={},s,e=c
 FROM pg_catalog.pg_opfamily f
   LEFT JOIN pg_catalog.pg_am am on am.oid = f.opfmethod
   LEFT JOIN pg_catalog.pg_namespace n ON n.oid = f.opfnamespace
-`),o){if(E={value:E},!P(a,o,!1,!1,l,"am.amname",l,l,E,1))return!1;E=E.value}if(i){if(p(a,`  %s EXISTS (
+`),o){if(c={value:c},!U(a,o,!1,!1,l,"am.amname",l,l,c,1))return!1;c=c.value}if(i){if(p(a,`  %s EXISTS (
     SELECT 1
     FROM pg_catalog.pg_type t
     JOIN pg_catalog.pg_opclass oc ON oc.opcintype = t.oid
     LEFT JOIN pg_catalog.pg_namespace tn ON tn.oid = t.typnamespace
     WHERE oc.opcfamily = f.oid
-`,E?"AND":"WHERE"),!P(a,i,!0,!1,"tn.nspname","t.typname","pg_catalog.format_type(t.oid, NULL)","pg_catalog.pg_type_is_vi\
+`,c?"AND":"WHERE"),!U(a,i,!0,!1,"tn.nspname","t.typname","pg_catalog.format_type(t.oid, NULL)","pg_catalog.pg_type_is_vi\
 sible(t.oid)",l,3))return!1;r(a,`  )
 `)}return r(a,"ORDER BY 1, 2;"),s=await u(a.data),s?(e.nullPrint=l,e.title=R("List of operator families"),e.translate_header=
-!0,e.translate_columns=f,e.n_translate_columns=Q(f),v(s,e,c.queryFout,!1,c.logfile),!0):!1}async function ha(o,i,n){let a={},
-s,e=c.popt,E=!1,f=[!1,!1,!1,!1,!1,!1,!0];if(b(a),N(a,`/* %s */
+!0,e.translate_columns=f,e.n_translate_columns=$(f),v(s,e,E.queryFout,!1,E.logfile),!0):!1}async function Ha(o,i,n){let a={},
+s,e=E.popt,c=!1,f=[!1,!1,!1,!1,!1,!1,!0];if(b(a),N(a,`/* %s */
 `,R("Get operators of matching operator families")),p(a,`SELECT
   am.amname AS "%s",
   CASE
@@ -3680,14 +3680,14 @@ s,e=c.popt,E=!1,f=[!1,!1,!1,!1,!1,!1,!0];if(b(a),N(a,`/* %s */
 `),n&&r(a,`  LEFT JOIN pg_catalog.pg_opfamily ofs ON ofs.oid = o.amopsortfamily
   LEFT JOIN pg_catalog.pg_operator op ON op.oid = o.amopopr
   LEFT JOIN pg_catalog.pg_proc p ON p.oid = op.oprcode
-`),o){if(E={value:E},!P(a,o,!1,!1,l,"am.amname",l,l,E,1))return!1;E=E.value}return i&&!P(a,i,E,!1,"nsf.nspname","of.opfn\
+`),o){if(c={value:c},!U(a,o,!1,!1,l,"am.amname",l,l,c,1))return!1;c=c.value}return i&&!U(a,i,c,!1,"nsf.nspname","of.opfn\
 ame",l,l,l,3)||(r(a,`ORDER BY 1, 2,
   o.amoplefttype = o.amoprighttype DESC,
   pg_catalog.format_type(o.amoplefttype, NULL),
   pg_catalog.format_type(o.amoprighttype, NULL),
   o.amopstrategy;`),s=await u(a.data),!s)?!1:(e.nullPrint=l,e.title=R("List of operators of operator families"),e.translate_header=
-!0,e.translate_columns=f,e.n_translate_columns=Q(f),v(s,e,c.queryFout,!1,c.logfile),!0)}async function Ha(o,i,n){let a={},
-s,e=c.popt,E=!1,f=[!1,!1,!1,!1,!1,!1];if(b(a),N(a,`/* %s */
+!0,e.translate_columns=f,e.n_translate_columns=$(f),v(s,e,E.queryFout,!1,E.logfile),!0)}async function wa(o,i,n){let a={},
+s,e=E.popt,c=!1,f=[!1,!1,!1,!1,!1,!1];if(b(a),N(a,`/* %s */
 `,R("Get support functions of matching operator families")),p(a,`SELECT
   am.amname AS "%s",
   CASE
@@ -3706,125 +3706,145 @@ catalog.regprocedure AS "%s"
   LEFT JOIN pg_catalog.pg_am am ON am.oid = of.opfmethod
   LEFT JOIN pg_catalog.pg_namespace ns ON of.opfnamespace = ns.oid
   LEFT JOIN pg_catalog.pg_proc p ON ap.amproc = p.oid
-`),o){if(E={value:E},!P(a,o,!1,!1,l,"am.amname",l,l,E,1))return!1;E=E.value}return i&&!P(a,i,E,!1,"ns.nspname","of.opfna\
+`),o){if(c={value:c},!U(a,o,!1,!1,l,"am.amname",l,l,c,1))return!1;c=c.value}return i&&!U(a,i,c,!1,"ns.nspname","of.opfna\
 me",l,l,l,3)||(r(a,`ORDER BY 1, 2,
   ap.amproclefttype = ap.amprocrighttype DESC,
   3, 4, 5;`),s=await u(a.data),!s)?!1:(e.nullPrint=l,e.title=R("List of support functions of operator families"),e.translate_header=
-!0,e.translate_columns=f,e.n_translate_columns=Q(f),v(s,e,c.queryFout,!1,c.logfile),!0)}async function wa(o){let i={},n,
-a=c.popt;if(b(i),N(i,`/* %s */
+!0,e.translate_columns=f,e.n_translate_columns=$(f),v(s,e,E.queryFout,!1,E.logfile),!0)}async function Ma(o){let i={},n,
+a=E.popt;if(b(i),N(i,`/* %s */
 `,R("Get large objects")),p(i,`SELECT oid as "%s",
   pg_catalog.pg_get_userbyid(lomowner) as "%s",
-  `,t("ID"),t("Owner")),o&&(re(i,"lomacl"),r(i,`,
+  `,t("ID"),t("Owner")),o&&(Ee(i,"lomacl"),r(i,`,
   `)),p(i,`pg_catalog.obj_description(oid, 'pg_largeobject') as "%s"
 FROM pg_catalog.pg_largeobject_metadata
 ORDER BY oid`,t("Description")),n=await u(i.data),!n)return!1;a.nullPrint=l,a.title=R("Large objects"),a.translate_header=
-!0,v(n,a,c.queryFout,!1,c.logfile)}return!0}return{promise:on(),cancel:De}}function Ln(g,I,D,U="",B=""){let q=Math.max(0,
-I-Ce(g));return D==="r"?U+" ".repeat(q)+g+B:D==="c"?U+" ".repeat(Math.floor(q/2))+g+" ".repeat(Math.ceil(q/2))+B:U+g+" ".
-repeat(q)+B}function Un(g,I){let D=0,U=g.length,B=[];for(;D<U;)B.push(g.slice(D,D+=I));return B}function gt(g){let I=-1,
-D=0,U=1,B=0;for(;(I=g.indexOf(`
-`,I+1))!==-1;)I-D>B&&(B=I-D),D=I+1,U++;return g.length-D>B&&(B=g.length-D),{count:U,longest:B}}function me(g,I){return g=
-g.replace(/[<>&'"]/g,D=>({"<":"&lt;",">":"&gt;","&":"&amp;","'":"&apos;",'"':"&quot;"})[D]),I&&(g=g.replace(/ /g,"&nbsp;").
-replace(/\n/g,"<br />")),g}function Nt(g,I){let{ncolumns:D,nrows:U,aligns:B}=g,q=[...g.headers,...g.cells].map(gt),{colWidths:k,
-rowHeights:ne}=q.reduce((oe,u,c)=>{let w=Math.floor(c/g.ncolumns),P=c%g.ncolumns;return u.longest>oe.colWidths[P]&&(oe.colWidths[P]=
-u.longest),u.count>oe.rowHeights[w]&&(oe.rowHeights[w]=u.count),oe},{colWidths:new Array(D).fill(0),rowHeights:new Array(
-U+1).fill(1)}),X=k.reduce((oe,u)=>oe+u,0)+D*2+(D-1),De=Ln(g.title,X,"c"),pe=[g.headers,null,...Un(g.cells,D)],on=pe.map(
-(oe,u)=>{if(u===1)return g.headers.map((w,P)=>"-".repeat(k[P%D]+2)).join("+");u>1&&u--;let c=oe.map(w=>w.split(`
-`));return new Array(ne[u]).fill("").map((w,P)=>c.map((he,ke)=>Ln(he[P]??"",k[ke],u===0?"c":B[ke]," ",he[P+1]===void 0?"\
- ":"+")).join("|")).join(`
+!0,v(n,a,E.queryFout,!1,E.logfile)}return!0}return{promise:fe(),cancel:Re}}function cn(A,L,C,P="",w=""){let Y=Math.max(0,
+L-he(A));return C==="r"?P+" ".repeat(Y)+A+w:C==="c"?P+" ".repeat(Math.floor(Y/2))+A+" ".repeat(Math.ceil(Y/2))+w:P+A+" ".
+repeat(Y)+w}function hn(A,L){let C=0,P=A.length,w=[];for(;C<P;)w.push(A.slice(C,C+=L));return w}function mn(A){let L=-1,
+C=0,P=1,w=0;for(;(L=A.indexOf(`
+`,L+1))!==-1;)L-C>w&&(w=L-C),C=L+1,P++;return A.length-C>w&&(w=A.length-C),{count:P,longest:w}}function ce(A,L){return A=
+A.replace(/[<>&'"]/g,C=>({"<":"&lt;",">":"&gt;","&":"&amp;","'":"&apos;",'"':"&quot;"})[C]),L&&(A=A.replace(/ /g,"&nbsp;").
+replace(/\n/g,"<br />")),A}function Nt(A,L){let{ncolumns:C,nrows:P,headers:w,cells:Y}=A;if(Y.length===0)return`(${P} row${P===
+1?"":"s"})`;let k=w.map(mn),V=Math.max(...k.map(E=>E.longest)),B=Y.map(mn),Re=Math.max(...B.map(E=>E.longest)),re=3,fe=P===
+0?0:13+(Math.log10(A.nrows)|0),Oe=Math.max(V+re+Re,fe),_e="";for(let E=0,M=Y.length,U=0;E<M;E++){let de=E%C;if(de===0){U++;
+let te=`-[ RECORD ${U} ]`;te.length<V+1&&(te+="-".repeat(V-te.length+1)),te.length<V+2&&(te+="+"),te.length<Oe&&(te+="-".
+repeat(Oe-te.length)),_e+=`
+${te}`}let Ke=w[de].split(`
+`),v=Ke.length,ae=Y[E].split(`
+`),j=ae.length,y=Math.max(v,j);for(let te=0;te<y;te++)_e+=`
+`+cn(Ke[te]??"",V)+(v>te+1?"+":" ")+"| "+cn(ae[te]??"",Re)+(j>te+1?"+":"")}let J=A.footers?A.footers.filter(ye):[],oe=J.
+length>0?`
+
+`+J.join(`
+`):"";return`${A.title}${_e}${oe}`}function St(A,L){if(L&&L.popt&&L.popt.expanded)return Nt(A,L);let{ncolumns:C,nrows:P,
+aligns:w}=A,Y=[...A.headers,...A.cells].map(mn),{colWidths:k,rowHeights:V}=Y.reduce((oe,u,E)=>{let M=Math.floor(E/A.ncolumns),
+U=E%A.ncolumns;return u.longest>oe.colWidths[U]&&(oe.colWidths[U]=u.longest),u.count>oe.rowHeights[M]&&(oe.rowHeights[M]=
+u.count),oe},{colWidths:new Array(C).fill(0),rowHeights:new Array(P+1).fill(1)}),B=k.reduce((oe,u)=>oe+u,0)+C*2+(C-1),Re=cn(
+A.title,B,"c"),re=[A.headers,null,...hn(A.cells,C)],fe=re.map((oe,u)=>{if(u===1)return A.headers.map((M,U)=>"-".repeat(k[U%
+C]+2)).join("+");u>1&&u--;let E=oe.map(M=>M.split(`
+`));return new Array(V[u]).fill("").map((M,U)=>E.map((de,ve)=>cn(de[U]??"",k[ve],u===0?"c":w[ve]," ",de[U+1]===void 0?" ":
+"+")).join("|")).join(`
 `)}).join(`
-`),rn=g.footers?g.footers.filter(Ye):[],qe=rn.length>0?`
-`+rn.join(`
-`):g.opt.default_footer?`
-(${U} row${U===1?"":"s"})`:"",J=`${De}
-${on}${qe}`;return I&&(J=me(J)),J}function St(g){let I=`<table><tr><th valign="top" style="text-align: center;" colspan=\
-"${g.ncolumns}">${me(g.title)}</th></tr><tr>`;for(let U of g.headers)I+=`<th valign="top" style="text-align: center;">${me(
-U)}</th>`;I+="</tr>";for(let U of Un(g.cells,g.ncolumns))I+="<tr>"+U.map((B,q)=>`<td valign="top" style="text-align: ${g.
-aligns[q]==="c"?"center":g.aligns[q]==="r"?"right":"left"}">${me(B).replace(/\n/g,"<br>")}</td>`).join(`
-`)+"</tr>";I+="</table>";let D=g.footers?g.footers.filter(Ye):[];return D.length>0?D.length>1&&D.some(U=>/^\s/.test(U))?
-I+="<dl>"+D.map(U=>/^\s/.test(U)?`<dd>${me(U.trim(),!0)}</dd>`:`<dt>${me(U,!0)}</dt>`).join("")+"</dl>":I+=D.map(U=>`<p>${me(
-U,!0)}</p>`).join(""):g.opt.default_footer&&(I+=`<p>(${g.nrows} row${g.nrows===1?"":"s"})</p>`),I}function Pe(g){if(!g)throw new Error(
-`Assertion failed (value: ${g})`)}var t=Ye,Ae=Ye,R=Ye;function sn(g,I){let D=g.indexOf(I);return D===-1?l:D}var Z=sn;function Ce(g){
-return g.length}function ye(g,I,D){if(typeof g!="string"||typeof I!="string")throw new Error("Not a string");return g.length>
-D&&(g=g.slice(0,D)),I.length>D&&(I=I.slice(0,D)),g<I?-1:g>I?1:0}function h(g,I){return ye(g,I,1/0)}function mt(g,I){let D=Ce(
-g);for(let U=0;U<D;U++)if(I.indexOf(g[U])===-1)return U;return D}function In(g){return parseInt(g,10)}function _n(g){return parseInt(
-g,10)}function Cn(g){return g===" "||g==="	"||g===`
-`||g==="\r"}function ft(g){return g==='"'||g==="'"}function Ot(g){let I=g.charCodeAt(0);return I>=65&&I<=90}function Q(g){
-return g.length}function gn(g){return g.toLowerCase()}function dt(g,I){return h(g.toLowerCase(),I.toLowerCase())}function Ne(g){return 0}function b(g){g.data="",g.len=0}var an=b;function r(g,I){g.data+=I,g.len=g.data.length}var j=r;function p(g,I,...D){
-let U=ae(I,...D);r(g,U)}function N(g,I,...D){b(g),p(g,I,...D)}function Nn(g,I,D,U){let q="'"+I.replace(U?/[']/g:/['\\]/g,
-"\\$&")+"'";r(g,q)}function Fe(g,I,D){if(Z(I,"\\")!=l&&xe(D)<19e4){g.len>0&&g.data[g.len-1]!=" "&&j(g," "),j(g,Ba),Nn(g,
-I,Pn(D),!1);return}Nn(g,I,D.encoding,D.std_strings)}function ae(g,...I){let D="",U=0,B=0,q;for(;(q=g.indexOf("%",B))!==-1;){
-let k=0,ne=!1;D+=g.slice(B,q),B=q+1;let X=g[B++];if(X==="%"&&(D+="%"),X==="*"&&(k=parseInt(I[U++],10),X=g[B++]),X==="-"&&
-(ne=!0,X=g[B++]),X>="0"&&X<="9"&&(k=parseInt(X,10),X=g[B++]),X==="s"||X==="c"||X==="d"||X==="u"){let De=String(I[U++]),pe=k-
-De.length;ne===!1&&pe>0&&(D+=" ".repeat(pe)),D+=De,ne===!0&&pe>0&&(D+=" ".repeat(pe))}}return D+=g.slice(B),D}var tn=ae;
-function Dn(g){return g?g.dbName:l}function xe(g){return!g||g.status===qa?0:g.sversion}function Pn(g){return!g||g.status!=
-bn?-1:g.client_encoding}function W(g){return g.rowCount}function Fn(g){return g.fields.length}function yn(g,I){return g.
-fields[I].name}function ut(g,I){return g.fields[I].dataTypeID}function te(g,I,D){return g.rows[I][D]===null?1:0}function A(g,I,D){
-let U=g.rows[I][D];return String(U===null?"":U)}function ue(g,I){let D,U,B,q,k;if(!g||I==l||I[0]==l)return-1;for(D=!1,B=
-"",U=0,k=Ce(I);U<k;U++){let ne=I[U];D?ne=='"'?I[U+1]=='"'?(B+='"',U++):D=!1:B+=ne:ne=='"'?D=!0:(ne=gn(ne),B+=ne)}for(q=0,
-k=Fn(g);q<k;q++)if(h(B,yn(g,q))==0)return q;return-1}function Se(g,I,D,U){return g>=1e5?I?D=ae("%d.%d",Math.floor(g/1e4),
-g%1e4):D=ae("%d",g/1e4):I?D=ae("%d.%d.%d",Math.floor(g/1e4),Math.floor(g/100)%100,g%100):D=ae("%d.%d",Math.floor(g/1e4),
-Math.floor(g/100)%100),D}function Le(g,I,D,U){if(I!==Ie&&I!==An)throw new Error(`scan type ${I} not implemented`);if(D!==
-l)throw new Error("cannot return quote type");let B=[],q=U?/^(.*);*$/:/^(.*)$/,k;for(;;){if(k=g[0][g[1]],k==l)return l;if(!Cn(
-k))break;g[1]++}if(I===An)return g[0].slice(g[1],g[1]=g[0].length);let ne="";for(;;){if(k=g[0][g[1]++],k==l)return B.length>
-0?l:ne.match(q)[1];if(ft(k))k===B[B.length-1]?B.pop():B.push(k),k==='"'&&(ne+=k);else{if(B.length===0&&Cn(k))return ne.match(
-q)[1];ne+=k}}}function Ye(g){return g}var Lt=`Help
+`),Oe=A.footers?A.footers.filter(ye):[],_e=Oe.length>0?`
+`+Oe.join(`
+`):A.opt.default_footer?`
+(${P} row${P===1?"":"s"})`:"";return`${Re}
+${fe}${_e}`}function mt(A,L){let{ncolumns:C,cells:P,headers:w}=A,Y=`<table><tr><th align="left" colspan="2">${ce(A.title)}\
+</th></tr>`,k=w.map(B=>ce(B,!0));for(let B=0,Re=P.length,re=0;B<Re;B++){let fe=B%C;fe===0&&(re++,Y+=`<tr><th align="left\
+" colspan="2">RECORD ${re}</th></tr>`);let Oe=k[fe],_e=ce(P[B],!0);Y+=`<tr><td valign="top">${Oe}</td><td valign="top">${_e}\
+</td></tr>`}Y+="</table>";let V=A.footers?A.footers.filter(ye):[];return V.length>0&&(V.length>1&&V.some(B=>/^\s/.test(B))?
+Y+="<dl>"+V.map(B=>/^\s/.test(B)?`<dd>${ce(B.trim(),!0)}</dd>`:`<dt>${ce(B,!0)}</dt>`).join("")+"</dl>":Y+=V.map(B=>`<p>${ce(
+B,!0)}</p>`).join("")),Y}function ft(A,L){if(L&&L.popt&&L.popt.expanded)return mt(A,L);let C=`<table><tr><th valign="top\
+" style="text-align: center;" colspan="${A.ncolumns}">${ce(A.title)}</th></tr><tr>`;for(let w of A.headers)C+=`<th valig\
+n="top" style="text-align: center;">${ce(w)}</th>`;C+="</tr>";for(let w of hn(A.cells,A.ncolumns))C+="<tr>"+w.map((Y,k)=>`\
+<td valign="top" style="text-align: ${A.aligns[k]==="c"?"center":A.aligns[k]==="r"?"right":"left"}">${ce(Y).replace(/\n/g,
+"<br>")}</td>`).join(`
+`)+"</tr>";C+="</table>";let P=A.footers?A.footers.filter(ye):[];return P.length>0?P.length>1&&P.some(w=>/^\s/.test(w))?
+C+="<dl>"+P.map(w=>/^\s/.test(w)?`<dd>${ce(w.trim(),!0)}</dd>`:`<dt>${ce(w,!0)}</dt>`).join("")+"</dl>":C+=P.map(w=>`<p>${ce(
+w,!0)}</p>`).join(""):A.opt.default_footer&&(C+=`<p>(${A.nrows} row${A.nrows===1?"":"s"})</p>`),C}function Me(A){if(!A)throw new Error(
+`Assertion failed (value: ${A})`)}var t=ye,me=ye,R=ye;function En(A,L){let C=A.indexOf(L);return C===-1?l:C}var Z=En;function he(A){
+return A.length}function We(A,L,C){if(typeof A!="string"||typeof L!="string")throw new Error("Not a string");return A.length>
+C&&(A=A.slice(0,C)),L.length>C&&(L=L.slice(0,C)),A<L?-1:A>L?1:0}function H(A,L){return We(A,L,1/0)}function Ot(A,L){let C=he(
+A);for(let P=0;P<C;P++)if(L.indexOf(A[P])===-1)return P;return C}function bn(A){return parseInt(A,10)}function Nn(A){return parseInt(
+A,10)}function Un(A){return A===" "||A==="	"||A===`
+`||A==="\r"}function dt(A){return A==='"'||A==="'"}function ut(A){let L=A.charCodeAt(0);return L>=65&&L<=90}function $(A){
+return A.length}function fn(A){return A.toLowerCase()}function Lt(A,L){return H(A.toLowerCase(),L.toLowerCase())}function Le(A){return 0}function b(A){A.data="",A.len=0}var rn=b;function r(A,L){A.data+=L,A.len=A.data.length}var K=r;function p(A,L,...C){
+let P=se(L,...C);r(A,P)}function N(A,L,...C){b(A),p(A,L,...C)}function On(A,L,C,P){let Y="'"+L.replace(P?/[']/g:/['\\]/g,
+"\\$&")+"'";r(A,Y)}function Ge(A,L,C){if(Z(L,"\\")!=l&&Je(C)<19e4){A.len>0&&A.data[A.len-1]!=" "&&K(A," "),K(A,Ba),On(A,
+L,yn(C),!1);return}On(A,L,C.encoding,C.std_strings)}function se(A,...L){let C="",P=0,w=0,Y;for(;(Y=A.indexOf("%",w))!==-1;){
+let k=0,V=!1;C+=A.slice(w,Y),w=Y+1;let B=A[w++];if(B==="%"&&(C+="%"),B==="*"&&(k=parseInt(L[P++],10),B=A[w++]),B==="-"&&
+(V=!0,B=A[w++]),B>="0"&&B<="9"&&(k=parseInt(B,10),B=A[w++]),B==="s"||B==="c"||B==="d"||B==="u"){let Re=String(L[P++]),re=k-
+Re.length;V===!1&&re>0&&(C+=" ".repeat(re)),C+=Re,V===!0&&re>0&&(C+=" ".repeat(re))}}return C+=A.slice(w),C}var ln=se;function Pn(A){
+return A?A.dbName:l}function Je(A){return!A||A.status===ka?0:A.sversion}function yn(A){return!A||A.status!=Fn?-1:A.client_encoding}
+function x(A){return A.rowCount}function Hn(A){return A.fields.length}function wn(A,L){return A.fields[L].name}function It(A,L){
+return A.fields[L].dataTypeID}function ie(A,L,C){return A.rows[L][C]===null?1:0}function g(A,L,C){let P=A.rows[L][C];return String(
+P===null?"":P)}function Ue(A,L){let C,P,w,Y,k;if(!A||L==l||L[0]==l)return-1;for(C=!1,w="",P=0,k=he(L);P<k;P++){let V=L[P];
+C?V=='"'?L[P+1]=='"'?(w+='"',P++):C=!1:w+=V:V=='"'?C=!0:(V=fn(V),w+=V)}for(Y=0,k=Hn(A);Y<k;Y++)if(H(w,wn(A,Y))==0)return Y;
+return-1}function Ie(A,L,C,P){return A>=1e5?L?C=se("%d.%d",Math.floor(A/1e4),A%1e4):C=se("%d",A/1e4):L?C=se("%d.%d.%d",Math.
+floor(A/1e4),Math.floor(A/100)%100,A%100):C=se("%d.%d",Math.floor(A/1e4),Math.floor(A/100)%100),C}function Pe(A,L,C,P){if(L!==
+Fe&&L!==Sn)throw new Error(`scan type ${L} not implemented`);if(C!==l)throw new Error("cannot return quote type");let w=[],
+Y=P?/^(.*);*$/:/^(.*)$/,k;for(;;){if(k=A[0][A[1]],k==l)return l;if(!Un(k))break;A[1]++}if(L===Sn)return A[0].slice(A[1],
+A[1]=A[0].length);let V="";for(;;){if(k=A[0][A[1]++],k==l)return w.length>0?l:V.match(Y)[1];if(dt(k))k===w[w.length-1]?w.
+pop():w.push(k),k==='"'&&(V+=k);else{if(w.length===0&&Un(k))return V.match(Y)[1];V+=k}}}function ye(A){return A}var Ct=`\
+Help
   \\? [commands]          show help on backslash commands
   \\h [NAME]              help on syntax of SQL commands, * for all commands
 
 Informational
-  (options: S = show system objects, + = additional detail)
-  \\d[S+]                 list tables, views, and sequences
-  \\d[S+]  NAME           describe table, view, sequence, or index
-  \\da[S]  [PATTERN]      list aggregates
-  \\dA[+]  [PATTERN]      list access methods
-  \\dAc[+] [AMPTRN [TYPEPTRN]]  list operator classes
-  \\dAf[+] [AMPTRN [TYPEPTRN]]  list operator families
-  \\dAo[+] [AMPTRN [OPFPTRN]]   list operators of operator families
-  \\dAp[+] [AMPTRN [OPFPTRN]]   list support functions of operator families
-  \\db[+]  [PATTERN]      list tablespaces
-  \\dc[S+] [PATTERN]      list conversions
-  \\dconfig[+] [PATTERN]  list configuration parameters
-  \\dC[+]  [PATTERN]      list casts
-  \\dd[S]  [PATTERN]      show object descriptions not displayed elsewhere
-  \\dD[S+] [PATTERN]      list domains
-  \\ddp    [PATTERN]      list default privileges
-  \\dE[S+] [PATTERN]      list foreign tables
-  \\des[+] [PATTERN]      list foreign servers
-  \\det[+] [PATTERN]      list foreign tables
-  \\deu[+] [PATTERN]      list user mappings
-  \\dew[+] [PATTERN]      list foreign-data wrappers
-  \\df[anptw][S+] [FUNCPTRN [TYPEPTRN ...]]
+  (options: S = show system objects, x = expanded mode, + = additional detail)
+  \\d[Sx+]                list tables, views, and sequences
+  \\d[S+]   NAME          describe table, view, sequence, or index
+  \\da[Sx]  [PATTERN]     list aggregates
+  \\dA[x+]  [PATTERN]     list access methods
+  \\dAc[x+] [AMPTRN [TYPEPTRN]]  list operator classes
+  \\dAf[x+] [AMPTRN [TYPEPTRN]]  list operator families
+  \\dAo[x+] [AMPTRN [OPFPTRN]]   list operators of operator families
+  \\dAp[x+] [AMPTRN [OPFPTRN]]   list support functions of operator families
+  \\db[x+]  [PATTERN]     list tablespaces
+  \\dc[Sx+] [PATTERN]     list conversions
+  \\dconfig[x+] [PATTERN] list configuration parameters
+  \\dC[x+]  [PATTERN]     list casts
+  \\dd[Sx]  [PATTERN]     show object descriptions not displayed elsewhere
+  \\dD[Sx+] [PATTERN]     list domains
+  \\ddp[x]  [PATTERN]     list default privileges
+  \\dE[Sx+] [PATTERN]     list foreign tables
+  \\des[x+] [PATTERN]     list foreign servers
+  \\det[x+] [PATTERN]     list foreign tables
+  \\deu[x+] [PATTERN]     list user mappings
+  \\dew[x+] [PATTERN]     list foreign-data wrappers
+  \\df[anptw][Sx+] [FUNCPTRN [TYPEPTRN ...]]
                          list [only agg/normal/procedure/trigger/window] functions
-  \\dF[+]  [PATTERN]      list text search configurations
-  \\dFd[+] [PATTERN]      list text search dictionaries
-  \\dFp[+] [PATTERN]      list text search parsers
-  \\dFt[+] [PATTERN]      list text search templates
-  \\dg[S+] [PATTERN]      list roles
-  \\di[S+] [PATTERN]      list indexes
-  \\dl[+]                 list large objects, same as \\lo_list
-  \\dL[S+] [PATTERN]      list procedural languages
-  \\dm[S+] [PATTERN]      list materialized views
-  \\dn[S+] [PATTERN]      list schemas
-  \\do[S+] [OPPTRN [TYPEPTRN [TYPEPTRN]]]
+  \\dF[x+]  [PATTERN]     list text search configurations
+  \\dFd[x+] [PATTERN]     list text search dictionaries
+  \\dFp[x+] [PATTERN]     list text search parsers
+  \\dFt[x+] [PATTERN]     list text search templates
+  \\dg[Sx+] [PATTERN]     list roles
+  \\di[Sx+] [PATTERN]     list indexes
+  \\dl[x+]                list large objects, same as \\lo_list
+  \\dL[Sx+] [PATTERN]     list procedural languages
+  \\dm[Sx+] [PATTERN]     list materialized views
+  \\dn[Sx+] [PATTERN]     list schemas
+  \\do[Sx+] [OPPTRN [TYPEPTRN [TYPEPTRN]]]
                          list operators
-  \\dO[S+] [PATTERN]      list collations
-  \\dp[S]  [PATTERN]      list table, view, and sequence access privileges
-  \\dP[itn+] [PATTERN]    list [only index/table] partitioned relations [n=nested]
-  \\drds [ROLEPTRN [DBPTRN]] list per-database role settings
-  \\drg[S] [PATTERN]      list role grants
-  \\dRp[+] [PATTERN]      list replication publications
-  \\dRs[+] [PATTERN]      list replication subscriptions
-  \\ds[S+] [PATTERN]      list sequences
-  \\dt[S+] [PATTERN]      list tables
-  \\dT[S+] [PATTERN]      list data types
-  \\du[S+] [PATTERN]      list roles
-  \\dv[S+] [PATTERN]      list views
-  \\dx[+]  [PATTERN]      list extensions
-  \\dX[+]  [PATTERN]      list extended statistics
-  \\dy[+]  [PATTERN]      list event triggers
-  \\l[+]   [PATTERN]      list databases
-  \\lo_list[+]            list large objects
-  \\sf[+]  FUNCNAME       show a function's definition
-  \\sv[+]  VIEWNAME       show a view's definition
-  \\z[S]   [PATTERN]      same as \\dp
-`;export{Ut as describe,bt as describeDataToHtml,Dt as describeDataToString};
+  \\dO[Sx+] [PATTERN]     list collations
+  \\dp[Sx]  [PATTERN]     list table, view, and sequence access privileges
+  \\dP[itnx+] [PATTERN]   list [only index/table] partitioned relations [n=nested]
+  \\drds[x] [ROLEPTRN [DBPTRN]] 
+                         list per-database role settings
+  \\drg[Sx] [PATTERN]     list role grants
+  \\dRp[x+] [PATTERN]     list replication publications
+  \\dRs[x+] [PATTERN]     list replication subscriptions
+  \\ds[Sx+] [PATTERN]     list sequences
+  \\dt[Sx+] [PATTERN]     list tables
+  \\dT[Sx+] [PATTERN]     list data types
+  \\du[Sx+] [PATTERN]     list roles
+  \\dv[Sx+] [PATTERN]     list views
+  \\dx[x+]  [PATTERN]     list extensions
+  \\dX[x+]  [PATTERN]     list extended statistics
+  \\dy[x+]  [PATTERN]     list event triggers
+  \\l[x+]   [PATTERN]     list databases
+  \\lo_list[x+]           list large objects
+  \\sf[+]   FUNCNAME      show a function's definition
+  \\sv[+]   VIEWNAME      show a view's definition
+  \\z[Sx]   [PATTERN]     same as \\dp
+`;export{Ft as describe,Pt as describeDataToHtml,Ut as describeDataToString,ce as htmlEscape};

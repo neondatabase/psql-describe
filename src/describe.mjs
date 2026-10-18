@@ -13,12 +13,12 @@ const
 
 const
   PSQL_CMD_UNKNOWN = 0,		/* not done parsing yet (internal only) */
-  PSQL_CMD_SKIP_LINE = 2,			/* keep building query */
-  PSQL_CMD_ERROR = 5;				/* the execution of the backslash command */
+  PSQL_CMD_SKIP_LINE = 2,	/* keep building query */
+  PSQL_CMD_ERROR = 5;			/* the execution of the backslash command */
 
 const
   OT_NORMAL = 0,
-  OT_WHOLE_LINE = 4;				/* just snarf the rest of the line */
+  OT_WHOLE_LINE = 4;			/* just snarf the rest of the line */
 
 const PG_UTF8 = 6;
 
@@ -28,18 +28,18 @@ const
 
 const
   COERCION_METHOD_BINARY = 'b',	/* types are binary-compatible */
-  COERCION_METHOD_INOUT = 'i'; /* use input/output functions */
+  COERCION_METHOD_INOUT = 'i';  /* use input/output functions */
 
 const
   COERCION_CODE_ASSIGNMENT = 'a', /* coercion in context of assignment */
-  COERCION_CODE_EXPLICIT = 'e';	/* explicit cast operation */
+  COERCION_CODE_EXPLICIT = 'e';	  /* explicit cast operation */
 
 const
-  DEFACLOBJ_RELATION = 'r', /* table, view */
-  DEFACLOBJ_SEQUENCE = 'S', /* sequence */
-  DEFACLOBJ_FUNCTION = 'f', /* function */
-  DEFACLOBJ_TYPE = 'T', /* type */
-  DEFACLOBJ_NAMESPACE = 'n', /* namespace */
+  DEFACLOBJ_RELATION = 'r',    /* table, view */
+  DEFACLOBJ_SEQUENCE = 'S',    /* sequence */
+  DEFACLOBJ_FUNCTION = 'f',    /* function */
+  DEFACLOBJ_TYPE = 'T',        /* type */
+  DEFACLOBJ_NAMESPACE = 'n',   /* namespace */
   DEFACLOBJ_LARGEOBJECT = 'L'; /* large object */
 
 const
@@ -78,15 +78,24 @@ const
   MONEYOID = 790,
   NUMERICOID = 1700;
 
-export function describeDataToString(item) {
-  return typeof item === 'string' ? item : tableToString(item);
+export function describeDataToString(item, pset) {
+  return typeof item === 'string' ? item : tableToString(item, pset);
 }
 
-export function describeDataToHtml(item) {
-  return typeof item === 'string' ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item);
+export function describeDataToHtml(item, pset) {
+  return typeof item === 'string' ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item, pset);
 }
 
-export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sversion = null, std_strings = 1, docsURLTemplate = (id) => `https://www.postgresql.org/docs/19/${id}.html`) {
+export function describe(
+  cmd,
+  dbName,
+  runQuery,
+  outputFn,
+  echoHidden = false,
+  sversion = null,
+  std_strings = 1,
+  docsURLTemplate = (id) => `https://www.postgresql.org/docs/19/${id}.html`,
+) {
   let cancel_pressed = false;
 
   function cancel() {
@@ -171,6 +180,9 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
         sversion = parseInt(vres.rows[0][0], 10);
       }
 
+      const expandedSearchString = matchedCommand.startsWith('dx') ? matchedCommand.slice(2) : matchedCommand;
+      const expanded = expandedSearchString.indexOf('x') !== -1 ? 1 : 0;
+
       pset = {
         sversion,
         db: {  // PGconn struct
@@ -185,32 +197,30 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
             default_footer: true,
           },
           nullPrint: '',
+          expanded,
         }
       };
 
       const
         scan_state = [remaining, 0],
         result = await (
-          matchedCommand[0] === 'd' ? exec_command_d(scan_state, true, matchedCommand) :
-            matchedCommand[0] === 's' ?
-              (matchedCommand[1] === 'f' || matchedCommand[1] === 'v' ?
-                exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === 'f') :
-                PSQL_CMD_UNKNOWN) :
-              matchedCommand[0] === 'l' ? exec_command_list(scan_state, true, matchedCommand) :
-                PSQL_CMD_UNKNOWN
+          matchedCommand[0] === 'd'
+            ? exec_command_d(scan_state, true, matchedCommand)
+            : matchedCommand === 'sf' || matchedCommand === 'sf+' || matchedCommand === 'sv' || matchedCommand === 'sv+'
+              ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === 'f')
+              : matchedCommand[0] === 'l'
+                ? exec_command_list(scan_state, true, matchedCommand)
+                : PSQL_CMD_UNKNOWN
         );
 
-      if ((matchedCommand.startsWith('dx') ? matchedCommand.slice(2) : matchedCommand).indexOf('x') !== -1) {
-        outputFn('Note: expanded output using x is not supported');
-      }
-
       if (result === PSQL_CMD_UNKNOWN) outputFn(`invalid command \\${matchedCommand}`);
-      // if (result === PSQL_CMD_ERROR) outputFn('...');  // what goes here?
-
-      let arg, warnings = [];
-      while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(sprintf("\\%s: extra argument \"%s\" ignored", matchedCommand, arg));
-      if (warnings.length > 0) outputFn(warnings.join('\n'));
-
+      // if result === PSQL_CMD_ERROR, the error message was printed already
+      else {
+        let arg, warnings = [];
+        while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(sprintf("\\%s: extra argument \"%s\" ignored", matchedCommand, arg));
+        if (warnings.length > 0) outputFn(warnings.join('\n'));
+      }
+      
     } catch (err) {
       // throw err;
       outputFn('ERROR:  ' + err.message);
@@ -724,7 +734,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
     }
 
     function printTable(cont, fout, is_pager, flog) {
-      outputFn({ ...cont });  // must clone in case same content object is reused (and thus mutated) later
+      outputFn({ ...cont }, pset);  // must clone in case same content object is reused (and thus mutated) later
     }
 
 
@@ -1215,12 +1225,13 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
         case undefined:
         case '+':
         case 'S':
-
-          if (pattern)
+          if (pattern) {
+            pset.popt.expanded = 0; // not supported for this command
             success = await describeTableDetails(pattern, show_verbose, show_system);
-          else
+          } else {
             /* standard listing of interesting things */
             success = await listTables("tvmsE", NULL, show_verbose, show_system);
+          }
           break;
         case 'A':
           {
@@ -1232,6 +1243,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
             switch (cmd[2]) {
               case undefined:
               case '+':
+              case 'x':
                 success = await describeAccessMethods(pattern, show_verbose);
                 break;
               case 'c':
@@ -1291,6 +1303,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
             case 'p':
             case 't':
             case 'w':
+            case 'x':
               success = await exec_command_dfo(scan_state, cmd, pattern,
                 show_verbose, show_system);
               break;
@@ -1330,6 +1343,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
               case 't':
               case 'i':
               case 'n':
+              case 'x':
                 success = await listPartitionedTables(cmd.slice(2), pattern, show_verbose);
                 break;
               default:
@@ -1385,6 +1399,7 @@ export function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sv
           switch (cmd[2]) {
             case undefined:
             case '+':
+            case 'x':
               success = await listTSConfigs(pattern, show_verbose);
               break;
             case 'p':
@@ -8382,13 +8397,72 @@ function linesInfo(str) {
   return { count, longest };
 }
 
-function htmlEscape(str, convertWhitespace) {
+export function htmlEscape(str, convertWhitespace) {
   str = str.replace(/[<>&'"]/g, m => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[m]));
   if (convertWhitespace) str = str.replace(/ /g, '&nbsp;').replace(/\n/g, '<br />');
   return str;
 }
 
-function tableToString(td, escape) {
+function tableToStringVertical(td, pset) {
+  const { ncolumns, nrows, headers, cells } = td;
+  if (cells.length === 0) return `(${nrows} row${nrows === 1 ? '' : 's'})`;
+
+  const
+    // max header dimensions
+    hinfo = headers.map(linesInfo),
+    hwidth = Math.max(...hinfo.map(li => li.longest)),
+    // max data dimensions
+    dinfo = cells.map(linesInfo),
+    dwidth = Math.max(...dinfo.map(li => li.longest)),
+    // other widths
+    swidth = 3, // separator " | " or "+| "
+    rwidth = nrows === 0 ? 0 : 13 + (Math.log10(td.nrows) | 0), // record header "-[ RECORD n ]",
+    // total width required to not wrap data or record headers
+    width = Math.max(hwidth + swidth + dwidth, rwidth);
+
+  let table = '';
+  for (let i = 0, len = cells.length, rownum = 0; i < len; i ++) {
+    const colnum = i % ncolumns;
+    if (colnum === 0) {
+      rownum++;
+      let rheader = `-[ RECORD ${rownum} ]`;
+      if (rheader.length < hwidth + 1) rheader += '-'.repeat(hwidth - rheader.length + 1);
+      if (rheader.length < hwidth + 2) rheader += '+';
+      if (rheader.length < width) rheader += '-'.repeat(width - rheader.length);
+      table += `\n${rheader}`;
+    }
+
+    const header = headers[colnum];
+    const headerlines = header.split('\n');
+    const headernlines = headerlines.length;
+
+    const cell = cells[i];
+    const celllines = cell.split('\n');
+    const cellnlines = celllines.length;
+
+    const maxnlines = Math.max(headernlines, cellnlines);
+
+    for (let j = 0; j < maxnlines; j++) {
+      table +=
+        '\n' +
+        pad(headerlines[j] ?? '', hwidth) +
+        (headernlines > j + 1 ? '+' : ' ') +
+        '| ' +
+        pad(celllines[j] ?? '', dwidth) +
+        (cellnlines > j + 1 ? '+' : '');
+    }
+  }
+
+  const
+    nonEmptyFooters = td.footers ? td.footers.filter(noop) : [],
+    footers = nonEmptyFooters.length > 0 ? '\n\n' + nonEmptyFooters.join('\n') : '';
+
+  const result = `${td.title}${table}${footers}`;
+  return result;
+}
+
+function tableToString(td, pset) {
+  if (pset && pset.popt && pset.popt.expanded) return tableToStringVertical(td, pset);
   const
     { ncolumns, nrows, aligns } = td,
     allCellsLinesInfo = [...td.headers, ...td.cells].map(linesInfo),
@@ -8425,12 +8499,38 @@ function tableToString(td, escape) {
       td.opt.default_footer ? `\n(${nrows} row${nrows === 1 ? '' : 's'})` :
         '';
 
-  let result = `${title}\n${table}${footers}`;
-  if (escape) result = htmlEscape(result);
+  const result = `${title}\n${table}${footers}`;
   return result;
 }
 
-function tableToHtml(td) {
+function tableToHtmlVertical(td, pset) {
+  const { ncolumns, cells, headers } = td;
+  let result = `<table><tr><th align="left" colspan="2">${htmlEscape(td.title)}</th></tr>`;
+  const escapedHeaders = headers.map(h => htmlEscape(h, true));
+  for (let i = 0, len = cells.length, rownum = 0; i < len; i ++) {
+    const colnum = i % ncolumns;
+    if (colnum === 0) {
+      rownum++;
+      result += `<tr><th align="left" colspan="2">RECORD ${rownum}</th></tr>`;
+    }
+    const escapedHeader = escapedHeaders[colnum];
+    const escapedCell = htmlEscape(cells[i], true);
+    result += `<tr><td valign="top">${escapedHeader}</td><td valign="top">${escapedCell}</td></tr>`;
+  }
+  result += '</table>';
+  const nonEmptyFooters = td.footers ? td.footers.filter(noop) : [];
+  if (nonEmptyFooters.length > 0) {
+    if (nonEmptyFooters.length > 1 && nonEmptyFooters.some(footer => /^\s/.test(footer))) {
+      result += `<dl>` + nonEmptyFooters.map(footer => /^\s/.test(footer) ? `<dd>${htmlEscape(footer.trim(), true)}</dd>` : `<dt>${htmlEscape(footer, true)}</dt>`).join('') + '</dl>';
+    } else {
+      result += nonEmptyFooters.map(footer => `<p>${htmlEscape(footer, true)}</p>`).join('');
+    }
+  }
+  return result;
+}
+
+function tableToHtml(td, pset) {
+  if (pset && pset.popt && pset.popt.expanded) return tableToHtmlVertical(td, pset);
   let result = `<table><tr><th valign="top" style="text-align: center;" colspan="${td.ncolumns}">${htmlEscape(td.title)}</th></tr><tr>`;
   for (let h of td.headers) result += `<th valign="top" style="text-align: center;">${htmlEscape(h)}</th>`;
   result += '</tr>'
@@ -8820,59 +8920,60 @@ const helpText = `Help
   \\h [NAME]              help on syntax of SQL commands, * for all commands
 
 Informational
-  (options: S = show system objects, + = additional detail)
-  \\d[S+]                 list tables, views, and sequences
-  \\d[S+]  NAME           describe table, view, sequence, or index
-  \\da[S]  [PATTERN]      list aggregates
-  \\dA[+]  [PATTERN]      list access methods
-  \\dAc[+] [AMPTRN [TYPEPTRN]]  list operator classes
-  \\dAf[+] [AMPTRN [TYPEPTRN]]  list operator families
-  \\dAo[+] [AMPTRN [OPFPTRN]]   list operators of operator families
-  \\dAp[+] [AMPTRN [OPFPTRN]]   list support functions of operator families
-  \\db[+]  [PATTERN]      list tablespaces
-  \\dc[S+] [PATTERN]      list conversions
-  \\dconfig[+] [PATTERN]  list configuration parameters
-  \\dC[+]  [PATTERN]      list casts
-  \\dd[S]  [PATTERN]      show object descriptions not displayed elsewhere
-  \\dD[S+] [PATTERN]      list domains
-  \\ddp    [PATTERN]      list default privileges
-  \\dE[S+] [PATTERN]      list foreign tables
-  \\des[+] [PATTERN]      list foreign servers
-  \\det[+] [PATTERN]      list foreign tables
-  \\deu[+] [PATTERN]      list user mappings
-  \\dew[+] [PATTERN]      list foreign-data wrappers
-  \\df[anptw][S+] [FUNCPTRN [TYPEPTRN ...]]
+  (options: S = show system objects, x = expanded mode, + = additional detail)
+  \\d[Sx+]                list tables, views, and sequences
+  \\d[S+]   NAME          describe table, view, sequence, or index
+  \\da[Sx]  [PATTERN]     list aggregates
+  \\dA[x+]  [PATTERN]     list access methods
+  \\dAc[x+] [AMPTRN [TYPEPTRN]]  list operator classes
+  \\dAf[x+] [AMPTRN [TYPEPTRN]]  list operator families
+  \\dAo[x+] [AMPTRN [OPFPTRN]]   list operators of operator families
+  \\dAp[x+] [AMPTRN [OPFPTRN]]   list support functions of operator families
+  \\db[x+]  [PATTERN]     list tablespaces
+  \\dc[Sx+] [PATTERN]     list conversions
+  \\dconfig[x+] [PATTERN] list configuration parameters
+  \\dC[x+]  [PATTERN]     list casts
+  \\dd[Sx]  [PATTERN]     show object descriptions not displayed elsewhere
+  \\dD[Sx+] [PATTERN]     list domains
+  \\ddp[x]  [PATTERN]     list default privileges
+  \\dE[Sx+] [PATTERN]     list foreign tables
+  \\des[x+] [PATTERN]     list foreign servers
+  \\det[x+] [PATTERN]     list foreign tables
+  \\deu[x+] [PATTERN]     list user mappings
+  \\dew[x+] [PATTERN]     list foreign-data wrappers
+  \\df[anptw][Sx+] [FUNCPTRN [TYPEPTRN ...]]
                          list [only agg/normal/procedure/trigger/window] functions
-  \\dF[+]  [PATTERN]      list text search configurations
-  \\dFd[+] [PATTERN]      list text search dictionaries
-  \\dFp[+] [PATTERN]      list text search parsers
-  \\dFt[+] [PATTERN]      list text search templates
-  \\dg[S+] [PATTERN]      list roles
-  \\di[S+] [PATTERN]      list indexes
-  \\dl[+]                 list large objects, same as \\lo_list
-  \\dL[S+] [PATTERN]      list procedural languages
-  \\dm[S+] [PATTERN]      list materialized views
-  \\dn[S+] [PATTERN]      list schemas
-  \\do[S+] [OPPTRN [TYPEPTRN [TYPEPTRN]]]
+  \\dF[x+]  [PATTERN]     list text search configurations
+  \\dFd[x+] [PATTERN]     list text search dictionaries
+  \\dFp[x+] [PATTERN]     list text search parsers
+  \\dFt[x+] [PATTERN]     list text search templates
+  \\dg[Sx+] [PATTERN]     list roles
+  \\di[Sx+] [PATTERN]     list indexes
+  \\dl[x+]                list large objects, same as \\lo_list
+  \\dL[Sx+] [PATTERN]     list procedural languages
+  \\dm[Sx+] [PATTERN]     list materialized views
+  \\dn[Sx+] [PATTERN]     list schemas
+  \\do[Sx+] [OPPTRN [TYPEPTRN [TYPEPTRN]]]
                          list operators
-  \\dO[S+] [PATTERN]      list collations
-  \\dp[S]  [PATTERN]      list table, view, and sequence access privileges
-  \\dP[itn+] [PATTERN]    list [only index/table] partitioned relations [n=nested]
-  \\drds [ROLEPTRN [DBPTRN]] list per-database role settings
-  \\drg[S] [PATTERN]      list role grants
-  \\dRp[+] [PATTERN]      list replication publications
-  \\dRs[+] [PATTERN]      list replication subscriptions
-  \\ds[S+] [PATTERN]      list sequences
-  \\dt[S+] [PATTERN]      list tables
-  \\dT[S+] [PATTERN]      list data types
-  \\du[S+] [PATTERN]      list roles
-  \\dv[S+] [PATTERN]      list views
-  \\dx[+]  [PATTERN]      list extensions
-  \\dX[+]  [PATTERN]      list extended statistics
-  \\dy[+]  [PATTERN]      list event triggers
-  \\l[+]   [PATTERN]      list databases
-  \\lo_list[+]            list large objects
-  \\sf[+]  FUNCNAME       show a function's definition
-  \\sv[+]  VIEWNAME       show a view's definition
-  \\z[S]   [PATTERN]      same as \\dp
+  \\dO[Sx+] [PATTERN]     list collations
+  \\dp[Sx]  [PATTERN]     list table, view, and sequence access privileges
+  \\dP[itnx+] [PATTERN]   list [only index/table] partitioned relations [n=nested]
+  \\drds[x] [ROLEPTRN [DBPTRN]] 
+                         list per-database role settings
+  \\drg[Sx] [PATTERN]     list role grants
+  \\dRp[x+] [PATTERN]     list replication publications
+  \\dRs[x+] [PATTERN]     list replication subscriptions
+  \\ds[Sx+] [PATTERN]     list sequences
+  \\dt[Sx+] [PATTERN]     list tables
+  \\dT[Sx+] [PATTERN]     list data types
+  \\du[Sx+] [PATTERN]     list roles
+  \\dv[Sx+] [PATTERN]     list views
+  \\dx[x+]  [PATTERN]     list extensions
+  \\dX[x+]  [PATTERN]     list extended statistics
+  \\dy[x+]  [PATTERN]     list event triggers
+  \\l[x+]   [PATTERN]     list databases
+  \\lo_list[x+]           list large objects
+  \\sf[+]   FUNCNAME      show a function's definition
+  \\sv[+]   VIEWNAME      show a view's definition
+  \\z[Sx]   [PATTERN]     same as \\dp
 `;

@@ -10,7 +10,7 @@ const POSTGRES_VERSIONS = [
   { major: '16', tag: '16' },
   { major: '17', tag: '17' },
   { major: '18', tag: '18', image: 'docker.io/imresamu/postgis:18-3.6' },
-  { major: '19', tag: '19beta4' },
+  { major: '19', tag: '19rc1' },
 ];
 
 // fixed revision, compatible with all Postgres versions
@@ -26,12 +26,13 @@ function usage() {
   return `Usage: node test/test-matrix.mjs [options]
 
 Run database-dependent tests against PostgreSQL container images.
-PostgreSQL 19beta3 psql is used as the reference client for every server.
+PostgreSQL 19rc1 psql is used as the reference client for every server.
 
 Options:
   --runtime podman|docker  Container runtime (auto-detected by default)
   --versions LIST          Comma-separated majors, e.g. 14,17,19
   --no-pull                Use locally cached images without pulling updates
+  --ho-help                Skip the help text tests
   -h, --help               Show this help
 `;
 }
@@ -39,6 +40,7 @@ Options:
 function parseArgs(args) {
   let runtime;
   let pull = true;
+  let help = true;
   let versions = POSTGRES_VERSIONS;
 
   for (let i = 0; i < args.length; i++) {
@@ -49,6 +51,8 @@ function parseArgs(args) {
       process.exit(0);
     } else if (arg === '--no-pull') {
       pull = false;
+    } else if (arg === '--no-help') {
+      help = false;
     } else if (arg === '--runtime' || arg === '--versions') {
       const value = args[++i];
       if (!value) throw new Error(`${arg} requires a value`);
@@ -67,7 +71,7 @@ function parseArgs(args) {
     throw new Error(`unsupported container runtime: ${runtime}`);
   }
 
-  return { runtime, pull, versions };
+  return { runtime, pull, help, versions };
 }
 
 function selectVersions(value) {
@@ -150,7 +154,7 @@ async function loadCachedFixture(url, filename) {
   return fixture;
 }
 
-const { runtime: requestedRuntime, pull, versions } = parseArgs(process.argv.slice(2));
+const { runtime: requestedRuntime, pull, help, versions } = parseArgs(process.argv.slice(2));
 const runtime = detectRuntime(requestedRuntime);
 const imagePrefix = process.env.POSTGRES_IMAGE_PREFIX || 'docker.io/library/postgres';
 const runId = `${process.pid}-${Date.now()}`;
@@ -341,7 +345,7 @@ try {
   const referenceVersion = POSTGRES_VERSIONS.at(-1);
   const referenceServer = await startServer(referenceVersion);
 
-  await runTests(referenceServer, referenceServer.container, 'SQL help', helpTests);
+  if (help) await runTests(referenceServer, referenceServer.container, 'SQL help', helpTests);
 
   for (const version of versions) {
     const server = version.major === referenceVersion.major
@@ -366,6 +370,7 @@ try {
 } catch (error) {
   console.error(`\nTest matrix failed: ${error.message}`);
   process.exitCode = 1;
+
 } finally {
   cleanup();
 }

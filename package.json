@@ -1,10 +1,16 @@
 {
   "name": "psql-describe",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "npm run test:api && npm run test:matrix",
-    "test:api": "npm run build && node --test test/test-api.mjs",
+    "test:api": "npm run build && node test/test-api.mjs",
     "test:matrix": "npm run build && node test/test-matrix.mjs",
     "build": "esbuild src/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
     "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020"
@@ -19,5 +25,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/neondatabase/psql-describe"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }

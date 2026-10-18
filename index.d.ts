@@ -15,3 +15,4 @@ export function describe(
 
 export function describeDataToString(item: string | Record<string, any>): string;
 export function describeDataToHtml(item: string | Record<string, any>): string;
+export function htmlEscape(str: string, convertWhitespace: boolean): string;
