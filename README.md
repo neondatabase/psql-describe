@@ -32,7 +32,7 @@ describe(
 * `cmd` (string) is the desired describe command, including the leading backslash, such as `\d` (don't forget you may need to escape the backslash in a literal string).
 * `dbName` (string) is the name of the connected database.
 * `runQuery` is an async function that takes a SQL query (string) and must return *unparsed* query results in the same format used by node-postgres when specifying `rowMode: 'array'`.
-* `outputFn` is a function that receives output for display -- either a string or a table object (see below) -- plus a `pset` object used to signal that the `x` option was used and expanded output is desired.
+* `outputFn` is a function that receives output for display: either a string or a table object (see below).
 * `echoHidden` (boolean) has the same effect as the `-E` argument to psql: if `true`, all SQL queries are output to `outputFn`, in addition to the final results.
 * `sversion` (number) should be the same value as `SHOW server_version_num` executed on the server. It is used to determine what features the database supports. If it is not provided, the server is queried for it.
 * `std_strings` (boolean) indicates the value of `standard_conforming_strings` in the database.
@@ -47,13 +47,13 @@ The outputs of `describe()`, as passed to the `outputFn` argument, are a mix of 
 
 To format these outputs for display, three additional functions are exported:
 
-* ```describeDataToString(item, pset)```
+* ```describeDataToString(item)```
 
-  Passes though string items unchanged. When an object item is passed in, a formatted plain-text table is returned, identical to those produced by the psql CLI. If `pset.popt.expanded` is truthy then the table will be in expanded form.
+  Passes though string items unchanged. When an object item is passed in, a formatted plain-text table is returned, identical to those produced by the psql CLI. If `item.opt.expanded` is truthy then the table will be in expanded form.
 
-* ```describeDataToHtml(item, pset)```
+* ```describeDataToHtml(item)```
 
-  HTML-escapes string items, and formats object items as HTML tables (whose contents are HTML-escaped). If `pset.popt.expanded` is truthy then the table will be in expanded form.
+  HTML-escapes string items, and formats object items as HTML tables (whose contents are HTML-escaped). If `item.opt.expanded` is truthy then the table will be in expanded form.
 
 * ```htmlEscape(str, convertWhitespace)```
   

@@ -75,9 +75,9 @@ async function go() {
 
     let firstOutput = true;
     const outputFn = htmlOutput ?
-      (x, pset) => outputEl.innerHTML += describeDataToHtml(x, pset) :
-      (x, pset) => {
-        outputEl.innerHTML += (firstOutput ? '' : '\n\n') + htmlEscape(describeDataToString(x, pset));
+      x => outputEl.innerHTML += describeDataToHtml(x) :
+      x => {
+        outputEl.innerHTML += (firstOutput ? '' : '\n\n') + htmlEscape(describeDataToString(x));
         firstOutput = false;
       };
 

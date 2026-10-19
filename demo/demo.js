@@ -242,11 +242,11 @@ var FLOAT4OID = 700;
 var FLOAT8OID = 701;
 var MONEYOID = 790;
 var NUMERICOID = 1700;
-function describeDataToString(item, pset) {
-  return typeof item === "string" ? item : tableToString(item, pset);
+function describeDataToString(item) {
+  return typeof item === "string" ? item : tableToString(item);
 }
-function describeDataToHtml(item, pset) {
-  return typeof item === "string" ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item, pset);
+function describeDataToHtml(item) {
+  return typeof item === "string" ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item);
 }
 function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sversion = null, std_strings = 1, docsURLTemplate = (id) => `https://www.postgresql.org/docs/19/${id}.html`) {
   let cancel_pressed = false;
@@ -335,10 +335,11 @@ ${sql}
         popt: {
           // print options
           topt: {
-            default_footer: true
+            // table options
+            default_footer: true,
+            expanded
           },
-          nullPrint: "",
-          expanded
+          nullPrint: ""
         }
       };
       const scan_state = [remaining, 0], result = await (matchedCommand[0] === "d" ? exec_command_d(scan_state, true, matchedCommand) : matchedCommand === "sf" || matchedCommand === "sf+" || matchedCommand === "sv" || matchedCommand === "sv+" ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === "f") : matchedCommand[0] === "l" ? exec_command_list(scan_state, true, matchedCommand) : PSQL_CMD_UNKNOWN);
@@ -687,7 +688,7 @@ ${sql}
       printTableAddFooter(content, footer);
     }
     function printTable(cont, fout, is_pager, flog) {
-      outputFn({ ...cont }, pset);
+      outputFn({ ...cont });
     }
     async function exec_command_sf_sv(scan_state, active_branch, cmd2, is_func) {
       let status = PSQL_CMD_SKIP_LINE;
@@ -1005,7 +1006,6 @@ ${sql}
         case "+":
         case "S":
           if (pattern) {
-            pset.popt.expanded = 0;
             success = await describeTableDetails(pattern, show_verbose, show_system);
           } else {
             success = await listTables("tvmsE", NULL, show_verbose, show_system);
@@ -2568,7 +2568,7 @@ FROM pg_catalog.pg_operator o
         /* struct */
       };
       let res = NULL;
-      let myopt = pset.popt.topt;
+      let myopt = { ...pset.popt.topt };
       let cont = {
         /* struct */
       };
@@ -7507,8 +7507,8 @@ ${rheader}`;
   const result = `${td.title}${table}${footers}`;
   return result;
 }
-function tableToString(td, pset) {
-  if (pset && pset.popt && pset.popt.expanded) return tableToStringVertical(td, pset);
+function tableToString(td) {
+  if (td.opt.expanded) return tableToStringVertical(td);
   const { ncolumns, nrows, aligns } = td, allCellsLinesInfo = [...td.headers, ...td.cells].map(linesInfo), { colWidths, rowHeights } = allCellsLinesInfo.reduce((memo, cellInfo, i) => {
     const row = Math.floor(i / td.ncolumns);
     const col = i % td.ncolumns;
@@ -7540,7 +7540,7 @@ function tableToString(td, pset) {
 ${table}${footers}`;
   return result;
 }
-function tableToHtmlVertical(td, pset) {
+function tableToHtmlVertical(td) {
   const { ncolumns, cells, headers } = td;
   let result = `<table><tr><th align="left" colspan="2">${htmlEscape(td.title)}</th></tr>`;
   const escapedHeaders = headers.map((h) => htmlEscape(h, true));
@@ -7565,8 +7565,8 @@ function tableToHtmlVertical(td, pset) {
   }
   return result;
 }
-function tableToHtml(td, pset) {
-  if (pset && pset.popt && pset.popt.expanded) return tableToHtmlVertical(td, pset);
+function tableToHtml(td) {
+  if (td.opt.expanded) return tableToHtmlVertical(td);
   let result = `<table><tr><th valign="top" style="text-align: center;" colspan="${td.ncolumns}">${htmlEscape(td.title)}</th></tr><tr>`;
   for (let h of td.headers) result += `<th valign="top" style="text-align: center;">${htmlEscape(h)}</th>`;
   result += "</tr>";
@@ -7961,8 +7961,8 @@ async function go() {
     outputEl.innerHTML = "";
     if (!htmlOutput) outputEl = outputEl.appendChild(document.createElement("pre"));
     let firstOutput = true;
-    const outputFn = htmlOutput ? (x, pset) => outputEl.innerHTML += describeDataToHtml(x, pset) : (x, pset) => {
-      outputEl.innerHTML += (firstOutput ? "" : "\n\n") + htmlEscape(describeDataToString(x, pset));
+    const outputFn = htmlOutput ? (x) => outputEl.innerHTML += describeDataToHtml(x) : (x) => {
+      outputEl.innerHTML += (firstOutput ? "" : "\n\n") + htmlEscape(describeDataToString(x));
       firstOutput = false;
     };
     const { promise, cancel } = describe(cmd, dbName, queryFn, outputFn, echoHidden);

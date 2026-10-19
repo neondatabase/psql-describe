@@ -78,12 +78,12 @@ const
   MONEYOID = 790,
   NUMERICOID = 1700;
 
-export function describeDataToString(item, pset) {
-  return typeof item === 'string' ? item : tableToString(item, pset);
+export function describeDataToString(item) {
+  return typeof item === 'string' ? item : tableToString(item);
 }
 
-export function describeDataToHtml(item, pset) {
-  return typeof item === 'string' ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item, pset);
+export function describeDataToHtml(item) {
+  return typeof item === 'string' ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item);
 }
 
 export function describe(
@@ -193,11 +193,11 @@ export function describe(
           encoding: PG_UTF8
         },
         popt: {  // print options
-          topt: {
+          topt: {  // table options
             default_footer: true,
+            expanded,
           },
           nullPrint: '',
-          expanded,
         }
       };
 
@@ -734,7 +734,7 @@ export function describe(
     }
 
     function printTable(cont, fout, is_pager, flog) {
-      outputFn({ ...cont }, pset);  // must clone in case same content object is reused (and thus mutated) later
+      outputFn({ ...cont });  // must clone in case same content object is reused (and thus mutated) later
     }
 
 
@@ -1226,7 +1226,6 @@ export function describe(
         case '+':
         case 'S':
           if (pattern) {
-            pset.popt.expanded = 0; // not supported for this command
             success = await describeTableDetails(pattern, show_verbose, show_system);
           } else {
             /* standard listing of interesting things */
@@ -2867,7 +2866,7 @@ export function describe(
       let retval = false;
       let buf = { /* struct */ };
       let res = NULL;
-      let myopt = pset.popt.topt;
+      let myopt = { ... pset.popt.topt };
       let cont = { /* struct */ };
       let i;
       let view_def = NULL;
@@ -8461,8 +8460,8 @@ function tableToStringVertical(td, pset) {
   return result;
 }
 
-function tableToString(td, pset) {
-  if (pset && pset.popt && pset.popt.expanded) return tableToStringVertical(td, pset);
+function tableToString(td) {
+  if (td.opt.expanded) return tableToStringVertical(td);
   const
     { ncolumns, nrows, aligns } = td,
     allCellsLinesInfo = [...td.headers, ...td.cells].map(linesInfo),
@@ -8503,7 +8502,7 @@ function tableToString(td, pset) {
   return result;
 }
 
-function tableToHtmlVertical(td, pset) {
+function tableToHtmlVertical(td) {
   const { ncolumns, cells, headers } = td;
   let result = `<table><tr><th align="left" colspan="2">${htmlEscape(td.title)}</th></tr>`;
   const escapedHeaders = headers.map(h => htmlEscape(h, true));
@@ -8529,8 +8528,8 @@ function tableToHtmlVertical(td, pset) {
   return result;
 }
 
-function tableToHtml(td, pset) {
-  if (pset && pset.popt && pset.popt.expanded) return tableToHtmlVertical(td, pset);
+function tableToHtml(td) {
+  if (td.opt.expanded) return tableToHtmlVertical(td);
   let result = `<table><tr><th valign="top" style="text-align: center;" colspan="${td.ncolumns}">${htmlEscape(td.title)}</th></tr><tr>`;
   for (let h of td.headers) result += `<th valign="top" style="text-align: center;">${htmlEscape(h)}</th>`;
   result += '</tr>'

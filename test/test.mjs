@@ -195,9 +195,6 @@ try {
   await psqlSession.ready();
 
   for (let test of expandedTests) {
-    // buggy in psql: https://www.postgresql.org/message-id/FEA91EA9-CF32-4920-9674-F2C3E01C3807%40databricks.com
-    if (test.startsWith('\\d+x ') || test.startsWith('\\dS+x ')) continue;
-
     const localOutputArr = [];
     const [psqlOutput] = await Promise.all([
       psqlSession.run(test),
