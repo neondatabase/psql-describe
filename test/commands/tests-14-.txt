@@ -34,6 +34,7 @@
 \daS
 \daS p*
 \dA
+\dA gist extra
 \dA+
 \dA+ g*
 \dA+ public.g*

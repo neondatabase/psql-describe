@@ -57,7 +57,7 @@ To format these outputs for display, three additional functions are exported:
 
 * ```htmlEscape(str, convertWhitespace)```
   
-  Returns its argument HTML-escaped. If `convertWhitespace` is truthy, spaces are replaced with `&amp;nbsp;` and newlines with `&lt;br&gt;`.
+  Returns its argument HTML-escaped. If `convertWhitespace` is truthy, spaces are replaced with `&amp;nbsp;` and newlines with `&lt;br /&gt;`.
 
 ## Limitations
 
@@ -67,7 +67,7 @@ The `x` expanded output option (added to most commands in Postgres 18, formerly 
 
 ## Tests
 
-The database-dependent tests compare this software's output against the PostgreSQL 19 `psql` client for the commands in `test/commands/tests.txt`. Output should be character-for-character identical, except for differences in trailing whitespace.
+The database-dependent tests compare this software's output against the PostgreSQL 19 `psql` client for the commands in `test/commands/tests-*.txt`. Output should be character-for-character identical, except for differences in trailing whitespace.
 
 The same client is tested against the latest official PostgreSQL 14, 15, 16, and 17 container images, `imresamu/postgis:18-3.6` for PostgreSQL 18, and the official PostgreSQL 19rc1 image. This exercises all server-version branches and adds coverage of PostGIS objects.
 

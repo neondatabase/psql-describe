@@ -1237,7 +1237,7 @@ export function describe(
           {
             let pattern2 = NULL;
 
-            if (pattern && cmd[2] != NULL && cmd[2] != '+')
+            if (pattern && cmd[2] != NULL && cmd[2] != '+' && cmd[2] != 'x')
               pattern2 = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true);
 
             switch (cmd[2]) {

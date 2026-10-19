@@ -122,11 +122,19 @@ for (let test of expandedTests) {
   const psqlOutput = await psql(test);
 
   const localOutputArr = [];
-  await describe(test, db.pathname.slice(1), queryFn, (...x) => localOutputArr.push(x), true).promise;
+  await describe(
+    test,
+    db.pathname.slice(1),
+    queryFn, (...x) => localOutputArr.push(x),
+    true,
+    null,
+    true,
+    id => `https://www.postgresql.org/docs/current/${id}.html`
+  ).promise;
   const localOutput = localOutputArr.map(x => describeDataToString(...x)).join('\n\n');
 
   const stdPsqlOutput = psqlOutput
-    .replace(/\/docs\/17\//g, '/docs/current/')
+    .replace(/\/docs\/\d+\//g, '/docs/current/')
     .replace(/ +$/gm, '').trim();
 
   const stdLocalOutput = localOutput.replace(/ +$/gm, '').trim();

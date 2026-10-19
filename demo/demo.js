@@ -1014,7 +1014,7 @@ ${sql}
         case "A":
           {
             let pattern2 = NULL;
-            if (pattern && cmd2[2] != NULL && cmd2[2] != "+")
+            if (pattern && cmd2[2] != NULL && cmd2[2] != "+" && cmd2[2] != "x")
               pattern2 = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true);
             switch (cmd2[2]) {
               case void 0:

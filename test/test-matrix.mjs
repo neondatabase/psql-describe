@@ -32,7 +32,7 @@ Options:
   --runtime podman|docker  Container runtime (auto-detected by default)
   --versions LIST          Comma-separated majors, e.g. 14,17,19
   --no-pull                Use locally cached images without pulling updates
-  --ho-help                Skip the help text tests
+  --no-help                Skip the help text tests
   -h, --help               Show this help
 `;
 }
