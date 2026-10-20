@@ -49,7 +49,7 @@ To format these outputs for display, three additional functions are exported:
 
 * ```describeDataToString(item)```
 
-  Passes though string items unchanged. When an object item is passed in, a formatted plain-text table is returned, identical to those produced by the psql CLI. If `item.opt.expanded` is truthy then the table will be in expanded form.
+  Passes through string items unchanged. When an object item is passed in, a formatted plain-text table is returned, identical to those produced by the psql CLI. If `item.opt.expanded` is truthy then the table will be in expanded form.
 
 * ```describeDataToHtml(item)```
 
@@ -57,13 +57,13 @@ To format these outputs for display, three additional functions are exported:
 
 * ```htmlEscape(str, convertWhitespace)```
   
-  Returns its argument HTML-escaped. If `convertWhitespace` is truthy, spaces are replaced with `&amp;nbsp;` and newlines with `&lt;br /&gt;`.
+  Returns its argument HTML-escaped. If `convertWhitespace` is truthy, spaces are replaced with `&nbsp;` and newlines with `<br />`.
 
 ## Limitations
 
 Text table formatting matches psql default formatting options: `format aligned`, `border 1`, `tuples_only off`, and so on. Other styles are not supported.
 
-The `x` expanded output option (added to most commands in Postgres 18, formerly unsupported) _is_ now supported.
+The `x` expanded output option (added to most commands in Postgres 18, formerly unsupported) now _is_ supported.
 
 ## Tests
 
