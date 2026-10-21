@@ -1,0 +1,212 @@
+\l
+\l+
+\l post*
+\lo_list
+\lo_list+
+\z
+\z act*
+\sf
+\sf citext
+\sf citext(boolean)
+\sf+ citext(boolean)
+\sf last_day
+\sf+ last_day(timestamptz)
+\sv
+\sv actor_info
+\sv+ actor_info
+\sv pg_stats
+\sz
+\d
+\d+
+\d actor
+\d act*
+\d+ act*
+\d+ pl*
+\d public.Film
+\d public."Film"
+\d public.'Film'
+\d psqldescribe.public.film
+\d other.public.film
+\dS
+\dS+
+\dS+ p*
+\da
+\daS
+\daS p*
+\dA
+\dA gist extra
+\dA+
+\dA+ g*
+\dA+ public.g*
+\dAc
+\dAc+
+\dAc bri* *id
+\dAf
+\dAf+
+\dAf+ gist ts*
+\dAo
+\dAo+
+\dAo btree
+\dAo btree bytea_*
+\dAo+ btree bytea_*
+\dAp
+\dAp+
+\dAp brin
+\dAp+ brin *_bloom_*
+\db
+\db+
+\db *_default
+\db+ *_global
+\dc
+\dc+
+\dcS
+\dcS+
+\dc *_utf8
+\dc+ big5*
+\dconfig
+\dconfig+
+\dconfig data_directory
+\dconfig+ wal_buffers
+\dC
+\dC+
+\dC xml
+\dC+ text
+\dC+ dimensions
+\dd
+\ddS
+\dd char*
+\dD
+\dDS
+\dD+
+\dDS+ b*
+\dDS+ b* hjhj opop
+\ddp
+\ddp x
+\ddp my*
+\dE
+\dE birthdays
+\dE+
+\dE x
+\di
+\diS
+\diS+
+\di
+\di rental_*
+\dm
+\dm+
+\dm *_by_*
+\ds
+\dsS+
+\dt
+\dtS
+\dt+
+\dt c*
+\dt qqqzzz
+\dv
+\dvS
+\dvS+
+\dv+ *or*
+\dv+ *or* plpl
+\des
+\des+
+\des csvfile
+\det
+\det+
+\det+ Birthdays
+\deu
+\deu+
+\dew
+\dew+
+\dew+ file_*
+\df
+\dfa+
+\dfat
+\dfn * boolean text
+\dfn * boolean -
+\dfn * boolean text x
+\dfwS+
+\dfp
+\dfp+
+\dfp myproc integer
+\df box_volume
+\df greet
+\df sum_all
+\dF
+\dF+
+\dF+ norwegian
+\dFd
+\dFd+
+\dFd+ italian_*
+\dFp
+\dFp+
+\dFt
+\dFt+
+\dFt+ snow*
+\dg
+\dgS
+\dgS+
+\dg p?stgres
+\dl
+\dl+
+\dL
+\dL+
+\dn
+\dn+
+\dn+ my*
+\do
+\doS
+\do+
+\do ||
+\do+ || text text
+\do ===
+\do+ ===
+\dO
+\dOS
+\dOS+
+\dOS+ POSIX
+\dOS+ "POSIX"
+\dO traditional
+\dp
+\dpS
+\dp act*
+\dP
+\dPn
+\dPtn
+\dPin
+\dPn+ *cust*
+\drds
+\drds * psqldescribe
+\drg
+\drgS
+\dRp
+\dRp+
+\dRs
+\dRs+
+\dT
+\dT+
+\dTS
+\dT+ mpaa*
+\dT+ dimensions
+\dT floatrange
+\du
+\duS
+\duS+
+\du p?stgres
+\dx
+\dx+
+\dx+ ??text
+\dX
+\dy
+\dy+
+\dzz
+\d+ secured_table
+\dp secured_table
+\d+ indexed_table
+\di+ feature_*
+\d+ feature_clustered_idx
+\d+ feature_replica_identity_idx
+\d+ feature_exclusion
+\d+ payment
+\d+ payment_p2022_01
+\d+ payment_pkey
+\d+ empty_partitioned

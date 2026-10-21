@@ -1,0 +1,8 @@
+\dx postgis
+\dx+ postgis
+\d spatial_landmarks
+\d+ spatial_landmarks
+\dT+ geometry
+\df+ st_distance geometry geometry
+\do+ && geometry geometry
+\dC+ geometry
