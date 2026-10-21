@@ -7476,10 +7476,10 @@ function htmlEscape(str, convertWhitespace) {
   if (convertWhitespace) str = str.replace(/ /g, "&nbsp;").replace(/\n/g, "<br />");
   return str;
 }
-function tableToStringVertical(td, pset) {
+function tableToStringVertical(td) {
   const { ncolumns, nrows, headers, cells } = td;
   if (cells.length === 0) return `(${nrows} row${nrows === 1 ? "" : "s"})`;
-  const hinfo = headers.map(linesInfo), hwidth = Math.max(...hinfo.map((li) => li.longest)), dinfo = cells.map(linesInfo), dwidth = Math.max(...dinfo.map((li) => li.longest)), swidth = 3, rwidth = nrows === 0 ? 0 : 13 + (Math.log10(td.nrows) | 0), width = Math.max(hwidth + swidth + dwidth, rwidth);
+  const hinfo = headers.map(linesInfo), hwidth = hinfo.reduce((longest, li) => longest > li.longest ? longest : li.longest, 0), dinfo = cells.map(linesInfo), dwidth = dinfo.reduce((longest, li) => longest > li.longest ? longest : li.longest, 0), swidth = 3, rwidth = nrows === 0 ? 0 : 13 + (Math.log10(td.nrows) | 0), width = Math.max(hwidth + swidth + dwidth, rwidth), effectivedwidth = width - hwidth - swidth;
   let table = "";
   for (let i = 0, len = cells.length, rownum = 0; i < len; i++) {
     const colnum = i % ncolumns;
@@ -7500,7 +7500,7 @@ ${rheader}`;
     const cellnlines = celllines.length;
     const maxnlines = Math.max(headernlines, cellnlines);
     for (let j = 0; j < maxnlines; j++) {
-      table += "\n" + pad(headerlines[j] ?? "", hwidth) + (headernlines > j + 1 ? "+" : " ") + "| " + pad(celllines[j] ?? "", dwidth) + (cellnlines > j + 1 ? "+" : "");
+      table += "\n" + pad(headerlines[j] ?? "", hwidth) + (headernlines > j + 1 ? "+" : " ") + "| " + pad(celllines[j] ?? "", effectivedwidth) + (cellnlines > j + 1 ? "+" : "");
     }
   }
   const nonEmptyFooters = td.footers ? td.footers.filter(noop) : [], footers = nonEmptyFooters.length > 0 ? "\n\n" + nonEmptyFooters.join("\n") : "";

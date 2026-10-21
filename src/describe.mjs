@@ -8402,22 +8402,23 @@ export function htmlEscape(str, convertWhitespace) {
   return str;
 }
 
-function tableToStringVertical(td, pset) {
+function tableToStringVertical(td) {
   const { ncolumns, nrows, headers, cells } = td;
   if (cells.length === 0) return `(${nrows} row${nrows === 1 ? '' : 's'})`;
 
   const
     // max header dimensions
     hinfo = headers.map(linesInfo),
-    hwidth = Math.max(...hinfo.map(li => li.longest)),
+    hwidth = hinfo.reduce((longest, li) => longest > li.longest ? longest : li.longest, 0),
     // max data dimensions
     dinfo = cells.map(linesInfo),
-    dwidth = Math.max(...dinfo.map(li => li.longest)),
+    dwidth = dinfo.reduce((longest, li) => longest > li.longest ? longest : li.longest, 0),
     // other widths
     swidth = 3, // separator " | " or "+| "
     rwidth = nrows === 0 ? 0 : 13 + (Math.log10(td.nrows) | 0), // record header "-[ RECORD n ]",
     // total width required to not wrap data or record headers
-    width = Math.max(hwidth + swidth + dwidth, rwidth);
+    width = Math.max(hwidth + swidth + dwidth, rwidth),
+    effectivedwidth = width - hwidth - swidth;
 
   let table = '';
   for (let i = 0, len = cells.length, rownum = 0; i < len; i ++) {
@@ -8447,7 +8448,7 @@ function tableToStringVertical(td, pset) {
         pad(headerlines[j] ?? '', hwidth) +
         (headernlines > j + 1 ? '+' : ' ') +
         '| ' +
-        pad(celllines[j] ?? '', dwidth) +
+        pad(celllines[j] ?? '', effectivedwidth) +
         (cellnlines > j + 1 ? '+' : '');
     }
   }
