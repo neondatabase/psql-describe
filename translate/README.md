@@ -3,13 +3,16 @@
 An experiment in replacing the RegExp-and-hand-fixes port with a principled translator.
 
 ```bash
-node translate/translate.mjs ../postgres/src > translated.mjs  # emit the translation
-node translate/compare.mjs ../postgres/src                     # measure it against src/describe.mjs
+node translate/translate.ts ../postgres/src > translated.mjs  # emit the translation
+node translate/compare.ts ../postgres/src                     # measure it against src/describe.mjs
+npm run check:translate                                       # type-check
 ```
+
+The scripts are TypeScript run directly by Node (≥ 22.18) via type stripping, so there's no build step. The shapes of the tree-sitter nodes they work with are summarised in a comment in `translate.ts`.
 
 ## How it works
 
-`translate.mjs` parses C with [tree-sitter](https://tree-sitter.github.io/) (via `web-tree-sitter` and the `tree-sitter-c` grammar's WASM build, so nothing native is compiled). It then:
+`translate.ts` parses C with [tree-sitter](https://tree-sitter.github.io/) (via `web-tree-sitter` and the `tree-sitter-c` grammar's WASM build, so nothing native is compiled). It then:
 
 1. **Scans headers** for object-like `#define`s and `typedef struct` names.
 2. **Expands `CppAsString2()`** textually, using those `#define`s. tree-sitter doesn't preprocess, and this is the one macro that breaks the parse (it appears inside string-literal concatenations). Doing this as a pre-pass mirrors what the C preprocessor does.
@@ -30,7 +33,7 @@ The rules in this first pass are syntactic, plus one type-directed rule:
 | call to an async function | `await f()` |
 | `#define X 'r'` | `const X = 'r';` |
 
-`compare.mjs` pulls each translated function and its counterpart in `src/describe.mjs` into `translate/out/{translated,ported}/`, strips comments, folds `"a" + "b"`, and formats both with Prettier. `translate/out/residual.diff` is then the patch that turns the translation into today's hand-maintained port. If the translation isn't yet valid JS, Prettier can't format it, so that diff includes layout noise too.
+`compare.ts` pulls each translated function and its counterpart in `src/describe.mjs` into `translate/out/{translated,ported}/`, strips comments, folds `"a" + "b"`, and formats both with Prettier. `translate/out/residual.diff` is then the patch that turns the translation into today's hand-maintained port. If the translation isn't yet valid JS, Prettier can't format it, so that diff includes layout noise too.
 
 ## Results (REL_19_RC1)
 
