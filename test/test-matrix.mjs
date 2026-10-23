@@ -4,13 +4,18 @@ import fs from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { helpIndex } from '../src/sql-help.generated.mjs';
 
+// images are pinned to multi-arch index digests, so their contents can't change
+// without a commit here
 const POSTGRES_VERSIONS = [
-  { major: '14', tag: '14' },
-  { major: '15', tag: '15' },
-  { major: '16', tag: '16' },
-  { major: '17', tag: '17' },
-  { major: '18', tag: '18', image: 'docker.io/imresamu/postgis:18-3.6' },
-  { major: '19', tag: '19rc1' },
+  { major: '14', tag: '14', digest: 'sha256:34afac84a15415ebec6271fa9615e7dfbf96e1aa9783f1af527b7d3fd933f1f2' },
+  { major: '15', tag: '15', digest: 'sha256:c99dd5066e988cd61a72ffe962da08e277eecaba000bbdda0bdaf9f63b56c174' },
+  { major: '16', tag: '16', digest: 'sha256:a902560563d3a5661228585f53474c5065e7f273b21ffd77e555a8b5682c5690' },
+  { major: '17', tag: '17', digest: 'sha256:a63c1ea3f6a3a5a1621f97d2aba3b30faecfab4224c1b0000cc85ced57bb1939' },
+  // imresamu/postgis is the personal image of Imre Samu, a maintainer of the
+  // official postgis/postgis image: unlike the official one (amd64 only), it's
+  // multi-arch, so it runs natively on arm64 (e.g. Apple silicon)
+  { major: '18', tag: '18', image: 'docker.io/imresamu/postgis:18-3.6@sha256:b5766ee720aca09c61b9a868abefbf273348a4b90ad4cf146b4f8c9ac85d48e4' },
+  { major: '19', tag: '19rc1', digest: 'sha256:de2cbeff2b8177e65bd64d077b46c90a1898aa8aea974a9e35a8cf60b5e90581' },
 ];
 
 // fixed revision, compatible with all Postgres versions
@@ -212,7 +217,7 @@ function filesForVersion(files, version) {
 }
 
 function image(version) {
-  return version.image ?? `${imagePrefix}:${version.tag}`;
+  return version.image ?? `${imagePrefix}:${version.tag}@${version.digest}`;
 }
 
 function containerName(version) {
