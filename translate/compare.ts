@@ -9,7 +9,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import * as prettier from 'prettier';
-import { translate, parserFor, parseOrThrow, rewrite, field, must, type Rules } from './translate.ts';
+import { translate } from './translate.ts';
+import { parserFor, parseOrThrow, rewrite, field, must, type Rules } from './syntax.ts';
 
 const outDir = path.join(import.meta.dirname, 'out');
 const jsParser = await parserFor('javascript');
@@ -25,12 +26,14 @@ const normalisingRules: Rules = {
   },
 };
 
-async function normalise(code: string): Promise<{ code: string, valid: boolean }> {
+// Formatting fails if the code isn't valid JS, in which case we report the first offending line
+async function normalise(code: string): Promise<{ code: string, error?: string }> {
   const stripped = rewrite(parseOrThrow(jsParser, code), normalisingRules);
   try {
-    return { code: await prettier.format(stripped, { parser: 'babel', printWidth: 100 }), valid: true };
-  } catch {
-    return { code: stripped, valid: false };
+    return { code: await prettier.format(stripped, { parser: 'babel', printWidth: 100 }) };
+  } catch (err) {
+    const line = (err as { loc?: { start: { line: number } } }).loc?.start.line;
+    return { code: stripped, error: line ? stripped.split('\n')[line - 1].trim() : String(err) };
   }
 }
 
@@ -47,10 +50,10 @@ const fns = units.filter(u => u.node.type === 'function_definition');
 fs.rmSync(outDir, { recursive: true, force: true });
 for (const dir of ['translated', 'ported']) fs.mkdirSync(path.join(outDir, dir), { recursive: true });
 
-const invalid: string[] = [], unported: string[] = [];
+const invalid = new Map<string, string>(), unported: string[] = [];
 for (const fn of fns) {
   const translated = await normalise(fn.js);
-  if (!translated.valid) invalid.push(fn.name);
+  if (translated.error) invalid.set(fn.name, translated.error);
   fs.writeFileSync(path.join(outDir, 'translated', `${fn.name}.js`), translated.code);
   const port = ported.get(fn.name);
   if (port) fs.writeFileSync(path.join(outDir, 'ported', `${fn.name}.js`), (await normalise(port.text)).code);
@@ -74,8 +77,9 @@ const report = (title: string, names: string[]) => {
 };
 const compared = fns.map(fn => fn.name).filter(name => !unported.includes(name));
 console.log(`Translated functions: ${fns.length}; not in the port: ${list(unported)}\n`);
-report('Valid JS, compared with the port', compared.filter(name => !invalid.includes(name)));
+report('Valid JS, compared with the port', compared.filter(name => !invalid.has(name)));
 console.log();
-report('Not yet valid JS (so the residual includes layout differences)', compared.filter(name => invalid.includes(name)));
+report('Not yet valid JS (so the residual includes layout differences)', compared.filter(name => invalid.has(name)));
+console.log(`\nNot yet valid JS, at:\n${[...invalid].map(([name, line]) => `  ${name.padEnd(32)} ${line}`).join('\n')}`);
 console.log(`\nExternals provided by the port: ${list(externals.filter(e => portNames.has(e)))}\n`);
 console.log(`Externals missing from the port: ${list(externals.filter(e => !portNames.has(e)))}`);

@@ -5,12 +5,16 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
-import { Parser, Language, type Node } from 'web-tree-sitter';
+import type { Node, Parser } from 'web-tree-sitter';
+import {
+  parserFor, parseOrThrow, must, field, rewrite, type Emit, type Rule, type Rules, type Splice,
+  declaredName, functionDeclarator, isPrototype, enclosingFunction,
+} from './syntax.ts';
+import { typeEnv, pointee, isString, isInteger, isWritableString, type Binding, type CType, type TypeEnv } from './ctypes.ts';
 
 export const config = {
   sources: ['bin/psql/command.c', 'bin/psql/describe.c', 'fe_utils/string_utils.c'],
-  headerDirs: ['include/catalog', 'include/fe_utils', 'interfaces/libpq', 'bin/psql'],
+  headerDirs: ['include/catalog', 'include/common', 'include/fe_utils', 'interfaces/libpq', 'bin/psql'],
   entryPoints: ['exec_command_d', 'exec_command_list', 'exec_command_sf_sv'],
   asyncSeeds: ['PSQLexec', 'PQexec'],  // functions provided by the JS runtime that return a Promise
   freeingFunctions: ['free', 'pg_free', 'PQclear', 'termPQExpBuffer', 'destroyPQExpBuffer', 'printTableCleanup'],
@@ -32,141 +36,38 @@ export interface Unit extends Definition {
 /** A parsed file: path relative to the Postgres src directory, and root (translation_unit) node */
 type SourceTree = [file: string, root: Node];
 
-/* Parsing */
-
-await Parser.init();
-const require = createRequire(import.meta.url);
-
-export async function parserFor(grammar: 'c' | 'javascript'): Promise<Parser> {
-  const parser = new Parser();
-  parser.setLanguage(await Language.load(require.resolve(`tree-sitter-${grammar}/tree-sitter-${grammar}.wasm`)));
-  return parser;
-}
-
-export function must<T>(value: T | null | undefined, what: string): T {
-  if (value == null) throw new Error(`Missing ${what}`);
-  return value;
-}
-
-export const parseOrThrow = (parser: Parser, src: string): Node => must(parser.parse(src), 'parse tree').rootNode;
-
-/** The child in a named field, which must be present */
-export const field = (node: Node, name: string): Node =>
-  must(node.childForFieldName(name), `'${name}' field of ${node.type} at line ${node.startPosition.row + 1}`);
-
-/* Rewriting */
-
-/** Emits a node as JS */
-export type Emit = (node: Node) => string;
-/** Emits a node's own text (from `from` onwards), with each child emitted by `emitChild` */
-export type Splice = (node: Node, from?: number, emitChild?: Emit) => string;
-/** Returns replacement text for a node, or undefined to keep the default, which is splice(node) */
-export type Rule = (node: Node, emit: Emit, splice: Splice) => string | undefined;
-/** Rules keyed by node type: either a named node (e.g. 'call_expression') or an anonymous token (e.g. '->') */
-export type Rules = Record<string, Rule>;
-
-// Re-emit a node's source text, applying rules to it and its descendants. Text between children
-// (whitespace and anything else the grammar treats as 'extra') is kept verbatim, except that
-// whitespace before a child that emits nothing is dropped too (so deletions leave no blank lines).
-export function rewrite(node: Node, rules: Rules): string {
-  const { text: src, startIndex: base } = node;
-  const emit: Emit = n => rules[n.type]?.(n, emit, splice) ?? splice(n);
-  const splice: Splice = (n, from = n.startIndex, emitChild = emit) => {
-    let out = '', pos = from;
-    for (const child of n.children) {
-      if (child.startIndex < from) continue;
-      const gap = src.slice(pos - base, child.startIndex - base), js = emitChild(child);
-      out += (js === '' && gap.trim() === '' ? '' : gap) + js;
-      pos = child.endIndex;
-    }
-    return out + src.slice(pos - base, n.endIndex - base);
-  };
-  return emit(node);
-}
-
-/* C declarators */
-
-// The tree-sitter-c node shapes used here, with their fields (+ multiple, ? optional), from
-// tree-sitter-c/src/node-types.json:
-//
-//   function_definition    type, declarator, body
-//   function_declarator    declarator, parameters (a parameter_list of parameter_declaration)
-//   parameter_declaration  type, declarator?
-//   declaration            type, declarator+
-//   init_declarator        declarator, value
-//   pointer_declarator     declarator         e.g. *x
-//   array_declarator       declarator, size?  e.g. x[10]
-//   parenthesized_declarator  (no fields: one named child)
-//   preproc_def            name, value?
-//   type_definition        type, declarator+
-//   struct_specifier       name?, body?
-//   pointer_expression     operator, argument
-//   cast_expression        type, value
-//   call_expression        function, arguments
-//   concatenated_string    (no fields: string_literal children)
-//
-// A declarator wraps either another declarator or, ultimately, the identifier being declared.
-
-const innerDeclarator = (d: Node): Node =>
-  d.childForFieldName('declarator') ?? must(d.firstNamedChild, `declarator inside ${d.type}`);
-
-function declaredName(d: Node): string {
-  while (d.type !== 'identifier') d = innerDeclarator(d);
-  return d.text;
-}
-
-function functionDeclarator(fn: Node): Node {
-  let d = field(fn, 'declarator');
-  while (d.type !== 'function_declarator') d = innerDeclarator(d);
-  return d;
-}
-
-const isPrototype = (decl: Node): boolean => decl.childrenForFieldName('declarator').some(d => {
-  for (; d.type !== 'identifier'; d = innerDeclarator(d)) if (d.type === 'function_declarator') return true;
-  return false;
-});
-
-/** '{}' or '[]' if a declarator declares a struct or array (whose JS value is an object), else null */
-function aggregateKind(d: Node, typeNode: Node, structTypes: Set<string>): '{}' | '[]' | null {
-  if (d.type === 'init_declarator') d = field(d, 'declarator');
-  if (d.type === 'identifier') return typeNode.type === 'struct_specifier' || structTypes.has(typeNode.text) ? '{}' : null;
-  while (innerDeclarator(d).type !== 'identifier') d = innerDeclarator(d);
-  return d.type === 'array_declarator' ? '[]' : null;  // the declarator nearest the name binds tightest
-}
-
 /* Definitions and references */
 
 const readSource = (pgSrc: string, file: string) => fs.readFileSync(path.join(pgSrc, file), 'utf8');
 const defineValue = (def: Node) => field(def, 'value').text.trim();
 
-/** Object-like #defines and typedef'd struct names from headers */
-function scanHeaders(pgSrc: string, parser: Parser) {
-  const defines = new Map<string, Definition>(), structTypes = new Set<string>();
-  for (const dir of config.headerDirs) {
-    for (const file of fs.readdirSync(path.join(pgSrc, dir)).filter(f => f.endsWith('.h')).map(f => path.join(dir, f))) {
-      const root = parseOrThrow(parser, readSource(pgSrc, file));
-      for (const node of root.descendantsOfType('preproc_def')) {
-        const name = field(node, 'name').text;
-        if (node.childForFieldName('value') && !defines.has(name)) defines.set(name, { name, node, file });
-      }
-      for (const td of root.descendantsOfType('type_definition')) {
-        if (field(td, 'type').childForFieldName('body')) {
-          for (const d of td.childrenForFieldName('declarator')) structTypes.add(d.text);
-        }
-      }
-    }
-  }
-  return { defines, structTypes };
-}
-
-// Expand C's # stringizing operator, which tree-sitter would otherwise choke on inside string concatenations
-function expandStringizing(src: string, defines: Map<string, Definition>): string {
+// Preprocessing that tree-sitter needs: erase annotation macros that expand to nothing on our platforms (and
+// would confuse the parse of declarations), and expand C's # stringizing operator (which would otherwise break
+// the parse of string concatenations)
+function preprocess(src: string, defines = new Map<string, Definition>()): string {
   const expand = (name: string): string => {
     const def = defines.get(name);
     return def ? expand(defineValue(def.node)) : name;
   };
-  return src.replace(/\bCppAsString(2?)\((\w+)\)/g, (_, expandFirst: string, arg: string) =>
-    '"' + (expandFirst ? expand(arg) : arg).replace(/["\\]/g, '\\$&') + '"');
+  return src.replace(/\b(?:PGDLLIMPORT|pg_nodiscard|pg_attribute_\w+(?:\([^()]*\))?)/g, '')
+    .replace(/\bCppAsString(2?)\((\w+)\)/g, (_, expandFirst: string, arg: string) =>
+      '"' + (expandFirst ? expand(arg) : arg).replace(/["\\]/g, '\\$&') + '"');
+}
+
+const parseHeaders = (pgSrc: string, parser: Parser): SourceTree[] => config.headerDirs.flatMap(dir =>
+  fs.readdirSync(path.join(pgSrc, dir)).filter(f => f.endsWith('.h')).map(f => path.join(dir, f))
+    .map((file): SourceTree => [file, parseOrThrow(parser, preprocess(readSource(pgSrc, file)))]));
+
+/** Object-like #defines, keyed by name */
+function collectDefines(trees: SourceTree[]): Map<string, Definition> {
+  const defines = new Map<string, Definition>();
+  for (const [file, root] of trees) {
+    for (const node of root.descendantsOfType('preproc_def')) {
+      const name = field(node, 'name').text;
+      if (node.childForFieldName('value') && !defines.has(name)) defines.set(name, { name, node, file });
+    }
+  }
+  return defines;
 }
 
 /** Top-level functions, variables and macros in the C sources, keyed by name */
@@ -253,24 +154,35 @@ function isFreeing(stmt: Node): boolean {
       return !hasSideEffects(field(stmt, 'condition')) && isFreeing(field(stmt, 'consequence')) &&
         (!alternative || isFreeing(alternative));
     }
-    case 'for_statement': return isFreeing(field(stmt, 'body'));
+    case 'for_statement': case 'while_statement': return isFreeing(field(stmt, 'body'));
     default: return false;
   }
 }
 
-function makeRules({ parser, async, structTypes }: { parser: Parser, async: Set<string>, structTypes: Set<string> }): Rules {
-  const aggregatesIn = new Map<number, Set<string>>();  // memoised by function node id
-  const aggregates = (fn: Node): Set<string> => {  // names of a function's struct and array variables
-    let names = aggregatesIn.get(fn.id);
-    if (!names) aggregatesIn.set(fn.id, names = new Set(fn.descendantsOfType('declaration').flatMap(decl =>
-      decl.childrenForFieldName('declarator').filter(d => aggregateKind(d, field(decl, 'type'), structTypes)).map(declaredName))));
-    return names;
-  };
-  const enclosingFunction = (n: Node | null) => {
-    while (n && n.type !== 'function_definition') n = n.parent;
-    return n;
-  };
+/** Is an expression evaluated only for its side effects (so that its value can be anything)? */
+const isStatement = (n: Node): boolean => {
+  const p = n.parent;
+  return p?.type === 'expression_statement' || (p?.type === 'for_statement' && p.childForFieldName('update')?.id === n.id) ||
+    (p?.type === 'comma_expression' && isStatement(p));
+};
+
+const isWrittenTo = (n: Node) => (n.parent?.type === 'assignment_expression' && field(n.parent, 'left').id === n.id) ||
+  n.parent?.type === 'update_expression';
+
+const isLvalue = (n: Node): boolean => ['identifier', 'field_expression', 'subscript_expression'].includes(n.type) ||
+  (n.type === 'parenthesized_expression' && n.firstNamedChild !== null && isLvalue(n.firstNamedChild));
+
+// C we can't translate is marked like this, which is always a JS syntax error
+const refuse = (n: Node) => `⟦${n.text}⟧`;
+
+// An expression that can be the operand of a postfix operator (e.g. .slice()) without parentheses
+const primaries = ['identifier', 'field_expression', 'subscript_expression', 'call_expression', 'parenthesized_expression', 'string_literal'];
+const operand = (n: Node, emit: Emit) => primaries.includes(n.type) ? emit(n) : `(${emit(n)})`;
+
+function makeRules({ parser, async, types }: { parser: Parser, async: Set<string>, types: TypeEnv }) {
   const inInitializerList = (n: Node) => n.parent?.type === 'initializer_list';
+
+  /* Memory management and control flow */
 
   // A deleted statement in a list of statements can just go; elsewhere (e.g. as an if's body) it leaves an empty block
   const statementLists = ['compound_statement', 'case_statement', 'labeled_statement'];
@@ -307,11 +219,69 @@ function makeRules({ parser, async, structTypes }: { parser: Parser, async: Set<
     return after?.unreachable === true && after.ret.id === n.id;
   };
 
+  /* Values */
+
+  // Scalar and pointer variables whose address is taken (&x) are boxed, as { value }, so the address can be passed around
+  const boxedIn = new Map<number, Set<number>>();  // function node id -> ids of boxed variables' declarator identifiers
+  const isBoxed = (b: Binding | undefined, at: Node): b is Binding => {
+    const fn = enclosingFunction(at);
+    if (!b || !fn) return false;
+    let boxed = boxedIn.get(fn.id);
+    if (!boxed) boxedIn.set(fn.id, boxed = new Set(fn.descendantsOfType('pointer_expression')
+      .filter(p => field(p, 'operator').text === '&' && field(p, 'argument').type === 'identifier')
+      .map(p => types.lookup(field(p, 'argument').text, p))
+      .filter(b => b && !b.isParameter && enclosingFunction(b.node)?.id === fn.id && b.type.kind !== 'struct' && b.type.kind !== 'array')
+      .map(b => b!.node.id)));
+    return boxed.has(b.node.id);
+  };
+
+  // Struct and array values are objects in JS, and C structs contain their nested structs and arrays
+  const nestedFields = (t: CType & { kind: 'struct' }, value: (name: string, type: CType) => string | undefined) =>
+    [...types.fieldsOf(t.name) ?? []].flatMap(([name, type]) => { const v = value(name, type); return v ? [`${name}: ${v}`] : []; });
+  const isAggregate = (t: CType) => t.kind === 'struct' || (t.kind === 'array' && !isString(t));
+
+  function emptyValue(t: CType): string | undefined {
+    if (t.kind === 'array') return isString(t) ? "''" : '[]';  // char arrays are strings
+    if (t.kind !== 'struct') return;
+    const fields = nestedFields(t, (_, type) => emptyValue(type));
+    return fields.length ? `{ ${fields.join(', ')} }` : '{}';
+  }
+  // Copying a struct copies the structs and arrays it contains, so struct types with those get a copy function
+  const copiers = new Map<string, string>();  // function name -> source
+  function copyOf(js: string, t: CType): string {
+    if (t.kind === 'array') return isString(t) ? js : `[...${js}]`;
+    if (t.kind !== 'struct') return js;
+    const nested = nestedFields(t, (name, type) => isAggregate(type) ? copyOf(`s.${name}`, type) : undefined);
+    if (nested.length === 0) return `{ ...${js} }`;
+    const fn = `copy_${t.name.replace(/\W/g, '_')}`;
+    if (!copiers.has(fn)) copiers.set(fn, `function ${fn}(s) {\n  return { ...s, ${nested.join(', ')} };\n}`);
+    return `${fn}(${js})`;
+  }
+  const isCopyable = (n: Node) => isLvalue(n) && !hasSideEffects(n);
+
+  // JS strings can't be written to, so a slice of one (a pointer into it) can only be passed to a function that won't
+  // write through it. We believe a const char * parameter; variadic arguments are taken to be read-only, like printf's.
+  const isReadOnlyArgument = (arg: Node) => {
+    const args = arg.parent;
+    if (args?.type !== 'argument_list') return true;
+    const fn = types.typeOf(field(must(args.parent, 'call'), 'function'));
+    if (fn?.kind !== 'function') return false;
+    const i = args.namedChildren.filter(c => c.type !== 'comment').findIndex(c => c.id === arg.id);
+    return i >= fn.params.length || !isWritableString(fn.params[i]);
+  };
+  const slice = (n: Node, s: Node, from: Node, emit: Emit) => isReadOnlyArgument(n) ? `${operand(s, emit)}.slice(${emit(from)})` : refuse(n);
+
+  // In C, a string (char *) is true when not NULL; in JS, the empty string is false
+  const condition = (e: Node, emit: Emit) => isString(types.typeOf(e)) ? `${operand(e, emit)} != NULL` : emit(e);
+  const withConditions = (n: Node, conditions: (Node | null)[], emit: Emit, splice: Splice) =>
+    splice(n, n.startIndex, child => conditions.some(c => c?.id === child.id) ? condition(child, emit) : emit(child));
+
   const rules: Rules = {
     expression_statement: dropFreeing,
     compound_statement: dropFreeing,
     if_statement: dropFreeing,
-    for_statement: dropFreeing,
+    for_statement: (n, emit, splice) => dropFreeing(n, emit, splice) ?? withConditions(n, [n.childForFieldName('condition')], emit, splice),
+    while_statement: dropFreeing,
 
     goto_statement: (n, emit, splice) => {
       const after = returnAfter(n, field(n, 'label').text);
@@ -323,6 +293,9 @@ function makeRules({ parser, async, structTypes }: { parser: Parser, async: Set<
     },
     return_statement: n => isDeadReturn(n) ? '' : undefined,
 
+    /* Preprocessor */
+
+    preproc_def: n => `const ${field(n, 'name').text} = ${defineValue(n)};`,
     preproc_ifdef: n => n.firstChild?.text === '#ifdef' && config.undefinedMacros.includes(field(n, 'name').text) &&
       !n.childForFieldName('alternative') ? '' : undefined,
     preproc_call: n => field(n, 'directive').text === '#undef' ? '' : undefined,
@@ -336,6 +309,8 @@ function makeRules({ parser, async, structTypes }: { parser: Parser, async: Set<
       return `const ${field(n, 'name').text} = (${params}) => ${rewrite(body, rules)};\n`;
     },
 
+    /* Declarations */
+
     // drop return and parameter types; mark async functions
     function_definition: (n, emit) => {
       const fn = functionDeclarator(n), name = field(fn, 'declarator').text, body = field(n, 'body');
@@ -345,35 +320,104 @@ function makeRules({ parser, async, structTypes }: { parser: Parser, async: Set<
         n.text.slice(fn.endIndex - n.startIndex, body.startIndex - n.startIndex) + emit(body);
     },
 
-    // replace types with let; give struct and array variables an initial value
+    // replace types with let; give struct and array variables a value, box variables whose address is taken,
+    // and copy structs assigned from other structs
     declaration: (n, emit, splice) => {
       if (isPrototype(n)) return '';
-      const type = field(n, 'type'), declarators = n.childrenForFieldName('declarator');
+      const base = types.baseType(field(n, 'type')), declarators = n.childrenForFieldName('declarator');
       return 'let ' + splice(n, declarators[0].startIndex, child => {
-        const isDeclarator = declarators.some(d => d.id === child.id);
-        const init = isDeclarator && child.type !== 'init_declarator' && aggregateKind(child, type, structTypes);
-        return emit(child) + (init ? ` = ${init}` : '');
+        if (!declarators.some(d => d.id === child.id)) return emit(child);
+        const { name, type, node } = types.declare(base, child);
+        const value = child.type === 'init_declarator' ? field(child, 'value') : null;
+        const init = node && isBoxed(types.lookup(name, node), node) ? `{${value ? ` value: ${emit(value)} ` : ''}}` :
+          value ? (type.kind === 'struct' && isCopyable(value) ? copyOf(emit(value), type) : emit(value)) :
+          emptyValue(type);
+        return init ? `${name} = ${init}` : name;
       });
     },
-    pointer_declarator: (n, emit) => emit(innerDeclarator(n)),
-    array_declarator: (n, emit) => emit(innerDeclarator(n)),
     '{': n => inInitializerList(n) ? '[' : undefined,
     '}': n => inInitializerList(n) ? ']' : undefined,
 
-    preproc_def: n => `const ${field(n, 'name').text} = ${defineValue(n)};`,
+    /* Expressions */
+
+    identifier: n => {
+      const b = types.lookup(n.text, n);
+      return isBoxed(b, n) && b.node.id !== n.id ? `${n.text}.value` : undefined;
+    },
 
     cast_expression: (n, emit) => emit(field(n, 'value')),
     '->': () => '.',
 
-    // &x is just x when x is a struct or array, since JS objects are already references
     pointer_expression: (n, emit) => {
-      const arg = field(n, 'argument'), fn = enclosingFunction(n);
-      if (field(n, 'operator').text === '&' && arg.type === 'identifier' && fn && aggregates(fn).has(arg.text)) return emit(arg);
+      const arg = field(n, 'argument'), type = types.typeOf(arg);
+      if (field(n, 'operator').text === '&') {
+        if (arg.type === 'identifier' && isBoxed(types.lookup(arg.text, arg), arg)) return arg.text;  // the box itself
+        if (type?.kind === 'struct' || type?.kind === 'array') return emit(arg);  // already a reference
+        if (arg.type === 'subscript_expression' && isString(types.typeOf(field(arg, 'argument')))) {  // &s[i]: a suffix
+          const s = field(arg, 'argument'), i = field(arg, 'index');
+          return i.text === '0' ? emit(s) : slice(n, s, i, emit);
+        }
+        return;
+      }
+      if (isString(type)) {  // *s is the first character, but we can't write to it, or move s within it
+        return isWrittenTo(n) || arg.type === 'update_expression' ? refuse(n) : `${operand(arg, emit)}[0]`;
+      }
+      if (pointee(type)?.kind === 'struct') return emit(arg);
+      if (pointee(type)) return `${operand(arg, emit)}.value`;  // an out-parameter: a box
     },
 
+    // '\0' marks the end of a C string, and reading past the end of a JS string gives undefined
+    char_literal: n => n.text === "'\\0'" ? 'undefined' : undefined,
+
+    // s++ moves to the next character of a string, i.e. drops the first (but there's no going back). We don't
+    // model any other pointer arithmetic, so refuse it.
+    update_expression: (n, emit) => {
+      const arg = field(n, 'argument'), type = types.typeOf(arg);
+      if (!pointee(type)) return;
+      if (!isString(type) || field(n, 'operator').text === '--') return refuse(n);
+      const js = `${emit(arg)} = ${operand(arg, emit)}.slice(1)`;
+      return isStatement(n) ? js : n.firstChild?.type === '++' ? `(${js})` : refuse(n);  // prefix: the value is the result
+    },
+
+    assignment_expression: (n, emit) => {
+      const left = field(n, 'left'), right = field(n, 'right');
+      if (left.type === 'subscript_expression' && right.text === "'\\0'") {  // s[i] = '\0' truncates a string
+        const s = field(left, 'argument');
+        if (isString(types.typeOf(s)) && !hasSideEffects(s)) return `${emit(s)} = ${emit(s)}.slice(0, ${emit(field(left, 'index'))})`;
+      }
+      const op = field(n, 'operator').text, type = types.typeOf(left);
+      if (op === '=' && type?.kind === 'struct' && isCopyable(right)) return `${emit(left)} = ${copyOf(emit(right), type)}`;
+      if ((op === '+=' || op === '-=') && pointee(type)) {  // s += n is s = s + n, but other pointer arithmetic is refused
+        return op === '+=' && isString(type) && !hasSideEffects(left) ? `${emit(left)} = ${operand(left, emit)}.slice(${emit(right)})` : refuse(n);
+      }
+    },
+
+    binary_expression: (n, emit, splice) => {
+      const op = field(n, 'operator').text, left = field(n, 'left'), right = field(n, 'right');
+      const leftType = types.typeOf(left), rightType = types.typeOf(right);
+      if (op === '+' && isString(leftType) && !pointee(rightType)) return slice(n, left, right, emit);  // a suffix
+      if (['+', '-', '<', '<=', '>', '>='].includes(op) && (pointee(leftType) || pointee(rightType))) return refuse(n);  // other pointer arithmetic
+      if (op === '/' && isInteger(leftType) && isInteger(rightType)) return `Math.trunc(${splice(n)})`;
+      if (op === '&&' || op === '||') return withConditions(n, [left, right], emit, splice);
+    },
+    unary_expression: (n, emit) => {
+      const arg = field(n, 'argument');
+      if (field(n, 'operator').text !== '!' || !isString(types.typeOf(arg))) return;
+      const js = `${operand(arg, emit)} == NULL`, p = n.parent;
+      const isCondition = p?.type === 'parenthesized_expression' || (p?.type === 'binary_expression' && ['&&', '||'].includes(field(p, 'operator').text));
+      return isCondition ? js : `(${js})`;
+    },
+    conditional_expression: (n, emit, splice) => withConditions(n, [field(n, 'condition')], emit, splice),
+    parenthesized_expression: (n, emit, splice) => ['if_statement', 'while_statement', 'do_statement'].includes(n.parent?.type ?? '') ?
+      withConditions(n, [n.firstNamedChild], emit, splice) : undefined,
+
     call_expression: (n, emit, splice) => {
-      const fn = field(n, 'function').text;
+      const fn = field(n, 'function').text, args = field(n, 'arguments');
       if (config.arrayAllocators.includes(fn)) return '[]';
+      if (fn === 'snprintf' && isStatement(n)) {  // snprintf(buf, size, format, ...) => buf = sprintf(format, ...)
+        const [buf, , format] = args.namedChildren;
+        return `${emit(buf)} = sprintf(${splice(args, format.startIndex)}`;
+      }
       if (!async.has(fn)) return;
       const call = 'await ' + splice(n);
       const isOperand = ['field_expression', 'subscript_expression', 'call_expression'].includes(n.parent?.type ?? '');
@@ -387,19 +431,20 @@ function makeRules({ parser, async, structTypes }: { parser: Parser, async: Set<
       return gap.includes('\n') ? out + ' +' + gap + s.text : out.slice(0, -1) + s.text.slice(1);
     }, ''),
   };
-  return rules;
+  return { rules, copiers };
 }
 
 /* Main */
 
 export async function translate(pgSrc: string): Promise<{ units: Unit[], externals: string[], code: string }> {
   const parser = await parserFor('c');
-  const { defines, structTypes } = scanHeaders(pgSrc, parser);
-  const trees: SourceTree[] = config.sources.map(file => [file, parseOrThrow(parser, expandStringizing(readSource(pgSrc, file), defines))]);
+  const headers = parseHeaders(pgSrc, parser), defines = collectDefines(headers);
+  const sources = config.sources.map((file): SourceTree => [file, parseOrThrow(parser, preprocess(readSource(pgSrc, file), defines))]);
+  const types = typeEnv(parser, [...headers, ...sources].map(([, root]) => root));
 
-  const defs = new Map([...defines, ...collectDefinitions(trees)]);  // sources shadow headers
+  const defs = new Map([...defines, ...collectDefinitions(sources)]);  // sources shadow headers
   const sliced = slice(defs, config.entryPoints);
-  const rules = makeRules({ parser, async: inferAsync(sliced, config.asyncSeeds), structTypes });
+  const { rules, copiers } = makeRules({ parser, async: inferAsync(sliced, config.asyncSeeds), types });
   const units: Unit[] = sliced.map(def => ({ ...def, js: rewrite(def.node, rules) }));
 
   const externals = new Set(units.filter(u => u.node.type === 'function_definition').flatMap(u => {
@@ -409,6 +454,7 @@ export async function translate(pgSrc: string): Promise<{ units: Unit[], externa
 
   const fromHeaders = units.filter(u => !config.sources.includes(u.file));
   const code = [`/* from headers */\n\n${fromHeaders.map(u => u.js).join('\n')}`,
+    `/* struct copies */\n\n${[...copiers.values()].join('\n\n')}`,
     ...config.sources.map(file => `/* from ${file} */\n\n${units.filter(u => u.file === file).map(u => u.js).join('\n\n')}`),
   ].join('\n\n');
 
