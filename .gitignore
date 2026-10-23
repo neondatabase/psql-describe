@@ -2,3 +2,4 @@ node_modules
 local.txt
 psql.txt
 test/cache/
+translate/out
