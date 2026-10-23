@@ -13,6 +13,9 @@ export const config = {
   headerDirs: ['include/catalog', 'include/fe_utils', 'interfaces/libpq', 'bin/psql'],
   entryPoints: ['exec_command_d', 'exec_command_list', 'exec_command_sf_sv'],
   asyncSeeds: ['PSQLexec', 'PQexec'],  // functions provided by the JS runtime that return a Promise
+  freeingFunctions: ['free', 'pg_free', 'PQclear', 'termPQExpBuffer', 'destroyPQExpBuffer', 'printTableCleanup'],
+  arrayAllocators: ['pg_malloc_array', 'pg_malloc0_array'],  // (type, count) => a new array
+  undefinedMacros: ['NOT_USED'],  // never #defined, by Postgres convention
 };
 
 /** A top-level C definition */
@@ -63,7 +66,8 @@ export type Rule = (node: Node, emit: Emit, splice: Splice) => string | undefine
 export type Rules = Record<string, Rule>;
 
 // Re-emit a node's source text, applying rules to it and its descendants. Text between children
-// (whitespace and anything else the grammar treats as 'extra') is kept verbatim.
+// (whitespace and anything else the grammar treats as 'extra') is kept verbatim, except that
+// whitespace before a child that emits nothing is dropped too (so deletions leave no blank lines).
 export function rewrite(node: Node, rules: Rules): string {
   const { text: src, startIndex: base } = node;
   const emit: Emit = n => rules[n.type]?.(n, emit, splice) ?? splice(n);
@@ -71,7 +75,8 @@ export function rewrite(node: Node, rules: Rules): string {
     let out = '', pos = from;
     for (const child of n.children) {
       if (child.startIndex < from) continue;
-      out += src.slice(pos - base, child.startIndex - base) + emitChild(child);
+      const gap = src.slice(pos - base, child.startIndex - base), js = emitChild(child);
+      out += (js === '' && gap.trim() === '' ? '' : gap) + js;
       pos = child.endIndex;
     }
     return out + src.slice(pos - base, n.endIndex - base);
@@ -228,7 +233,32 @@ function inferAsync(defs: Definition[], seeds: string[]): Set<string> {
 
 /* Rewrite rules */
 
-function makeRules({ async, structTypes }: { async: Set<string>, structTypes: Set<string> }): Rules {
+const hasSideEffects = (n: Node) => n.descendantsOfType(['call_expression', 'assignment_expression', 'update_expression']).length > 0;
+
+/** Does a statement only free memory (which JS doesn't need)? It might be a call to a freeing function, or a
+ * block, if or loop containing only such calls (and side-effect-free declarations, e.g. of a loop variable).
+ * A loop is assumed not to matter beyond its body's effects. */
+function isFreeing(stmt: Node): boolean {
+  switch (stmt.type) {
+    case 'expression_statement': {
+      const call = stmt.firstNamedChild;
+      return call?.type === 'call_expression' && config.freeingFunctions.includes(field(call, 'function').text);
+    }
+    case 'compound_statement': {
+      const stmts = stmt.namedChildren.filter(s => s.type !== 'comment');
+      return stmts.some(isFreeing) && stmts.every(s => isFreeing(s) || (s.type === 'declaration' && !hasSideEffects(s)));
+    }
+    case 'if_statement': {
+      const alternative = stmt.childForFieldName('alternative')?.lastNamedChild;  // else_clause -> statement
+      return !hasSideEffects(field(stmt, 'condition')) && isFreeing(field(stmt, 'consequence')) &&
+        (!alternative || isFreeing(alternative));
+    }
+    case 'for_statement': return isFreeing(field(stmt, 'body'));
+    default: return false;
+  }
+}
+
+function makeRules({ parser, async, structTypes }: { parser: Parser, async: Set<string>, structTypes: Set<string> }): Rules {
   const aggregatesIn = new Map<number, Set<string>>();  // memoised by function node id
   const aggregates = (fn: Node): Set<string> => {  // names of a function's struct and array variables
     let names = aggregatesIn.get(fn.id);
@@ -242,7 +272,70 @@ function makeRules({ async, structTypes }: { async: Set<string>, structTypes: Se
   };
   const inInitializerList = (n: Node) => n.parent?.type === 'initializer_list';
 
-  return {
+  // A deleted statement in a list of statements can just go; elsewhere (e.g. as an if's body) it leaves an empty block
+  const statementLists = ['compound_statement', 'case_statement', 'labeled_statement'];
+  const dropFreeing: Rule = n => isFreeing(n) ? (statementLists.includes(n.parent?.type ?? '') ? '' : '{}') : undefined;
+
+  // If a label at the top level of a function is followed only by freeing and a return, then goto label is
+  // that return. If the label also can't be reached by falling through to it, the label and return are dead.
+  type ReturnAfter = { ret: Node, unreachable: boolean } | null;
+  const returnsAfter = new Map<string, ReturnAfter>();  // memoised by function node id and label
+  const returnAfter = (n: Node, label: string): ReturnAfter => {
+    const fn = must(enclosingFunction(n), `function containing label ${label}`), key = `${fn.id}:${label}`;
+    if (!returnsAfter.has(key)) {
+      const target = fn.descendantsOfType('labeled_statement').find(l => field(l, 'label').text === label);
+      const tail: Node[] = [];
+      if (target?.parent?.id === field(fn, 'body').id) {
+        tail.push(must(target.lastNamedChild, 'labelled statement'));
+        for (let s = target.nextNamedSibling; s; s = s.nextNamedSibling) tail.push(s);
+      }
+      const [ret, ...others] = tail.filter(s => s.type !== 'comment' && !isFreeing(s));
+      returnsAfter.set(key, ret?.type === 'return_statement' && others.length === 0 ?
+        { ret, unreachable: previousStatement(must(target, 'label'))?.type === 'return_statement' } : null);
+    }
+    return returnsAfter.get(key)!;
+  };
+  const previousStatement = (n: Node) => {
+    let s = n.previousNamedSibling;
+    while (s?.type === 'comment') s = s.previousNamedSibling;
+    return s;
+  };
+  const isDeadReturn = (n: Node) => {  // the return after an unreachable label
+    let label = previousStatement(n);
+    while (label && label.type !== 'labeled_statement') label = previousStatement(label);
+    const after = label && returnAfter(label, field(label, 'label').text);
+    return after?.unreachable === true && after.ret.id === n.id;
+  };
+
+  const rules: Rules = {
+    expression_statement: dropFreeing,
+    compound_statement: dropFreeing,
+    if_statement: dropFreeing,
+    for_statement: dropFreeing,
+
+    goto_statement: (n, emit, splice) => {
+      const after = returnAfter(n, field(n, 'label').text);
+      return after ? splice(after.ret) : undefined;  // not emit, which would see a dead return
+    },
+    labeled_statement: (n, emit) => {
+      const after = returnAfter(n, field(n, 'label').text);
+      return after ? (after.unreachable ? '' : emit(must(n.lastNamedChild, 'labelled statement'))) : undefined;
+    },
+    return_statement: n => isDeadReturn(n) ? '' : undefined,
+
+    preproc_ifdef: n => n.firstChild?.text === '#ifdef' && config.undefinedMacros.includes(field(n, 'name').text) &&
+      !n.childForFieldName('alternative') ? '' : undefined,
+    preproc_call: n => field(n, 'directive').text === '#undef' ? '' : undefined,
+
+    // a macro defined within a function becomes a local arrow function
+    preproc_function_def: n => {
+      const params = field(n, 'parameters').namedChildren.map(p => p.text).join(', ');
+      const value = must(n.childForFieldName('value'), 'macro body').text.replace(/\\\n/g, '\n').trim();
+      const wrapper = parseOrThrow(parser, `void f(void) { return ${value}; }`);
+      const body = must(wrapper.descendantsOfType('return_statement')[0]?.firstNamedChild, 'macro body expression');
+      return `const ${field(n, 'name').text} = (${params}) => ${rewrite(body, rules)};\n`;
+    },
+
     // drop return and parameter types; mark async functions
     function_definition: (n, emit) => {
       const fn = functionDeclarator(n), name = field(fn, 'declarator').text, body = field(n, 'body');
@@ -279,7 +372,9 @@ function makeRules({ async, structTypes }: { async: Set<string>, structTypes: Se
     },
 
     call_expression: (n, emit, splice) => {
-      if (!async.has(field(n, 'function').text)) return;
+      const fn = field(n, 'function').text;
+      if (config.arrayAllocators.includes(fn)) return '[]';
+      if (!async.has(fn)) return;
       const call = 'await ' + splice(n);
       const isOperand = ['field_expression', 'subscript_expression', 'call_expression'].includes(n.parent?.type ?? '');
       return isOperand ? `(${call})` : call;
@@ -292,6 +387,7 @@ function makeRules({ async, structTypes }: { async: Set<string>, structTypes: Se
       return gap.includes('\n') ? out + ' +' + gap + s.text : out.slice(0, -1) + s.text.slice(1);
     }, ''),
   };
+  return rules;
 }
 
 /* Main */
@@ -303,7 +399,7 @@ export async function translate(pgSrc: string): Promise<{ units: Unit[], externa
 
   const defs = new Map([...defines, ...collectDefinitions(trees)]);  // sources shadow headers
   const sliced = slice(defs, config.entryPoints);
-  const rules = makeRules({ async: inferAsync(sliced, config.asyncSeeds), structTypes });
+  const rules = makeRules({ parser, async: inferAsync(sliced, config.asyncSeeds), structTypes });
   const units: Unit[] = sliced.map(def => ({ ...def, js: rewrite(def.node, rules) }));
 
   const externals = new Set(units.filter(u => u.node.type === 'function_definition').flatMap(u => {
