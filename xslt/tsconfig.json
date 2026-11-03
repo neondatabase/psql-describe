@@ -1,0 +1,4 @@
+{
+  "extends": "../translate/tsconfig.json",
+  "include": ["*.ts"]
+}
