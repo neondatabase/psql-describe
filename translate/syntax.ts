@@ -1,7 +1,7 @@
 // Generic helpers for tree-sitter parse trees: parsing, rewriting, and C declarators
 
 import { createRequire } from 'node:module';
-import { Parser, Language, type Node } from 'web-tree-sitter';
+import { Parser, Language, Query, type Node } from 'web-tree-sitter';
 
 /* Parsing */
 
@@ -31,17 +31,46 @@ export const field = (node: Node, name: string): Node =>
 export type Emit = (node: Node) => string;
 /** Emits a node's own text (from `from` onwards), with each child emitted by `emitChild` */
 export type Splice = (node: Node, from?: number, emitChild?: Emit) => string;
-/** Returns replacement text for a node, or undefined to keep the default, which is splice(node) */
-export type Rule = (node: Node, emit: Emit, splice: Splice) => string | undefined;
-/** Rules keyed by node type: either a named node (e.g. 'call_expression') or an anonymous token (e.g. '->') */
-export type Rules = Record<string, Rule>;
+
+/** A tree-sitter query, and a rewrite for each node it captures as @node. Given the match's captures, the rewrite
+ * returns the node's new text, or undefined to leave the node to later rules (in the end, to its default text:
+ * splice(node)). Rules can also wrap the work of later rules: next() is the text that they would give the node. */
+export interface Rule {
+  query: string;
+  rewrite: (captures: Record<string, Node>, tools: { emit: Emit, splice: Splice, next: () => string }) => string | undefined;
+}
+
+const compiledQueries = new WeakMap<Rule[], Query[]>();
 
 // Re-emit a node's source text, applying rules to it and its descendants. Text between children
 // (whitespace and anything else the grammar treats as 'extra') is kept verbatim, except that
 // whitespace before a child that emits nothing is dropped too (so deletions leave no blank lines).
-export function rewrite(node: Node, rules: Rules): string {
+export function rewrite(node: Node, rules: Rule[]): string {
+  let queries = compiledQueries.get(rules);
+  if (!queries) compiledQueries.set(rules, queries = rules.map(rule => new Query(node.tree.language, rule.query)));
+
+  const matches = new Map<number, { rule: Rule, captures: Record<string, Node> }[]>();  // by node id, in rule order
+  queries.forEach((query, i) => {
+    for (const match of query.matches(node)) {
+      const captures = Object.fromEntries(match.captures.map(c => [c.name, c.node]));
+      const target = must(captures.node, `@node capture in query ${rules[i].query}`);
+      const forTarget = matches.get(target.id) ?? [];
+      if (forTarget.at(-1)?.rule !== rules[i]) forTarget.push({ rule: rules[i], captures });  // one match per rule
+      matches.set(target.id, forTarget);
+    }
+  });
+
   const { text: src, startIndex: base } = node;
-  const emit: Emit = n => rules[n.type]?.(n, emit, splice) ?? splice(n);
+  const emitFrom = (n: Node, first: number): string => {
+    const candidates = matches.get(n.id) ?? [];
+    for (let i = first; i < candidates.length; i++) {
+      const { rule, captures } = candidates[i];
+      const js = rule.rewrite(captures, { emit, splice, next: () => emitFrom(n, i + 1) });
+      if (js !== undefined) return js;
+    }
+    return splice(n);
+  };
+  const emit: Emit = n => emitFrom(n, 0);
   const splice: Splice = (n, from = n.startIndex, emitChild = emit) => {
     let out = '', pos = from;
     for (const child of n.children) {

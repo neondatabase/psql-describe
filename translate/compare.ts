@@ -10,21 +10,21 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import * as prettier from 'prettier';
 import { translate } from './translate.ts';
-import { parserFor, parseOrThrow, rewrite, field, must, type Rules } from './syntax.ts';
+import { parserFor, parseOrThrow, rewrite, field, must, type Rule } from './syntax.ts';
 
 const outDir = path.join(import.meta.dirname, 'out');
 const jsParser = await parserFor('javascript');
 
 // Removes comments and folds "a" + "b" into "ab", so that only differences in behaviour remain
 const doubleQuoted = /^"(?:[^"\\\n]|\\.)*"$/;
-const normalisingRules: Rules = {
-  comment: () => '',
-  binary_expression: (n, emit) => {
-    if (field(n, 'operator').text !== '+') return;
-    const [left, right] = [field(n, 'left'), field(n, 'right')].map(emit);
-    if (doubleQuoted.test(left) && doubleQuoted.test(right)) return left.slice(0, -1) + right.slice(1);
-  },
-};
+const normalisingRules: Rule[] = [
+  { query: '(comment) @node', rewrite: () => '' },
+  { query: '(binary_expression left: (_) @left operator: "+" right: (_) @right) @node',
+    rewrite: ({ left, right }, { emit }) => {
+      const [l, r] = [emit(left), emit(right)];
+      return doubleQuoted.test(l) && doubleQuoted.test(r) ? l.slice(0, -1) + r.slice(1) : undefined;
+    } },
+];
 
 // Formatting fails if the code isn't valid JS, in which case we report the first offending line
 async function normalise(code: string): Promise<{ code: string, error?: string }> {

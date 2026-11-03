@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Node, Parser } from 'web-tree-sitter';
 import {
-  parserFor, parseOrThrow, must, field, rewrite, type Emit, type Rule, type Rules, type Splice,
+  parserFor, parseOrThrow, must, field, rewrite, type Emit, type Rule,
   declaredName, functionDeclarator, isPrototype, enclosingFunction,
 } from './syntax.ts';
 import { typeEnv, pointee, isString, isInteger, isWritableString, type Binding, type CType, type TypeEnv } from './ctypes.ts';
@@ -159,16 +159,6 @@ function isFreeing(stmt: Node): boolean {
   }
 }
 
-/** Is an expression evaluated only for its side effects (so that its value can be anything)? */
-const isStatement = (n: Node): boolean => {
-  const p = n.parent;
-  return p?.type === 'expression_statement' || (p?.type === 'for_statement' && p.childForFieldName('update')?.id === n.id) ||
-    (p?.type === 'comma_expression' && isStatement(p));
-};
-
-const isWrittenTo = (n: Node) => (n.parent?.type === 'assignment_expression' && field(n.parent, 'left').id === n.id) ||
-  n.parent?.type === 'update_expression';
-
 const isLvalue = (n: Node): boolean => ['identifier', 'field_expression', 'subscript_expression'].includes(n.type) ||
   (n.type === 'parenthesized_expression' && n.firstNamedChild !== null && isLvalue(n.firstNamedChild));
 
@@ -179,14 +169,34 @@ const refuse = (n: Node) => `⟦${n.text}⟧`;
 const primaries = ['identifier', 'field_expression', 'subscript_expression', 'call_expression', 'parenthesized_expression', 'string_literal'];
 const operand = (n: Node, emit: Emit) => primaries.includes(n.type) ? emit(n) : `(${emit(n)})`;
 
+/* Query fragments */
+
+const literal = (s: string) => JSON.stringify(s);  // a string in a query
+const anyOf = (strings: string[]) => strings.map(literal).join(' ');
+const NUL = String.raw`'\0'`;
+
+/** A pattern, where it's used as a condition */
+const asCondition = (pattern: string) => `[
+  (if_statement condition: (parenthesized_expression ${pattern}))
+  (while_statement condition: (parenthesized_expression ${pattern}))
+  (do_statement condition: (parenthesized_expression ${pattern}))
+  (for_statement condition: ${pattern})
+  (conditional_expression condition: ${pattern})
+  (binary_expression left: ${pattern} operator: ["&&" "||"])
+  (binary_expression operator: ["&&" "||"] right: ${pattern})
+]`;
+
+/** A pattern, where its value isn't used */
+const asStatement = (pattern: string) => `[
+  (expression_statement ${pattern})
+  (for_statement update: ${pattern})
+  (expression_statement (comma_expression [left: ${pattern} right: ${pattern}]))
+  (for_statement update: (comma_expression [left: ${pattern} right: ${pattern}]))
+]`;
+
 function makeRules({ parser, async, types }: { parser: Parser, async: Set<string>, types: TypeEnv }) {
-  const inInitializerList = (n: Node) => n.parent?.type === 'initializer_list';
 
-  /* Memory management and control flow */
-
-  // A deleted statement in a list of statements can just go; elsewhere (e.g. as an if's body) it leaves an empty block
-  const statementLists = ['compound_statement', 'case_statement', 'labeled_statement'];
-  const dropFreeing: Rule = n => isFreeing(n) ? (statementLists.includes(n.parent?.type ?? '') ? '' : '{}') : undefined;
+  /* Control flow */
 
   // If a label at the top level of a function is followed only by freeing and a return, then goto label is
   // that return. If the label also can't be reached by falling through to it, the label and return are dead.
@@ -271,166 +281,177 @@ function makeRules({ parser, async, types }: { parser: Parser, async: Set<string
   };
   const slice = (n: Node, s: Node, from: Node, emit: Emit) => isReadOnlyArgument(n) ? `${operand(s, emit)}.slice(${emit(from)})` : refuse(n);
 
-  // In C, a string (char *) is true when not NULL; in JS, the empty string is false
-  const condition = (e: Node, emit: Emit) => isString(types.typeOf(e)) ? `${operand(e, emit)} != NULL` : emit(e);
-  const withConditions = (n: Node, conditions: (Node | null)[], emit: Emit, splice: Splice) =>
-    splice(n, n.startIndex, child => conditions.some(c => c?.id === child.id) ? condition(child, emit) : emit(child));
+  const stringType = (n: Node) => isString(types.typeOf(n));
 
-  const rules: Rules = {
-    expression_statement: dropFreeing,
-    compound_statement: dropFreeing,
-    if_statement: dropFreeing,
-    for_statement: (n, emit, splice) => dropFreeing(n, emit, splice) ?? withConditions(n, [n.childForFieldName('condition')], emit, splice),
-    while_statement: dropFreeing,
+  // Rules apply in order, so earlier rules take precedence (and can wrap later ones using next())
+  const rules: Rule[] = [
 
-    goto_statement: (n, emit, splice) => {
-      const after = returnAfter(n, field(n, 'label').text);
-      return after ? splice(after.ret) : undefined;  // not emit, which would see a dead return
-    },
-    labeled_statement: (n, emit) => {
-      const after = returnAfter(n, field(n, 'label').text);
-      return after ? (after.unreachable ? '' : emit(must(n.lastNamedChild, 'labelled statement'))) : undefined;
-    },
-    return_statement: n => isDeadReturn(n) ? '' : undefined,
+    /* Memory management and control flow */
+
+    // statements that only free memory go: entirely, in a list of statements; elsewhere (e.g. as an if's body), leaving {}
+    { query: '[(compound_statement (_) @node) (case_statement (_) @node) (labeled_statement (_) @node)]',
+      rewrite: ({ node }) => isFreeing(node) ? '' : undefined },
+    { query: '[(expression_statement) (compound_statement) (if_statement) (for_statement) (while_statement)] @node',
+      rewrite: ({ node }) => isFreeing(node) ? '{}' : undefined },
+
+    { query: '(goto_statement label: (_) @label) @node',
+      rewrite: ({ node, label }, { splice }) => {
+        const after = returnAfter(node, label.text);
+        return after ? splice(after.ret) : undefined;  // not emit, which would see a dead return
+      } },
+    { query: '(labeled_statement label: (_) @label (_) @statement .) @node',
+      rewrite: ({ node, label, statement }, { emit }) => {
+        const after = returnAfter(node, label.text);
+        return after ? (after.unreachable ? '' : emit(statement)) : undefined;
+      } },
+    { query: '(return_statement) @node', rewrite: ({ node }) => isDeadReturn(node) ? '' : undefined },
 
     /* Preprocessor */
 
-    preproc_def: n => `const ${field(n, 'name').text} = ${defineValue(n)};`,
-    preproc_ifdef: n => n.firstChild?.text === '#ifdef' && config.undefinedMacros.includes(field(n, 'name').text) &&
-      !n.childForFieldName('alternative') ? '' : undefined,
-    preproc_call: n => field(n, 'directive').text === '#undef' ? '' : undefined,
+    { query: '(preproc_def name: (_) @name value: (_) @value) @node',
+      rewrite: ({ name, value }) => `const ${name.text} = ${value.text.trim()};` },
+    { query: `((preproc_ifdef "#ifdef" name: (_) @name !alternative) @node (#any-of? @name ${anyOf(config.undefinedMacros)}))`,
+      rewrite: () => '' },
+    { query: '((preproc_call directive: (_) @directive) @node (#eq? @directive "#undef"))', rewrite: () => '' },
 
     // a macro defined within a function becomes a local arrow function
-    preproc_function_def: n => {
-      const params = field(n, 'parameters').namedChildren.map(p => p.text).join(', ');
-      const value = must(n.childForFieldName('value'), 'macro body').text.replace(/\\\n/g, '\n').trim();
-      const wrapper = parseOrThrow(parser, `void f(void) { return ${value}; }`);
-      const body = must(wrapper.descendantsOfType('return_statement')[0]?.firstNamedChild, 'macro body expression');
-      return `const ${field(n, 'name').text} = (${params}) => ${rewrite(body, rules)};\n`;
-    },
+    { query: '(preproc_function_def name: (_) @name parameters: (_) @params value: (_) @value) @node',
+      rewrite: ({ name, params, value }) => {
+        const wrapper = parseOrThrow(parser, `void f(void) { return ${value.text.replace(/\\\n/g, '\n').trim()}; }`);
+        const body = must(wrapper.descendantsOfType('return_statement')[0]?.firstNamedChild, 'macro body expression');
+        return `const ${name.text} = (${params.namedChildren.map(p => p.text).join(', ')}) => ${rewrite(body, rules)};\n`;
+      } },
 
     /* Declarations */
 
     // drop return and parameter types; mark async functions
-    function_definition: (n, emit) => {
-      const fn = functionDeclarator(n), name = field(fn, 'declarator').text, body = field(n, 'body');
-      const params = field(fn, 'parameters').namedChildren
-        .map(p => p.childForFieldName('declarator')).filter(d => d !== null).map(declaredName);
-      return `${async.has(name) ? 'async ' : ''}function ${name}(${params.join(', ')})` +
-        n.text.slice(fn.endIndex - n.startIndex, body.startIndex - n.startIndex) + emit(body);
-    },
+    { query: '(function_definition body: (_) @body) @node',
+      rewrite: ({ node, body }, { emit }) => {
+        const fn = functionDeclarator(node), name = field(fn, 'declarator').text;
+        const params = field(fn, 'parameters').namedChildren
+          .map(p => p.childForFieldName('declarator')).filter(d => d !== null).map(declaredName);
+        return `${async.has(name) ? 'async ' : ''}function ${name}(${params.join(', ')})` +
+          node.text.slice(fn.endIndex - node.startIndex, body.startIndex - node.startIndex) + emit(body);
+      } },
 
     // replace types with let; give struct and array variables a value, box variables whose address is taken,
     // and copy structs assigned from other structs
-    declaration: (n, emit, splice) => {
-      if (isPrototype(n)) return '';
-      const base = types.baseType(field(n, 'type')), declarators = n.childrenForFieldName('declarator');
-      return 'let ' + splice(n, declarators[0].startIndex, child => {
-        if (!declarators.some(d => d.id === child.id)) return emit(child);
-        const { name, type, node } = types.declare(base, child);
-        const value = child.type === 'init_declarator' ? field(child, 'value') : null;
-        const init = node && isBoxed(types.lookup(name, node), node) ? `{${value ? ` value: ${emit(value)} ` : ''}}` :
-          value ? (type.kind === 'struct' && isCopyable(value) ? copyOf(emit(value), type) : emit(value)) :
-          emptyValue(type);
-        return init ? `${name} = ${init}` : name;
-      });
-    },
-    '{': n => inInitializerList(n) ? '[' : undefined,
-    '}': n => inInitializerList(n) ? ']' : undefined,
+    { query: '(declaration type: (_) @type) @node',
+      rewrite: ({ node, type }, { emit, splice }) => {
+        if (isPrototype(node)) return '';
+        const base = types.baseType(type), declarators = node.childrenForFieldName('declarator');
+        return 'let ' + splice(node, declarators[0].startIndex, child => {
+          if (!declarators.some(d => d.id === child.id)) return emit(child);
+          const { name, type, node: id } = types.declare(base, child);
+          const value = child.type === 'init_declarator' ? field(child, 'value') : null;
+          const init = id && isBoxed(types.lookup(name, id), id) ? `{${value ? ` value: ${emit(value)} ` : ''}}` :
+            value ? (type.kind === 'struct' && isCopyable(value) ? copyOf(emit(value), type) : emit(value)) :
+            emptyValue(type);
+          return init ? `${name} = ${init}` : name;
+        });
+      } },
+    { query: '(initializer_list ["{" "}"] @node)', rewrite: ({ node }) => node.type === '{' ? '[' : ']' },
 
-    /* Expressions */
+    /* Strings */
 
-    identifier: n => {
-      const b = types.lookup(n.text, n);
-      return isBoxed(b, n) && b.node.id !== n.id ? `${n.text}.value` : undefined;
-    },
-
-    cast_expression: (n, emit) => emit(field(n, 'value')),
-    '->': () => '.',
-
-    pointer_expression: (n, emit) => {
-      const arg = field(n, 'argument'), type = types.typeOf(arg);
-      if (field(n, 'operator').text === '&') {
-        if (arg.type === 'identifier' && isBoxed(types.lookup(arg.text, arg), arg)) return arg.text;  // the box itself
-        if (type?.kind === 'struct' || type?.kind === 'array') return emit(arg);  // already a reference
-        if (arg.type === 'subscript_expression' && isString(types.typeOf(field(arg, 'argument')))) {  // &s[i]: a suffix
-          const s = field(arg, 'argument'), i = field(arg, 'index');
-          return i.text === '0' ? emit(s) : slice(n, s, i, emit);
-        }
-        return;
-      }
-      if (isString(type)) {  // *s is the first character, but we can't write to it, or move s within it
-        return isWrittenTo(n) || arg.type === 'update_expression' ? refuse(n) : `${operand(arg, emit)}[0]`;
-      }
-      if (pointee(type)?.kind === 'struct') return emit(arg);
-      if (pointee(type)) return `${operand(arg, emit)}.value`;  // an out-parameter: a box
-    },
+    // In C, a string (char *) is true when not NULL; in JS, the empty string is false
+    { query: asCondition('(unary_expression operator: "!" argument: (_) @s) @node'),
+      rewrite: ({ s }, { emit }) => stringType(s) ? `${operand(s, emit)} == NULL` : undefined },
+    { query: '(unary_expression operator: "!" argument: (_) @s) @node',
+      rewrite: ({ s }, { emit }) => stringType(s) ? `(${operand(s, emit)} == NULL)` : undefined },
+    { query: asCondition('(_) @node'), rewrite: ({ node }, { next }) => stringType(node) ? `${operand(node, next)} != NULL` : undefined },
 
     // '\0' marks the end of a C string, and reading past the end of a JS string gives undefined
-    char_literal: n => n.text === "'\\0'" ? 'undefined' : undefined,
+    { query: `((char_literal) @node (#eq? @node ${literal(NUL)}))`, rewrite: () => 'undefined' },
 
-    // s++ moves to the next character of a string, i.e. drops the first (but there's no going back). We don't
-    // model any other pointer arithmetic, so refuse it.
-    update_expression: (n, emit) => {
-      const arg = field(n, 'argument'), type = types.typeOf(arg);
-      if (!pointee(type)) return;
-      if (!isString(type) || field(n, 'operator').text === '--') return refuse(n);
-      const js = `${emit(arg)} = ${operand(arg, emit)}.slice(1)`;
-      return isStatement(n) ? js : n.firstChild?.type === '++' ? `(${js})` : refuse(n);  // prefix: the value is the result
-    },
+    // *s is the first character of a string, but we can't write to it, or move s within it
+    { query: `[
+        (assignment_expression left: (pointer_expression operator: "*" argument: (_) @s) @node)
+        (update_expression argument: (pointer_expression operator: "*" argument: (_) @s) @node)
+        (pointer_expression operator: "*" argument: (update_expression argument: (_) @s)) @node
+      ]`,
+      rewrite: ({ node, s }) => stringType(s) ? refuse(node) : undefined },
+    { query: '(pointer_expression operator: "*" argument: (_) @s) @node',
+      rewrite: ({ s }, { emit }) => stringType(s) ? `${operand(s, emit)}[0]` : undefined },
 
-    assignment_expression: (n, emit) => {
-      const left = field(n, 'left'), right = field(n, 'right');
-      if (left.type === 'subscript_expression' && right.text === "'\\0'") {  // s[i] = '\0' truncates a string
-        const s = field(left, 'argument');
-        if (isString(types.typeOf(s)) && !hasSideEffects(s)) return `${emit(s)} = ${emit(s)}.slice(0, ${emit(field(left, 'index'))})`;
-      }
-      const op = field(n, 'operator').text, type = types.typeOf(left);
-      if (op === '=' && type?.kind === 'struct' && isCopyable(right)) return `${emit(left)} = ${copyOf(emit(right), type)}`;
-      if ((op === '+=' || op === '-=') && pointee(type)) {  // s += n is s = s + n, but other pointer arithmetic is refused
-        return op === '+=' && isString(type) && !hasSideEffects(left) ? `${emit(left)} = ${operand(left, emit)}.slice(${emit(right)})` : refuse(n);
-      }
-    },
+    // a char * is modelled as the string suffix it points to: &s[i] and s + n are slices, and s++ drops the first
+    // character (we can't go back, though, and we don't model other pointer arithmetic, so refuse it)
+    { query: '(pointer_expression operator: "&" argument: (subscript_expression argument: (_) @s index: (_) @i)) @node',
+      rewrite: ({ node, s, i }, { emit }) => !stringType(s) ? undefined : i.text === '0' ? emit(s) : slice(node, s, i, emit) },
+    { query: '(binary_expression left: (_) @s operator: "+" right: (_) @n) @node',
+      rewrite: ({ node, s, n }, { emit }) => stringType(s) && !pointee(types.typeOf(n)) ? slice(node, s, n, emit) : undefined },
+    { query: '(assignment_expression left: (_) @s operator: "+=" right: (_) @n) @node',
+      rewrite: ({ s, n }, { emit }) => stringType(s) && !hasSideEffects(s) ? `${emit(s)} = ${operand(s, emit)}.slice(${emit(n)})` : undefined },
+    { query: asStatement('[(update_expression argument: (_) @s operator: "++") (update_expression operator: "++" argument: (_) @s)] @node'),
+      rewrite: ({ s }, { emit }) => stringType(s) ? `${emit(s)} = ${operand(s, emit)}.slice(1)` : undefined },
+    { query: '(update_expression operator: "++" argument: (_) @s) @node',  // prefix (++s), so the value is the incremented pointer
+      rewrite: ({ s }, { emit }) => stringType(s) ? `(${emit(s)} = ${operand(s, emit)}.slice(1))` : undefined },
+    { query: '[(update_expression argument: (_) @p) (assignment_expression left: (_) @p operator: ["+=" "-="])] @node',
+      rewrite: ({ node, p }) => pointee(types.typeOf(p)) ? refuse(node) : undefined },
+    { query: '(binary_expression left: (_) @left operator: ["+" "-" "<" "<=" ">" ">="] right: (_) @right) @node',
+      rewrite: ({ node, left, right }) => pointee(types.typeOf(left)) || pointee(types.typeOf(right)) ? refuse(node) : undefined },
 
-    binary_expression: (n, emit, splice) => {
-      const op = field(n, 'operator').text, left = field(n, 'left'), right = field(n, 'right');
-      const leftType = types.typeOf(left), rightType = types.typeOf(right);
-      if (op === '+' && isString(leftType) && !pointee(rightType)) return slice(n, left, right, emit);  // a suffix
-      if (['+', '-', '<', '<=', '>', '>='].includes(op) && (pointee(leftType) || pointee(rightType))) return refuse(n);  // other pointer arithmetic
-      if (op === '/' && isInteger(leftType) && isInteger(rightType)) return `Math.trunc(${splice(n)})`;
-      if (op === '&&' || op === '||') return withConditions(n, [left, right], emit, splice);
-    },
-    unary_expression: (n, emit) => {
-      const arg = field(n, 'argument');
-      if (field(n, 'operator').text !== '!' || !isString(types.typeOf(arg))) return;
-      const js = `${operand(arg, emit)} == NULL`, p = n.parent;
-      const isCondition = p?.type === 'parenthesized_expression' || (p?.type === 'binary_expression' && ['&&', '||'].includes(field(p, 'operator').text));
-      return isCondition ? js : `(${js})`;
-    },
-    conditional_expression: (n, emit, splice) => withConditions(n, [field(n, 'condition')], emit, splice),
-    parenthesized_expression: (n, emit, splice) => ['if_statement', 'while_statement', 'do_statement'].includes(n.parent?.type ?? '') ?
-      withConditions(n, [n.firstNamedChild], emit, splice) : undefined,
+    // s[i] = '\0' truncates a string
+    { query: `((assignment_expression left: (subscript_expression argument: (_) @s index: (_) @i) right: (char_literal) @nul) @node
+        (#eq? @nul ${literal(NUL)}))`,
+      rewrite: ({ s, i }, { emit }) => stringType(s) && !hasSideEffects(s) ? `${emit(s)} = ${emit(s)}.slice(0, ${emit(i)})` : undefined },
 
-    call_expression: (n, emit, splice) => {
-      const fn = field(n, 'function').text, args = field(n, 'arguments');
-      if (config.arrayAllocators.includes(fn)) return '[]';
-      if (fn === 'snprintf' && isStatement(n)) {  // snprintf(buf, size, format, ...) => buf = sprintf(format, ...)
-        const [buf, , format] = args.namedChildren;
-        return `${emit(buf)} = sprintf(${splice(args, format.startIndex)}`;
-      }
-      if (!async.has(fn)) return;
-      const call = 'await ' + splice(n);
-      const isOperand = ['field_expression', 'subscript_expression', 'call_expression'].includes(n.parent?.type ?? '');
-      return isOperand ? `(${call})` : call;
-    },
+    // snprintf(buf, size, format, ...) => buf = sprintf(format, ...)
+    { query: `(${asStatement('(call_expression function: (identifier) @fn arguments: (argument_list . (_) @buf . (_) . (_) @format) @args) @node')}
+        (#eq? @fn "snprintf"))`,
+      rewrite: ({ buf, format, args }, { emit, splice }) => `${emit(buf)} = sprintf(${splice(args, format.startIndex)}` },
+
+    /* Pointers and structs */
+
+    { query: '(identifier) @node',  // a boxed variable
+      rewrite: ({ node }) => {
+        const b = types.lookup(node.text, node);
+        return isBoxed(b, node) && b.node.id !== node.id ? `${node.text}.value` : undefined;
+      } },
+    // &x is the box itself if x is boxed, and just x if it's a struct or array, since JS objects are already references
+    { query: '(pointer_expression operator: "&" argument: (identifier) @x) @node',
+      rewrite: ({ x }) => isBoxed(types.lookup(x.text, x), x) ? x.text : undefined },
+    { query: '(pointer_expression operator: "&" argument: (_) @x) @node',
+      rewrite: ({ x }, { emit }) => ['struct', 'array'].includes(types.typeOf(x)?.kind ?? '') ? emit(x) : undefined },
+    // *p is just p if p points to a struct, and otherwise p is an out-parameter, i.e. a box
+    { query: '(pointer_expression operator: "*" argument: (_) @p) @node',
+      rewrite: ({ p }, { emit }) => {
+        const to = pointee(types.typeOf(p));
+        return to?.kind === 'struct' ? emit(p) : to ? `${operand(p, emit)}.value` : undefined;
+      } },
+    { query: '(field_expression operator: "->" @node)', rewrite: () => '.' },
+
+    // assigning a struct copies it
+    { query: '(assignment_expression left: (_) @left operator: "=" right: (_) @right) @node',
+      rewrite: ({ left, right }, { emit }) => {
+        const type = types.typeOf(left);
+        return type?.kind === 'struct' && isCopyable(right) ? `${emit(left)} = ${copyOf(emit(right), type)}` : undefined;
+      } },
+
+    /* Other expressions */
+
+    { query: '(cast_expression value: (_) @value) @node', rewrite: ({ value }, { emit }) => emit(value) },
+    { query: '(binary_expression left: (_) @left operator: "/" right: (_) @right) @node',
+      rewrite: ({ left, right }, { next }) => isInteger(types.typeOf(left)) && isInteger(types.typeOf(right)) ? `Math.trunc(${next()})` : undefined },
+
+    { query: `((call_expression function: (identifier) @fn) @node (#any-of? @fn ${anyOf(config.arrayAllocators)}))`, rewrite: () => '[]' },
+    { query: `[
+        (field_expression argument: (call_expression function: (identifier) @fn) @node)
+        (subscript_expression argument: (call_expression function: (identifier) @fn) @node)
+        (call_expression function: (call_expression function: (identifier) @fn) @node)
+      ]`,
+      rewrite: ({ node, fn }, { splice }) => async.has(fn.text) ? `(await ${splice(node)})` : undefined },
+    { query: '(call_expression function: (identifier) @fn) @node',
+      rewrite: ({ node, fn }, { splice }) => async.has(fn.text) ? `await ${splice(node)}` : undefined },
 
     // adjacent string literals: merge those on the same line, and join lines with +
-    concatenated_string: n => n.namedChildren.reduce((out, s, i, all) => {
-      if (i === 0) return s.text;
-      const gap = n.text.slice(all[i - 1].endIndex - n.startIndex, s.startIndex - n.startIndex);
-      return gap.includes('\n') ? out + ' +' + gap + s.text : out.slice(0, -1) + s.text.slice(1);
-    }, ''),
-  };
+    { query: '(concatenated_string) @node',
+      rewrite: ({ node }) => node.namedChildren.reduce((out, s, i, all) => {
+        if (i === 0) return s.text;
+        const gap = node.text.slice(all[i - 1].endIndex - node.startIndex, s.startIndex - node.startIndex);
+        return gap.includes('\n') ? out + ' +' + gap + s.text : out.slice(0, -1) + s.text.slice(1);
+      }, '') },
+  ];
   return { rules, copiers };
 }
 
@@ -438,7 +459,8 @@ function makeRules({ parser, async, types }: { parser: Parser, async: Set<string
 
 export async function translate(pgSrc: string): Promise<{ units: Unit[], externals: string[], code: string }> {
   const parser = await parserFor('c');
-  const headers = parseHeaders(pgSrc, parser), defines = collectDefines(headers);
+  const headers = parseHeaders(pgSrc, parser);
+  const defines = collectDefines(headers);
   const sources = config.sources.map((file): SourceTree => [file, parseOrThrow(parser, preprocess(readSource(pgSrc, file), defines))]);
   const types = typeEnv(parser, [...headers, ...sources].map(([, root]) => root));
 
