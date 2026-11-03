@@ -6,27 +6,36 @@
 // Usage: node xslt/c-to-xml.ts path/to/file.c ... > sources.xml
 
 import fs from 'node:fs';
-import type { Node } from 'web-tree-sitter';
-import { parserFor, parseOrThrow } from '../translate/syntax.ts';
+import { fileURLToPath } from 'node:url';
+import { Parser, Language, type Node } from 'web-tree-sitter';
 
-const escape = (s: string) => s.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]!));
+await Parser.init();
+const c = await Language.load(fileURLToPath(import.meta.resolve('tree-sitter-c/tree-sitter-c.wasm')));
+const parser = new Parser().setLanguage(c);
+
+const escape = (s: string, quot = false) =>
+  s.replace(quot ? /[&<>"]/g : /[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]!));
 
 const toXML = (node: Node, src: string, attrs: Record<string, string | null> = {}) => {
-  const attrsXML = Object.entries(attrs).filter(([, value]) => value !== null)
-    .map(([name, value]) => ` ${name}="${escape(value!).replace(/"/g, '&quot;')}"`).join('');
+  const attrsXML = Object.entries(attrs)
+    .filter(([, value]) => value !== null)
+    .map(([name, value]) => ` ${name}="${escape(value!, true)}"`).join('');
+
   if (!node.isNamed) return attrs.field ? `<token${attrsXML}>${escape(node.text)}</token>` : escape(node.text);
-  let xml = `<${node.type}${attrsXML}>`, pos = node.startIndex;
+
+  let xml = `<${node.type}${attrsXML}>`;
+  let pos = node.startIndex;
   node.children.forEach((child, i) => {
     xml += escape(src.slice(pos, child.startIndex)) + toXML(child, src, { field: node.fieldNameForChild(i) });
     pos = child.endIndex;
   });
+
   return xml + escape(src.slice(pos, node.endIndex)) + `</${node.type}>`;
 };
 
-const parser = await parserFor('c');
 const units = process.argv.slice(2).map(file => {
   const src = fs.readFileSync(file, 'utf8');
-  return toXML(parseOrThrow(parser, src), src, { file });
+  return toXML(parser.parse(src)!.rootNode, src, { file });
 });
 
 console.log(`<?xml version="1.0" encoding="UTF-8"?>\n<sources>\n${units.join('\n')}\n</sources>`);
