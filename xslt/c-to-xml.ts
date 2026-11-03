@@ -8,9 +8,9 @@ import fs from 'node:fs';
 import type { Node } from 'web-tree-sitter';
 import { parserFor, parseOrThrow } from '../translate/syntax.ts';
 
-const escape = (s: string) => s.replace(/[&<>]/g, c => c === '&' ? '&amp;' : c === '<' ? '&lt;' : '&gt;');
+const escape = (s: string) => s.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]!));
 
-function toXML(node: Node, src: string, field: string | null = null): string {
+const toXML = (node: Node, src: string, field: string | null = null) => {
   const attrs = field ? ` field="${field}"` : '';
   if (!node.isNamed) return field ? `<token${attrs}>${escape(node.text)}</token>` : escape(node.text);
   let xml = `<${node.type}${attrs}>`, pos = node.startIndex;
@@ -19,7 +19,8 @@ function toXML(node: Node, src: string, field: string | null = null): string {
     pos = child.endIndex;
   });
   return xml + escape(src.slice(pos, node.endIndex)) + `</${node.type}>`;
-}
+};
 
 const src = fs.readFileSync(process.argv[2], 'utf8');
+
 console.log(`<?xml version="1.0" encoding="UTF-8"?>\n${toXML(parseOrThrow(await parserFor('c'), src), src)}`);
