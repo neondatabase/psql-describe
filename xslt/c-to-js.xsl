@@ -2,11 +2,12 @@
 <!--
   Translates C to JS, given C as XML from c-to-xml.ts.
 
-  Usage: npx xslt3 -xsl:xslt/c-to-js.xsl -s:file.xml -o:file.js
+  Usage: npx xslt3 -xsl:xslt/c-to-js.xsl -s:sources.xml -o:translated.js
 
   THE XML
 
-  Each tree-sitter node is an element named after its type, and a node in one of its parent's fields has a field
+  The document is a <sources> element, containing a <translation_unit file="..."> for each C file. Within that, each
+  tree-sitter node is an element named after its type, and a node in one of its parent's fields has a field
   attribute. Operators are <token> elements, and everything else (other punctuation, whitespace, comments' text)
   is text. So the text of the XML is exactly the C source. For example, `f(&buf);` is:
 
@@ -18,7 +19,8 @@
 
   Processing starts at the root, and for each node it visits, XSLT runs the template whose match pattern fits that
   node best. If no template matches, the default here (on-no-match="text-only-copy") outputs text nodes as they
-  are, and visits an element's children in order. So with no templates at all, the output is the C, unchanged.
+  are, and visits an element's children in order. So with no templates at all, the output would be the C, unchanged.
+  (In fact, the template for the root, below, visits only the functions we need.)
 
   A template outputs whatever it contains: literal text, the values of {expressions} (in xsl:text), and the result
   of <xsl:apply-templates select="..."/>, which visits the selected nodes in the same way. Selecting nothing (or
@@ -42,6 +44,44 @@
 
   <xsl:output method="text"/>
   <xsl:mode on-no-match="text-only-copy"/>
+
+  <!-- The source document, so that functions can look things up in it -->
+  <xsl:variable name="sources" select="/"/>
+
+  <!--
+    0. FOLLOWING CALLS FROM THE ENTRY POINTS
+
+    We translate only the functions the entry points need: the entry points themselves, the functions they mention,
+    the functions those mention, and so on. The output is grouped by file, in source order.
+  -->
+
+  <xsl:param name="entry-points" select="'exec_command_d', 'exec_command_list', 'exec_command_sf_sv'"/>
+
+  <!-- An index of top-level function definitions by name (see c:name, below). So key('definition', 'f', $sources) is
+       f's function_definition, and key('definition', ('f', 'g', 'x'), $sources) is the function_definitions of f and g
+       (x has no definition, e.g. because it's a variable, so finds nothing). -->
+  <xsl:key name="definition" match="translation_unit/function_definition" use="c:name(descendant::function_declarator[1])"/>
+
+  <!-- The definitions reached so far, plus the definitions of every name they mention, and so on, until there are no
+       more. (Like except, | treats nodes as a set, so a definition is never included twice.) -->
+  <xsl:function name="c:reached" as="element(function_definition)*">
+    <xsl:param name="found" as="element(function_definition)*"/>
+    <!-- The definitions of the names of all identifiers anywhere in $found, except those we've already got -->
+    <xsl:variable name="new" select="key('definition', $found//identifier, $sources) except $found"/>
+    <xsl:sequence select="if (exists($new)) then c:reached($found | $new) else $found"/>
+  </xsl:function>
+
+  <!-- At the root: visit the definitions reached from the entry points, grouped by file. They come in document order,
+       so grouping adjacent ones with the same file also keeps them in source order. -->
+  <xsl:template match="/">
+    <xsl:for-each-group select="c:reached(key('definition', $entry-points))" group-adjacent="ancestor::translation_unit/@file">
+      <xsl:text>/* from {tokenize(current-grouping-key(), '/')[last()]} */&#10;&#10;</xsl:text>
+      <xsl:for-each select="current-group()">
+        <xsl:apply-templates select="."/>
+        <xsl:text>&#10;&#10;</xsl:text>
+      </xsl:for-each>
+    </xsl:for-each-group>
+  </xsl:template>
 
   <!--
     1. A FIXED PATTERN

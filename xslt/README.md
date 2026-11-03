@@ -3,13 +3,14 @@
 A proof of concept for an alternative to `translate/`: turn the C parse tree into XML, and translate it with an XSLT 3 stylesheet (run by SaxonJS).
 
 ```bash
-node xslt/c-to-xml.ts ../postgres/src/bin/psql/describe.c > describe.xml
-npx xslt3 -xsl:xslt/c-to-js.xsl -s:describe.xml -o:describe.js
+PG=../postgres/src
+node xslt/c-to-xml.ts $PG/bin/psql/command.c $PG/bin/psql/describe.c $PG/fe_utils/string_utils.c > sources.xml
+npx xslt3 -xsl:xslt/c-to-js.xsl -s:sources.xml -o:translated.js
 ```
 
 ## The XML
 
-`c-to-xml.ts` writes the tree-sitter parse tree as XML. Each named node becomes an element, and a node in a field gets a `field` attribute. Unnamed tokens (punctuation, keywords) are plain text, except those in a field, such as operators, which become `<token>` elements. Everything else between nodes, such as whitespace, is text too, so the XML's text content is exactly the C source. For example:
+`c-to-xml.ts` writes the tree-sitter parse trees of the C files as one XML document: a `<sources>` element containing a `<translation_unit file="…">` for each file. Within that, each named node becomes an element, and a node in a field gets a `field` attribute. Unnamed tokens (punctuation, keywords) are plain text, except those in a field, such as operators, which become `<token>` elements. Everything else between nodes, such as whitespace, is text too, so each `translation_unit`'s text content is exactly the C source. For example:
 
 ```c
 if (!x->ok)
@@ -25,9 +26,18 @@ becomes:
 
 ## The stylesheet
 
-`c-to-js.xsl` declares `<xsl:mode on-no-match="text-only-copy"/>`, which copies text and descends into elements by default. So a stylesheet with no templates reproduces the C exactly (for `describe.c`, 221 KB of C as 1.5 MB of XML, in under a second). Each template then rewrites one construct.
+`c-to-js.xsl` declares `<xsl:mode on-no-match="text-only-copy"/>`, which copies text and descends into elements by default. So a stylesheet with no templates would reproduce the C exactly (for `describe.c`, 221 KB of C as 1.5 MB of XML, in under a second). Each template then rewrites one construct.
 
-There are four groups of templates, one for each kind of rule:
+The stylesheet is commented for readers new to XSLT. Its parts are:
+
+0. **Following calls from the entry points:** only the functions that the entry points need are translated. An `xsl:key` indexes function definitions by name. Then a recursive function looks up every identifier in the definitions reached so far (`key()` takes a whole sequence of names at once) until nothing new turns up:
+
+   ```xml
+   <xsl:variable name="new" select="key('definition', $found//identifier, $sources) except $found"/>
+   <xsl:sequence select="if (exists($new)) then c:reached($found | $new) else $found"/>
+   ```
+
+   Because `|` and `except` treat nodes as sets in document order, the result comes out in source order, ready to group by file. From `exec_command_d`, `exec_command_list` and `exec_command_sf_sv`, this reaches the same 77 functions, in the same order, as `translate/`.
 
 1. **A fixed pattern:** `a->b` is `a.b`.
 
@@ -50,5 +60,5 @@ There are four groups of templates, one for each kind of rule:
 
 ## Not yet done
 
-- Everything else in `translate/`: types and the rules that need them (boxing, string suffixes, `NULL` tests, struct copies), `async`, string concatenation, the preprocessor, and slicing from the entry points.
+- Everything else in `translate/`: types and the rules that need them (boxing, string suffixes, `NULL` tests, struct copies), `async`, string concatenation, the preprocessor, and slicing in globals and header constants (not just functions).
 - Tidying the blank lines left where a deleted label and its frees used to be.
