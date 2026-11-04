@@ -3,22 +3,23 @@
 A proof of concept for an alternative to `translate/`: turn the C parse tree into XML, add types, and translate it with XSLT 3 stylesheets (run by SaxonJS).
 
 ```bash
+python3 -m venv tmp/venv && tmp/venv/bin/pip install -r xslt/requirements.txt  # once
+
 PG=../postgres/src
-node xslt/c-to-xml.ts $PG/bin/psql/command.c $PG/bin/psql/describe.c $PG/fe_utils/string_utils.c \
-  xslt/libc.h $PG/include/catalog/*.h $PG/include/common/*.h $PG/include/fe_utils/*.h $PG/interfaces/libpq/*.h \
-  $PG/bin/psql/*.h > tmp/sources.xml
-until npx xslt3 -xsl:xslt/preprocess.xsl -s:tmp/sources.xml | xargs node xslt/c-to-xml.ts > tmp/next.xml &&
-  cmp -s tmp/next.xml tmp/sources.xml; do mv tmp/next.xml tmp/sources.xml; done
+tmp/venv/bin/python xslt/preprocess.py tmp/pp $PG/include \
+  $PG/bin/psql/command.c $PG/bin/psql/describe.c $PG/fe_utils/string_utils.c xslt/libc.h \
+  $PG/include/catalog/*.h $PG/include/common/*.h $PG/include/fe_utils/*.h $PG/interfaces/libpq/*.h $PG/bin/psql/*.h |
+  xargs node xslt/c-to-xml.ts > tmp/sources.xml
 npx xslt3 -xsl:xslt/add-types.xsl -s:tmp/sources.xml -o:tmp/typed.xml
 npx xslt3 -xsl:xslt/c-to-js.xsl -s:tmp/typed.xml -o:tmp/translated.js
 node translate/compare.ts tmp/translated.js xslt/out
 ```
 
-The headers (and `libc.h`, a few libc prototypes) are there for their types and `#define`s. The `until` loop preprocesses the C (see below), and takes about 30s. Adding types then takes about 12s, and translating about 6s. So while working on `c-to-js.xsl`, only the last two lines need rerunning, and `typed.xml` is there to look at. The last line compares the translation with the hand-maintained port, as for `translate/`, writing `xslt/out/residual.diff`.
+The headers (and `libc.h`, a few libc prototypes) are there for their types and `#define`s. Preprocessing (see below) and parsing take about 5s. Adding types then takes about 12s, and translating about 6s. So while working on `c-to-js.xsl`, only the last two lines need rerunning, and `typed.xml` is there to look at. The last line compares the translation with the hand-maintained port, as for `translate/`, writing `xslt/out/residual.diff`.
 
 ## The XML
 
-`c-to-xml.ts` writes the tree-sitter parse trees of the C files as one XML document: a `<sources>` element containing a `<translation_unit file="…">` for each file. Within that, each named node becomes an element, and a node in a field gets a `field` attribute. Each unnamed token (punctuation, keywords, operators) becomes a `<token>` element, so the only text between elements is whitespace. Each `translation_unit`'s text content is exactly the C source. That's all `c-to-xml.ts` does.
+`c-to-xml.ts` writes the tree-sitter parse trees of the C files as one XML document: a `<sources>` element containing a `<translation_unit file="…">` for each file. Within that, each named node becomes an element, and a node in a field gets a `field` attribute. Each unnamed token (punctuation, keywords, operators) becomes a `<token>` element, so the only text between elements is whitespace. Each `translation_unit`'s text content is exactly the C source (after preprocessing). That's all `c-to-xml.ts` does.
 
 For example:
 
@@ -54,22 +55,17 @@ becomes:
 
 Tree-sitter parses C without preprocessing it, which mostly works, but not always. For example, in `"... != " CppAsString2(RELKIND_RELATION) " AND ..."`, it reads `CppAsString2` as a macro that expands to a string (like `PRId64` in `"%" PRId64`), which makes the concatenated string the function in a call, and the parse goes wrong from there.
 
-So `preprocess.xsl` expands a few macros, as the C preprocessor would, and writes the files back out as C (under `tmp/pp`), to be parsed again:
+So `preprocess.py` first runs each file through a real C preprocessor, [pcpp](https://github.com/ned14/pcpp) (written in Python), set up to expand only a few macros and to leave everything else alone: `#include`s, comments, and any `#if` logic it can't evaluate. It expands:
 
-- `PGDLLIMPORT`, `pg_nodiscard`, `pg_attribute_printf(f, a)`, `pg_attribute_format_arg(a)` and `pg_attribute_no_sanitize_address()` are annotations that expand to nothing (as `c.h` defines them when the compiler doesn't support them), and otherwise spoil the parse of declarations.
-- `CppAsString(x)` is C's `#` operator, and `CppAsString2(x)` expands `x` first, using the `#define`s in all the files: so `CppAsString2(RELKIND_RELATION)` is `"'r'"`.
-- `#ifdef NOT_USED` blocks are dropped, since by convention Postgres never defines `NOT_USED`.
+- the annotations `PGDLLIMPORT`, `pg_nodiscard`, `pg_attribute_printf(f, a)`, `pg_attribute_format_arg(a)` and `pg_attribute_no_sanitize_address()`, to nothing (as `c.h` defines them when the compiler doesn't support them), since they otherwise spoil the parse of declarations;
+- `CppAsString(x)`, which is C's `#` operator, and `CppAsString2(x)`, which expands `x` first (both as in `c.h`);
+- macros `#define`d in the file itself (e.g. `WHEREAND()` in `processSQLNamePattern`), and in the catalog headers it includes, which are the only `#include`s it reads. So `CppAsString2(RELKIND_RELATION)` is `"'r'"`, and `RELKIND_RELATION` elsewhere is `'r'`.
 
-Like the C preprocessor, it works on tokens, so it never touches comments, strings, or other names that just begin the same way (unlike the regexes in `translate/`, which also erase the catalog's `pg_attribute_rel`, for example). It goes through each file's tokens once, in order, tracking parentheses to find each macro's arguments. Each macro's expansion is a template, e.g.:
+and it drops `#ifdef NOT_USED` blocks, since by convention Postgres never defines `NOT_USED`.
 
-```xml
-<template mode="expand" match="*[. = 'CppAsString2']">
-  <param name="arguments" as="xs:string"/>
-  <value-of select="c:expand-defines($arguments) => c:stringize()"/>
-</template>
-```
+`preprocess.py` is pcpp's command-line tool, plus two small changes: it reads only the catalog headers (saying other `#include`d files aren't there, so they're passed through), and it removes comments from `#define` values, as C does. (Otherwise, keeping comments, pcpp stringizes `#define RELKIND_PARTITIONED_TABLE 'p' /* partitioned table */` as `"'p' /* partitioned table */"`.)
 
-Tree-sitter lexes only the tokens that make sense where it is in its parse, so where the parse goes wrong, the tokens after it can be wrong too: after one misparsed `CppAsString2(...)`, `describe.c` has another that's lexed as part of a string. So the loop expands, parses again and repeats, until nothing changes (like the C preprocessor's rescanning of expanded text, but over whole files). Here, that takes two passes, plus a third to confirm.
+An earlier version of this did the preprocessing in XSLT, on the tokens in tree-sitter's parse. But tree-sitter lexes only the tokens that make sense where it is in its parse, so where the parse goes wrong, the tokens after it can be wrong too: after one misparsed `CppAsString2(...)`, `describe.c` has another that's lexed as part of a string. So it had to expand, parse again, and repeat until nothing changed. A real preprocessor's lexer doesn't depend on parsing, so one pass is enough. Also, reimplementing parts of a C preprocessor was very much a non-goal here!
 
 ## The stylesheet
 
@@ -159,9 +155,9 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
 
 ## Results
 
-`node translate/compare.ts translated.js xslt/out` compares the translation with the hand-maintained port. Of the 70 translated functions that are in the port, 59 are now valid JS (3 identical to the port), against 64 for `translate/`. Most of the rest are blocked by `char *` used as a string (`*cp`, `*target++ = ...`, `&cmd[2]`), or by array allocation (`pg_malloc_array(char *, n)`).
+`node translate/compare.ts translated.js xslt/out` compares the translation with the hand-maintained port. Of the 70 translated functions that are in the port, 60 are now valid JS (3 identical to the port), against 64 for `translate/`. Most of the rest are blocked by `char *` used as a string (`*cp`, `*target++ = ...`, `&cmd[2]`), or by array allocation (`pg_malloc_array(char *, n)`).
 
 ## Not yet done
 
-- Everything else in `translate/`: the rules that need types (string suffixes, struct copies and nested initial values, integer division), array allocation (`pg_malloc_array`), macros defined in functions (such as `WHEREAND()`), and slicing in globals and header constants (not just functions).
+- Everything else in `translate/`: the rules that need types (string suffixes, struct copies and nested initial values, integer division), array allocation (`pg_malloc_array`), and slicing in globals and header constants (not just functions).
 - Tidying the blank lines left where a deleted label and its frees used to be.

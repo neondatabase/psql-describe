@@ -9,7 +9,7 @@
   The document is a <sources> element, containing a <translation_unit file="..."> for each C file. Within that, each
   tree-sitter node is an element named after its type, and a node in one of its parent's fields has a field
   attribute. Unnamed tokens (punctuation, keywords, operators) are <token> elements, and the only text between
-  elements is whitespace. So the text of the XML is exactly the C source (after preprocess.xsl). For example,
+  elements is whitespace. So the text of the XML is exactly the C source (after preprocess.py). For example,
   `f(&buf);` is:
 
     <expression_statement>
