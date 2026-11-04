@@ -4,3 +4,4 @@ psql.txt
 test/cache/
 translate/out
 tmp/
+xslt/out

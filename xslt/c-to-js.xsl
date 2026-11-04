@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Translates C to JS, given C as XML from c-to-xml.ts.
+  Translates C to JS, given C as XML from c-to-xml.ts, with types added by add-types.xsl.
 
-  Usage: npx xslt3 -xslt/c-to-js.xsl -s:sources.xml -o:translated.js
+  Usage: npx xslt3 -xsl:xslt/c-to-js.xsl -s:typed.xml -o:translated.js
 
   THE XML
 
@@ -80,9 +80,9 @@
   <!-- At the root: visit the definitions reached from the entry points, grouped by file. They come in document order,
        so grouping adjacent ones with the same file also keeps them in source order. -->
   <template match="/">
-    <apply-templates select="c:reached(key('definition', $entry-points))"/>
+    <apply-templates select="c:reached(key('definition', $entry-points, $sources))"/>
     <!-- this more complex alternative only inserts a comment giving the file source -->
-    <!-- <for-each-group select="c:reached(key('definition', $entry-points))" group-adjacent="ancestor::translation_unit/@file">
+    <!-- <for-each-group select="c:reached(key('definition', $entry-points, $sources))" group-adjacent="ancestor::translation_unit/@file">
       <text>/* from {tokenize(current-grouping-key(), '/')[last()]} */&#10;&#10;</text>
       <for-each select="current-group()">
         <apply-templates select="."/>
@@ -276,39 +276,21 @@
     <apply-templates select="*[last()]"/>
   </template>
 
+
   <!--
     * TYPES
+
+    Expressions have type attributes, added by add-types.xsl (e.g. <identifier type="char*">pattern</identifier>).
 
     In C, a string (char *) used as a condition is true unless it's NULL. In JS, an empty string is false too. So a
     string used as a condition gets an explicit NULL test: `if (pattern)` becomes `if (pattern != NULL)`, and
     `if (!pattern)` becomes `if (pattern == NULL)`.
-
-    To know whether an identifier is a string, we find its declaration, and look at the declared type. For now, we
-    only do this for identifiers (not, e.g., struct fields or function calls).
   -->
 
-  <!-- The declarator that declares an identifier, if there is one. Each enclosing element that's a scope (a block,
-       a for loop, a function, or a whole file) may declare names: in a block or file, in its declarations; in a for
-       loop, in its initializer; and in a function, in its parameters. Inner scopes come later in the document, so
-       the last matching declarator is from the innermost scope. -->
-  <function name="c:declarator" as="element()?">
-    <param name="id" as="element(identifier)?"/>
-    <variable name="declarations" select="$id/ancestor::*/(
-        self::compound_statement/declaration,
-        self::for_statement/declaration,
-        self::function_definition/descendant::function_declarator[1]/*[@field = 'parameters']/parameter_declaration,
-        self::translation_unit/declaration)"/>
-    <sequence select="($declarations/*[@field = 'declarator'][c:name(.) = $id])[last()]"/>
-  </function>
-
-  <!-- Is an expression a string? It is if it's an identifier declared with type char (or const char, etc.), and a
-       declarator that's a single * around the name: `char *s` or `char *s = ...`, but not `char **s` or
-       `char *s[10]`. So we're looking for a pointer_declarator whose own declarator is the identifier. -->
+  <!-- Is an expression a string (a pointer to or array of char)? -->
   <function name="c:is-string" as="xs:boolean">
     <param name="expr" as="element()"/>
-    <variable name="declarator" select="$expr/self::identifier => c:declarator()"/>
-    <sequence select="exists($declarator[../*[@field = 'type'] = 'char']
-      /descendant-or-self::pointer_declarator[1][*[@field = 'declarator']/self::identifier])"/>
+    <sequence select="$expr/@type = ('char*', 'char[]')"/>
   </function>
 
   <!-- Is an expression used as a condition? It is if it's the condition of an if, while or do (inside the
@@ -321,14 +303,28 @@
       $expr[@field = ('left', 'right')]/parent::binary_expression[token[@field = 'operator'] = ('&amp;&amp;', '||')])"/>
   </function>
 
-  <!-- A string used as a condition, e.g. the identifier in `if (pattern)`: output it, plus != NULL -->
-  <template match="identifier[c:is-condition(.)][c:is-string(.)]">{.} != NULL</template>
+  <!-- An expression's JS, $js, as an operand of == or !=: in parentheses, unless it's a simple expression -->
+  <function name="c:operand" as="xs:string">
+    <param name="expr" as="element()"/>
+    <param name="js" as="xs:string"/>
+    <sequence select="if ($expr/(self::identifier | self::field_expression | self::subscript_expression | self::call_expression |
+      self::parenthesized_expression | self::string_literal)) then $js else '(' || $js || ')'"/>
+  </function>
+
+  <!-- A string used as a condition, e.g. the identifier in `if (pattern)`: output it, plus != NULL. The string may
+       match other templates too (e.g. an async call): next-match outputs what the best of those would output. -->
+  <template match="*[c:is-string(.)][c:is-condition(.)]" priority="1">
+    <variable name="js"><next-match/></variable>
+    <value-of select="c:operand(., $js) || ' != NULL'"/>
+  </template>
 
   <!-- !s, where s is a string, e.g. in `if (!pattern)`: output s == NULL instead, in parentheses unless it's itself
        a condition (so `if (!pattern)` becomes `if (pattern == NULL)`, but `x = !pattern` becomes
        `x = (pattern == NULL)`) -->
   <template match="unary_expression[token[@field = 'operator'] = '!'][*[@field = 'argument'] => c:is-string()]">
-    <variable name="test">{*[@field = 'argument']} == NULL</variable>
+    <variable name="argument" select="*[@field = 'argument']"/>
+    <variable name="js"><apply-templates select="$argument"/></variable>
+    <variable name="test" select="c:operand($argument, $js) || ' == NULL'"/>
     <value-of select="if (c:is-condition(.)) then $test else '(' || $test || ')'"/>
   </template>
 

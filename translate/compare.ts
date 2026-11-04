@@ -2,7 +2,8 @@
 // the hand-maintained port (src/describe.mjs), after stripping comments and formatting both alike.
 //
 // Usage: node translate/compare.ts path/to/postgres/src
-// Writes translate/out/{translated,ported}/<function>.js, and translate/out/residual.diff (which
+//    or: node translate/compare.ts translated.js out-dir  (to compare another translation, e.g. by xslt/)
+// Writes translate/out (or out-dir)/{translated,ported}/<function>.js, and residual.diff (which
 // reads as the patch you'd apply to the translated code to get the ported code).
 
 import fs from 'node:fs';
@@ -12,7 +13,6 @@ import * as prettier from 'prettier';
 import { translate } from './translate.ts';
 import { parserFor, parseOrThrow, rewrite, field, must, type Rule } from './syntax.ts';
 
-const outDir = path.join(import.meta.dirname, 'out');
 const jsParser = await parserFor('javascript');
 
 // Removes comments and folds "a" + "b" into "ab", so that only differences in behaviour remain
@@ -44,8 +44,14 @@ const portNames = new Set([...ported.keys(),
   ...portRoot.descendantsOfType('variable_declarator').map(v => field(v, 'name').text),
   ...field(must(ported.get('describe'), 'describe()'), 'parameters').namedChildren.map(p => (p.childForFieldName('left') ?? p).text)]);
 
-const { units, externals } = await translate(must(process.argv[2], 'Usage: node translate/compare.ts path/to/postgres/src'));
-const fns = units.filter(u => u.node.type === 'function_definition');
+// The translated functions: from translate(), or split from a file at each top-level function
+const [input, outArg] = process.argv.slice(2);
+must(input, 'Usage: node translate/compare.ts path/to/postgres/src (or translated.js out-dir)');
+const outDir = outArg ?? path.join(import.meta.dirname, 'out');
+const { fns, externals } = input.endsWith('.js')
+  ? { fns: fs.readFileSync(input, 'utf8').split(/^(?=(?:async )?function \w+\()/m).slice(1)
+      .map(js => ({ name: must(js.match(/function (\w+)/), 'function name')[1], js })), externals: undefined }
+  : await translate(input).then(({ units, externals }) => ({ fns: units.filter(u => u.node.type === 'function_definition'), externals }));
 
 fs.rmSync(outDir, { recursive: true, force: true });
 for (const dir of ['translated', 'ported']) fs.mkdirSync(path.join(outDir, dir), { recursive: true });
@@ -81,5 +87,7 @@ report('Valid JS, compared with the port', compared.filter(name => !invalid.has(
 console.log();
 report('Not yet valid JS (so the residual includes layout differences)', compared.filter(name => invalid.has(name)));
 console.log(`\nNot yet valid JS, at:\n${[...invalid].map(([name, line]) => `  ${name.padEnd(32)} ${line}`).join('\n')}`);
-console.log(`\nExternals provided by the port: ${list(externals.filter(e => portNames.has(e)))}\n`);
-console.log(`Externals missing from the port: ${list(externals.filter(e => !portNames.has(e)))}`);
+if (externals) {
+  console.log(`\nExternals provided by the port: ${list(externals.filter(e => portNames.has(e)))}\n`);
+  console.log(`Externals missing from the port: ${list(externals.filter(e => !portNames.has(e)))}`);
+}
