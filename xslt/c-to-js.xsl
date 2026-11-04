@@ -92,10 +92,42 @@
   </template>
 
   <!--
+    * FOLLOWING CALLS BACK TO THE ASYNC SEEDS
+    Some functions that the C calls will be provided by the JS runtime, and return a Promise. A function that calls
+    one of these, or calls a function that does (and so on), is async, and each call to it needs an await.
+  -->
+
+  <param name="async-seeds" select="'PSQLexec', 'PQexec'"/>
+
+  <!-- An index of function calls by the name of the function called -->
+  <key name="call" match="call_expression" use="*[@field = 'function']"/>
+
+  <!-- The async function names found so far, plus the names of the functions that call them, and so on, until there
+       are no more. This works like c:reached, above, but backwards: from callees to callers. -->
+  <function name="c:async" as="xs:string*">
+    <param name="found" as="xs:string*"/>
+    <!-- The names of the functions containing calls to any of $found, except those we've already got -->
+    <variable name="new" select="key('call', $found, $sources)/ancestor::function_definition
+      ! c:name(descendant::function_declarator[1])[not(. = $found)]"/>
+    <sequence select="if (exists($new)) then c:async(distinct-values(($found, $new))) else $found"/>
+  </function>
+
+  <variable name="async" select="c:async($async-seeds)"/>
+
+  <!-- A call to an async function, e.g. PSQLexec(buf.data): output await PSQLexec(buf.data). That's in parentheses
+       if it's the function in another call, or what's accessed in f()->x or f()[i], since e.g. await f().x would
+       mean await (f().x). -->
+  <template match="call_expression[*[@field = 'function'] = $async]">
+    <variable name="call"><apply-templates select="node()"/></variable>
+    <value-of select="if (@field = 'function' or @field = 'argument' and (parent::field_expression | parent::subscript_expression))
+      then '(await ' || $call || ')' else 'await ' || $call"/>
+  </template>
+
+  <!--
     * A FIXED PATTERN
 
     a->b is a.b. In the XML, a->b is:
-    
+
       <field_expression>
         <identifier field="argument">a</identifier>
         <token field="operator">-&gt;</token>
@@ -105,6 +137,11 @@
 
   <!-- Matches the -> token in a field_expression, and outputs . instead -->
   <template match="field_expression/token[@field = 'operator'][. = '->']">.</template>
+
+  <!-- Explicitly concatenate adjacent string literals -->
+  <template match="string_literal[following-sibling::node()[not(self::text()) or normalize-space()][1][self::string_literal]]">
+    <apply-templates select="node()"/><text> +</text>
+  </template>
 
   <!--
     * DECLARATORS, HOWEVER DEEP
@@ -122,14 +159,15 @@
     <sequence select="string($declarator/descendant-or-self::identifier[1])"/>
   </function>
 
-  <!-- `bool describeAggregates(const char *pattern, bool verbose)` becomes: `function describeAggregates(pattern, verbose)` -->
+  <!-- `bool describeAggregates(const char *pattern, bool verbose)` becomes: `[async] function describeAggregates(pattern, verbose)` -->
   <template match="function_definition">
     <variable name="comment" select="preceding-sibling::*[1][self::comment]"/>
     <!-- The function_declarator, which has the function's name and parameters (and may be inside a pointer_declarator) -->
     <variable name="signature" select="descendant::function_declarator[1]"/>
     <!-- Each parameter's declarator: e.g. the <pointer_declarator> holding pattern, and the <identifier> verbose -->
     <variable name="params" select="$signature/*[@field = 'parameters']/parameter_declaration/*[@field = 'declarator']"/>
-    <text>{$comment}&#10;function {c:name($signature)}({string-join($params ! c:name(.), ', ')})</text>
+    <variable name="asyncqual" select="if (c:name($signature) = $async) then 'async ' else ''"/>
+    <text>{$comment}&#10;{$asyncqual}function {c:name($signature)}({string-join($params ! c:name(.), ', ')})</text>
     <!-- Continue with the whitespace before the body (the newline before {), then the body itself -->
     <apply-templates select="*[@field = 'body']/(preceding-sibling::node()[1], .)"/>
     <text>&#10;&#10;</text>

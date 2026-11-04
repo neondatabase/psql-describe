@@ -51,17 +51,27 @@ The stylesheet is commented for readers new to XSLT. Its parts are:
 
    Because `|` and `except` treat nodes as sets in document order, the result comes out in source order, ready to group by file. From `exec_command_d`, `exec_command_list` and `exec_command_sf_sv`, this reaches the same 77 functions, in the same order, as `translate/`.
 
-1. **A fixed pattern:** `a->b` is `a.b`.
+1. **Following calls back to the async seeds:** a function that calls `PSQLexec` or `PQexec` (provided by the JS runtime, and returning a Promise) is `async`, and so is any function that calls an `async` function. This is the same fixed point, run backwards: a second `key` indexes calls by the function called, and each round adds the functions containing calls to those found so far:
+
+   ```xml
+   <variable name="new" select="key('call', $found, $sources)/ancestor::function_definition
+     ! c:name(descendant::function_declarator[1])[not(. = $found)]"/>
+   <sequence select="if (exists($new)) then c:async(distinct-values(($found, $new))) else $found"/>
+   ```
+
+   A function in the result gets `async`, and a call to it gets `await` (in parentheses where it's the function in another call, or what's accessed in `f()->x` or `f()[i]`). As in `translate/`, that's 57 `async` functions and 141 `await`s, exactly the same ones.
+
+2. **A fixed pattern:** `a->b` is `a.b`.
 
    ```xml
    <template match="field_expression/token[@field = 'operator'][. = '->']">.</template>
    ```
 
-2. **Declarators, however deep:** a declaration's types are replaced by `let`, and a function keeps only its name and its parameters' names. The name in a declarator (`*x`, `**x`, `x[10]`, `(*x)(void)`, …) is simply its first identifier: `$declarator/descendant-or-self::identifier[1]`. Tree-sitter queries can't express this, because they can't recurse.
+3. **Declarators, however deep:** a declaration's types are replaced by `let`, and a function keeps only its name and its parameters' names. The name in a declarator (`*x`, `**x`, `x[10]`, `(*x)(void)`, …) is simply its first identifier: `$declarator/descendant-or-self::identifier[1]`. Tree-sitter queries can't express this, because they can't recurse.
 
-3. **Context:** a statement that only frees memory goes, as do the whitespace before it and an `if` whose body only frees memory. The recursion is in a `function`, `c:is-freeing`, which a template's match pattern can call.
+4. **Context:** a statement that only frees memory goes, as do the whitespace before it and an `if` whose body only frees memory. The recursion is in a `function`, `c:is-freeing`, which a template's match pattern can call.
 
-4. **Sibling axes:** if a label is followed only by frees and a `return`, then `goto label` is that `return`:
+5. **Sibling axes:** if a label is followed only by frees and a `return`, then `goto label` is that `return`:
 
    ```xml
    <variable name="rest" select="($label/*[last()], $label/following-sibling::*)[not(self::comment or c:is-freeing(.))]"/>
@@ -70,7 +80,7 @@ The stylesheet is commented for readers new to XSLT. Its parts are:
 
    On `describe.c`, this turns all 64 `goto error_return`s into `return`s, and removes all 15 labels.
 
-5. **Types:** a string (`char *`) used as a condition gets an explicit `NULL` test, because an empty string is false in JS but not in C. So `if (pattern)` becomes `if (pattern != NULL)`, and `!pattern` becomes `pattern == NULL`. An identifier's declaration is found by looking in each enclosing scope (block, `for` loop, function parameters, file), and the innermost scope's declaration is just the last one in document order:
+6. **Types:** a string (`char *`) used as a condition gets an explicit `NULL` test, because an empty string is false in JS but not in C. So `if (pattern)` becomes `if (pattern != NULL)`, and `!pattern` becomes `pattern == NULL`. An identifier's declaration is found by looking in each enclosing scope (block, `for` loop, function parameters, file), and the innermost scope's declaration is just the last one in document order:
 
    ```xml
    <variable name="declarations" select="$id/ancestor::*/(
@@ -85,5 +95,5 @@ The stylesheet is commented for readers new to XSLT. Its parts are:
 
 ## Not yet done
 
-- Everything else in `translate/`: the rest of the type system (struct fields, function return types, typedefs, headers) and the rules that need it (boxing, string suffixes, struct copies), `async`, string concatenation, the preprocessor, and slicing in globals and header constants (not just functions).
+- Everything else in `translate/`: the rest of the type system (struct fields, function return types, typedefs, headers) and the rules that need it (boxing, string suffixes, struct copies), the preprocessor, and slicing in globals and header constants (not just functions).
 - Tidying the blank lines left where a deleted label and its frees used to be.
