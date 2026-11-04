@@ -92,7 +92,7 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
 
    A function in the result gets `async`, and a call to it gets `await` (in parentheses where it's the function in another call, or what's accessed in `f()->x` or `f()[i]`). As in `translate/`, that's 57 `async` functions and 141 `await`s, exactly the same ones.
 
-2. **Fixed patterns:** `a->b` is `a.b`, and an initialiser list `{a, b}` is an array, `[a, b]` (its braces are the text directly inside it).
+2. **Fixed patterns:** `a->b` is `a.b`, and an initialiser list `{a, b}` is an array, `[a, b]`, and `pg_malloc_array(type, n)` is `[]`.
 
    ```xml
    <template match="field_expression/token[@field = 'operator'][. = '->']">.</template>
@@ -101,7 +101,7 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
 
 3. **Declarators, however deep:** a declaration's types are replaced by `let`, and a function keeps only its name and its parameters' names. The name in a declarator (`*x`, `**x`, `x[10]`, `(*x)(void)`, …) is simply its first identifier: `$declarator/descendant-or-self::identifier[1]`. Tree-sitter queries can't express this, because they can't recurse.
 
-4. **Context:** a statement that only frees memory goes, as do the whitespace before it and an `if` whose body only frees memory. The recursion is in a `function`, `c:is-freeing`, which a template's match pattern can call.
+4. **Context:** a statement that only frees memory goes, along with the whitespace before it. So does a block, an `if` or a loop whose body only frees memory, as long as its condition makes no calls: e.g. `for (p = list; *p; p++) free(*p);`. Where a statement can't just go, because it's the body of an `if` or loop that stays, it becomes `{}`. (So `while ((arg = next_option(...)) != NULL) free(arg);` keeps its loop: `translate/` deletes it, which would skip the calls.) The recursion is in a `function`, `c:is-freeing`, which a template's match pattern can call.
 
 5. **Sibling axes:** if a label is followed only by frees and a `return`, then `goto label` is that `return`:
 
@@ -119,7 +119,7 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
      declared="describeAggregates.pattern">pattern</identifier>)...
    ```
 
-   Rules in `c-to-js.xsl` then just test the attributes. A type is written as its base type plus a suffix for each declarator, as C would write them: `char *s` is `char*`, `char *s[10]` is `char*[]`, and `char *f(int i)` is `char*()`. Typedefs are replaced by what they stand for, and a struct type is `struct` plus the struct's tag (or, if it has none, its typedef name, or a made-up name such as `describeOneTableDetails.tableinfo`). In `add-types.xsl`, each kind of expression has a template in mode `type` that gives its type, e.g. for `s.f` and `p->f`:
+   Rules in `c-to-js.xsl` then just test the attributes. A type is written as its base type (with `const`, if it's declared `const`) plus a suffix for each declarator, as C would write them: `char *s` is `char*`, `const char *s` is `const char*`, `char *s[10]` is `char*[]`, and `char *f(int i)` is `char*()`. Typedefs are replaced by what they stand for, and a struct type is `struct` plus the struct's tag (or, if it has none, its typedef name, or a made-up name such as `describeOneTableDetails.tableinfo`). In `add-types.xsl`, each kind of expression has a template in mode `type` that gives its type, e.g. for `s.f` and `p->f`:
 
    ```xml
    <template mode="type" match="field_expression" as="xs:string?">
@@ -130,6 +130,8 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
        /*[@field = 'declarator'][c:name(.) = $field])[1] => c:declared-type()"/>
    </template>
    ```
+
+   Each `parameter_declaration` also gets a `type`, even in a prototype outside a function (e.g. `const char*` for the `const char *` in `int f(const char *, int)`), so that rules can see what a function's parameters are.
 
    An identifier's declaration is found by looking in each enclosing scope (block, `for` loop, function parameters), where the innermost scope's declaration is just the last one in document order, and otherwise among top-level declarations in any file (using a `key`). A declaration in a function is named by the function plus the name declared, e.g. `describeAggregates.pattern`, or `describeFunctions.i#2` for the second `i` declared in `describeFunctions`.
 
@@ -151,13 +153,25 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
      /identifier[@field = 'argument'][not(c:is-object(.))][key('local-declaration', @declared)]/@declared)"/>
    ```
 
-   The boxes, `.value`s and initial values are exactly the same as `translate/`'s, except for the loop that only frees memory (above), and the arrays that `translate/` creates from `pg_malloc_array(...)` calls, which aren't ported yet.
+   The boxes, `.value`s and initial values are exactly the same as `translate/`'s.
+
+8. **Strings:** a `char *` is modelled as the JS string that's the rest of the C string from where it points. So `*s` is `s[0]`, `&s[i]` and `s + i` are `s.slice(i)`, `s++` is `s = s.slice(1)`, `s[i] = '\0'` is `s = s.slice(0, i)`, and `'\0'`, which ends a C string, is `undefined`, which is what reading past the end of a JS string gives. That only works for reading, so writing through a `char *` (`*s = c`, `*s++`), other pointer arithmetic and comparisons, and passing a slice to a function whose parameter is a (writable) `char *`, are marked `⟦like this⟧` for porting by hand. That last check looks up the function's parameter's `type`:
+
+   ```xml
+   <variable name="call" select="$expr/parent::argument_list/parent::call_expression"/>
+   <variable name="function" select="key('function', $call/*[@field = 'function'], $sources)[1]"/>
+   <variable name="position" select="count($expr/preceding-sibling::*[not(self::token | self::comment)]) + 1"/>
+   <variable name="parameter" select="$function/*[@field = 'parameters']/parameter_declaration[$position]"/>
+   <sequence select="empty($call) or (exists($function) and not($parameter/@type = ('char*', 'char[]')))"/>
+   ```
+
+   The slices, `[0]`s, `undefined`s and refusals are exactly the same as `translate/`'s.
 
 ## Results
 
-`node translate/compare.ts translated.js xslt/out` compares the translation with the hand-maintained port. Of the 70 translated functions that are in the port, 60 are now valid JS (3 identical to the port), against 64 for `translate/`. Most of the rest are blocked by `char *` used as a string (`*cp`, `*target++ = ...`, `&cmd[2]`), or by array allocation (`pg_malloc_array(char *, n)`).
+`node translate/compare.ts translated.js xslt/out` compares the translation with the hand-maintained port. Of the 70 translated functions that are in the port, 64 are now valid JS (3 identical to the port), as for `translate/`. Of the other 6, 4 have C marked for porting by hand (writing through a `char *`, or passing a slice to a function that might write to it), and 2 have casts, which aren't ported yet.
 
 ## Not yet done
 
-- Everything else in `translate/`: the rules that need types (string suffixes, struct copies and nested initial values, integer division), array allocation (`pg_malloc_array`), and slicing in globals and header constants (not just functions).
+- Everything else in `translate/`: casts, `snprintf`, integer division, struct copies and nested initial values, and slicing in globals and header constants (not just functions).
 - Tidying the blank lines left where a deleted label and its frees used to be.

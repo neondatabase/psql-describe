@@ -19,10 +19,11 @@
 
   and c-to-js.xsl's rules then just test the attributes, e.g. identifier[@type = 'char*'].
 
-  A type is written as its base type (char, int, struct PQExpBufferData, ...), followed by what the declarators make
-  of it, in the order C would write them: * for a pointer, [] for an array, () for a function. So `char *s` is
-  char*, `char *s[10]` (an array of char*) is char*[], and `char *f(int i)` (a function returning char*) is
-  char*(). A typedef is replaced by what it stands for, so `PQExpBuffer buf` is struct PQExpBufferData*.
+  A type is written as its base type (char, int, struct PQExpBufferData, ...), with const if it's declared const,
+  followed by what the declarators make of it, in the order C would write them: * for a pointer, [] for an array, ()
+  for a function. So `char *s` is char*, `const char *s` is const char*, `char *s[10]` (an array of char*) is
+  char*[], and `char *f(int i)` (a function returning char*) is char*(). A typedef is replaced by what it stands
+  for, so `PQExpBuffer buf` is struct PQExpBufferData*.
 
   HOW
 
@@ -68,6 +69,15 @@
   <template match="function_definition//*">
     <copy>
       <for-each select="c:type(.)"><attribute name="type" select="."/></for-each>
+      <apply-templates select="@*, node()"/>
+    </copy>
+  </template>
+
+  <!-- A parameter declaration, e.g. `const char *pattern`, or just `const char *` in a prototype, gets the type it
+       declares, wherever it is (so that c-to-js.xsl can see what a function's parameters are) -->
+  <template match="parameter_declaration" priority="1">
+    <copy>
+      <for-each select="c:parameter-type(.)"><attribute name="type" select="."/></for-each>
       <apply-templates select="@*, node()"/>
     </copy>
   </template>
@@ -130,18 +140,69 @@
   <template mode="type" match="cast_expression" as="xs:string?">
     <variable name="descriptor" select="*[@field = 'type']"/>
     <sequence select="if ($descriptor/*[@field = 'declarator']) then $descriptor/*[@field = 'declarator'] => c:declared-type()
-      else $descriptor/*[@field = 'type'] => c:base-type()"/>
+      else c:qualified-base-type($descriptor)"/>
   </template>
 
   <!-- s.f or p->f: the type that f is declared with, in the struct that's the type of s, or that p points to -->
   <template mode="type" match="field_expression" as="xs:string?">
     <variable name="type" select="c:type(*[@field = 'argument'])"/>
-    <variable name="struct" select="if (token[@field = 'operator'] = '->') then c:pointee($type) else $type"/>
+    <variable name="struct" select="(if (token[@field = 'operator'] = '->') then c:pointee($type) else $type) ! replace(., '^const ', '')"/>
     <variable name="field" select="*[@field = 'field']"/>
     <!-- The struct's definition (see c:struct-name, below), then the declarator in it that declares $field -->
     <variable name="declarator" select="(key('struct', $struct, root())/*[@field = 'body']/field_declaration
       /*[@field = 'declarator'][c:name(.) = $field])[1]"/>
     <sequence select="c:declared-type($declarator)"/>
+  </template>
+
+  <!-- s++, s += n, and so on: the type of s -->
+  <template mode="type" match="update_expression | assignment_expression" as="xs:string?">
+    <sequence select="c:type((*[@field = ('argument', 'left')])[1])"/>
+  </template>
+
+  <!-- !x: int (C's boolean); -x, ~x: x's type -->
+  <template mode="type" match="unary_expression" as="xs:string?">
+    <sequence select="if (token[@field = 'operator'] = '!') then 'int' else c:type(*[@field = 'argument'])"/>
+  </template>
+
+  <!-- c ? a : b: the type of a and b, if they're known, and the same (so e.g. `c ? s : NULL` is s's type) -->
+  <template mode="type" match="conditional_expression" as="xs:string?">
+    <variable name="types" select="distinct-values(*[@field = ('consequence', 'alternative')] ! c:type(.))"/>
+    <sequence select="$types[count($types) = 1]"/>
+  </template>
+
+  <!-- a op b. A comparison or logical operator gives an int (C's boolean), as does subtracting one pointer from
+       another. Adding or subtracting a number to or from a pointer gives the pointer's type: e.g. char* for s + 1.
+       Otherwise (for arithmetic on numbers whose types are known), double or float gives double, and anything else
+       int (ignoring wider integer types). -->
+  <template mode="type" match="binary_expression" as="xs:string?">
+    <variable name="operator" select="string(token[@field = 'operator'])"/>
+    <variable name="left" select="c:type(*[@field = 'left'])"/>
+    <variable name="right" select="c:type(*[@field = 'right'])"/>
+    <variable name="pointers" select="($left, $right)[c:is-pointer(.)]"/>
+    <sequence select="
+      if ($operator = ('==', '!=', '&lt;', '&lt;=', '&gt;', '&gt;=', '&amp;&amp;', '||')) then 'int'
+      else if ($operator = '-' and count($pointers) = 2) then 'int'
+      else if ($operator = ('+', '-') and count($pointers) = 1) then $pointers
+      else if (exists($pointers) or empty($left) or empty($right)) then ()
+      else if (($left, $right) = ('double', 'float')) then 'double'
+      else 'int'"/>
+  </template>
+
+  <!-- Literals: e.g. int for 10, double for 1.5, char for 'x', bool for true, and size_t for sizeof(x) -->
+  <template mode="type" match="number_literal" as="xs:string">
+    <sequence select="if (matches(., '^0[xX]') or not(matches(., '[.eE]'))) then 'int' else 'double'"/>
+  </template>
+
+  <template mode="type" match="char_literal" as="xs:string">
+    <sequence select="'char'"/>
+  </template>
+
+  <template mode="type" match="*[self::true or self::false]" as="xs:string">
+    <sequence select="'bool'"/>
+  </template>
+
+  <template mode="type" match="sizeof_expression" as="xs:string">
+    <sequence select="'size_t'"/>
   </template>
 
   <!--
@@ -221,9 +282,23 @@
          array_declarator. (A cast's declarator has no name, e.g. `(char *) x`, so then it's all of them.) -->
     <variable name="path" select="if ($id) then $declarator/descendant-or-self::* intersect $id/ancestor::*
       else $declarator/descendant-or-self::*"/>
-    <variable name="base" select="$declarator/../*[@field = 'type'] => c:base-type()"/>
+    <variable name="base" select="$declarator/.. ! c:qualified-base-type(.)"/>
     <variable name="suffixes" as="xs:string*"><apply-templates mode="suffix" select="$path"/></variable>
     <sequence select="$base ! (. || string-join($suffixes))"/>
+  </function>
+
+  <!-- The base type in a declaration (or parameter, field, typedef or type descriptor, as in a cast), with const
+       if it has that qualifier, e.g. const char for `const char *s` -->
+  <function name="c:qualified-base-type" as="xs:string?">
+    <param name="declaration" as="element()"/>
+    <sequence select="c:base-type($declaration/*[@field = 'type']) ! (if ($declaration/type_qualifier = 'const') then 'const ' || . else .)"/>
+  </function>
+
+  <!-- A parameter's type: its declarator's type, or if it has none (e.g. `int` in a prototype), its base type -->
+  <function name="c:parameter-type" as="xs:string?">
+    <param name="parameter" as="element(parameter_declaration)"/>
+    <sequence select="if ($parameter/*[@field = 'declarator']) then $parameter/*[@field = 'declarator'] => c:declared-type()
+      else c:qualified-base-type($parameter)"/>
   </function>
 
   <!-- The suffix for each kind of declarator (and abstract declarator, in a cast). Others, such as the
@@ -305,6 +380,12 @@
   <!--
     * TYPES AS STRINGS
   -->
+
+  <!-- Is a type a pointer (or array)? -->
+  <function name="c:is-pointer" as="xs:boolean">
+    <param name="type" as="xs:string?"/>
+    <sequence select="matches($type, '(\*|\[\])$')"/>
+  </function>
 
   <!-- A pointer to a type: e.g. char* for char -->
   <function name="c:pointer-to" as="xs:string?">

@@ -200,29 +200,49 @@
     * CONTEXT
 
     A statement that only frees memory goes, along with the whitespace before it. That includes an if statement whose
-    body only frees memory (and whose condition has no side effects), e.g. `if (x) PQclear(res);`.
+    body only frees memory (and whose condition has no side effects), e.g. `if (x) PQclear(res);`, and a loop whose
+    body only frees memory, such as `for (p = list; *p; p++) free(*p);`. Where a statement can't just go, because
+    it's the body of an if or loop that stays, it becomes {}.
   -->
 
   <param name="freeing-functions" select="'free', 'pg_free', 'PQclear', 'termPQExpBuffer', 'destroyPQExpBuffer', 'printTableCleanup'"/>
 
   <!-- Does a node only free memory? It does if it's:
-       - an expression_statement whose call_expression's function name is in $freeing-functions, e.g. `free(x);`, or
-       - an if_statement with no else, whose condition contains no calls, assignments, increments or decrements, and whose
-         consequence (its body) only frees memory -->
+       - an expression_statement whose call_expression's function name is in $freeing-functions, e.g. `free(x);`
+       - a block whose statements (other than comments) all only free memory
+       - an if_statement with no else, whose condition contains no calls, assignments, increments or decrements, and
+         whose consequence (its body) only frees memory
+       - a for or while loop whose condition (and a for loop's initializer and update) contains no calls, and whose
+         body only frees memory (so assignments and increments are allowed, which can only set up and advance the
+         loop, e.g. p = list and p++) -->
   <function name="c:is-freeing" as="xs:boolean">
     <param name="statement" as="node()"/>
+    <variable name="statements" select="$statement/self::compound_statement/*[not(self::token | self::comment)]"/>
     <sequence select="exists($statement/self::expression_statement/call_expression/*[@field = 'function'][. = $freeing-functions])
+      or (exists($statements) and (every $s in $statements satisfies c:is-freeing($s)))
       or exists($statement/self::if_statement[not(*[@field = 'alternative'])]
         [not(*[@field = 'condition']//(call_expression | assignment_expression | update_expression))]
-        [c:is-freeing(*[@field = 'consequence'])])"/>
+        [c:is-freeing(*[@field = 'consequence'])])
+      or exists($statement/(self::for_statement | self::while_statement)
+        [not(*[@field = ('initializer', 'condition', 'update')]/descendant-or-self::call_expression)]
+        [c:is-freeing(*[@field = 'body'])])"/>
   </function>
 
-  <!-- A statement that only frees memory: output nothing -->
-  <template match="(expression_statement | if_statement)[c:is-freeing(.)]"/>
+  <!-- A statement that only frees memory: {} -->
+  <template match="(expression_statement | compound_statement | if_statement | for_statement | while_statement)[c:is-freeing(.)]">{{}}</template>
+
+  <!-- But in a block or case, where it's one of a list of statements: output nothing -->
+  <template match="(compound_statement | case_statement)/*[c:is-freeing(.)]" priority="1"/>
 
   <!-- The whitespace just before such a statement (e.g. a newline and indent): output nothing, so that the deleted
        statement doesn't leave a blank line -->
-  <template match="text()[following-sibling::node()[1][c:is-freeing(.)]]"/>
+  <template match="(compound_statement | case_statement)/text()[following-sibling::node()[1][c:is-freeing(.)]]"/>
+
+  <!-- pg_malloc_array(type, count) and pg_malloc0_array(type, count) allocate an array, which in JS is just [] (and
+       the type, which isn't an expression, doesn't parse) -->
+  <param name="array-allocators" select="'pg_malloc_array', 'pg_malloc0_array'"/>
+
+  <template match="call_expression[*[@field = 'function'] = $array-allocators]">[]</template>
 
   <!--
     * SIBLING AXES
@@ -280,9 +300,9 @@
   </template>
 
   <!-- The label of such a goto: continue only with the statement inside it (dropping `error_return:` and the
-       whitespace and comments around it). That statement only frees memory, so it outputs nothing too. -->
+       whitespace and comments around it), unless that only frees memory -->
   <template match="labeled_statement[c:return-after(.)]">
-    <apply-templates select="*[last()]"/>
+    <apply-templates select="*[last()][not(c:is-freeing(.))]"/>
   </template>
 
 
@@ -296,10 +316,10 @@
     `if (!pattern)` becomes `if (pattern == NULL)`.
   -->
 
-  <!-- Is an expression a string (a pointer to or array of char)? -->
+  <!-- Is an expression a string (a pointer to or array of char, or const char)? -->
   <function name="c:is-string" as="xs:boolean">
     <param name="expr" as="element()"/>
-    <sequence select="$expr/@type = ('char*', 'char[]')"/>
+    <sequence select="matches($expr/@type, '^(const )?char(\*|\[\])$')"/>
   </function>
 
   <!-- Is an expression used as a condition? It is if it's the condition of an if, while or do (inside the
@@ -321,8 +341,9 @@
   </function>
 
   <!-- A string used as a condition, e.g. the identifier in `if (pattern)`: output it, plus != NULL. The string may
-       match other templates too (e.g. an async call): next-match outputs what the best of those would output. -->
-  <template match="*[c:is-string(.)][c:is-condition(.)]" priority="1">
+       match other templates too (e.g. an async call): next-match outputs what the best of those would output (so
+       this template's priority is higher than theirs). -->
+  <template match="*[c:is-string(.)][c:is-condition(.)]" priority="10">
     <variable name="js"><next-match/></variable>
     <value-of select="c:operand(., $js) || ' != NULL'"/>
   </template>
@@ -355,7 +376,7 @@
   <!-- Is an expression's type a struct (or union), e.g. struct PQExpBufferData, rather than e.g. a pointer to one? -->
   <function name="c:is-struct" as="xs:boolean">
     <param name="expr" as="element()"/>
-    <sequence select="matches($expr/@type, '^(struct|union) [^*()\[\]]+$')"/>
+    <sequence select="matches($expr/@type, '^(const )?(struct|union) [^*()\[\]]+$')"/>
   </function>
 
   <!-- Is an expression a struct or an array (e.g. char*[]), which are objects in JS? -->
@@ -399,7 +420,7 @@
   <function name="c:empty-value" as="xs:string?">
     <param name="id" as="element(identifier)"/>
     <sequence select="if ($id/@declared = $boxed or c:is-struct($id)) then '{}'
-      else if ($id/@type = 'char[]') then &quot;''&quot;
+      else if (c:is-string($id) and ends-with($id/@type, '[]')) then &quot;''&quot;
       else if (ends-with($id/@type, '[]')) then '[]'
       else ()"/>
   </function>
@@ -413,5 +434,141 @@
   <!-- A boxed variable declared with a value, e.g. n in `int n = 0;`: n = { value: 0 } -->
   <template match="declaration/init_declarator[descendant-or-self::identifier[1]/@declared = $boxed]">
     <apply-templates select="*[@field = 'declarator']"/> = {{ value: <apply-templates select="*[@field = 'value']"/> }}</template>
+
+  <!--
+    * STRINGS
+
+    A char * is modelled as the JS string that's the rest of the C string from where it points. So *s is s[0], &s[i]
+    and s + i are s.slice(i), and s++ is s = s.slice(1). Reading past the end of a JS string gives undefined, so the
+    '\0' that ends a C string is undefined.
+
+    That only works for reading. JS strings can't be written to, and a slice is a new string, so we can't write
+    through a char *, or pass a slice to a function that might (one whose parameter is a char *, not a const char *).
+    And a slice can't go back, so other pointer arithmetic and comparisons don't work either. C like this is marked
+    ⟦like this⟧ (which isn't valid JS), for porting by hand.
+  -->
+
+  <!-- An element's JS: what it outputs -->
+  <function name="c:js" as="xs:string">
+    <param name="node" as="node()*"/>
+    <value-of><apply-templates select="$node"/></value-of>
+  </function>
+
+  <!-- An expression's operator, e.g. + or ++ -->
+  <function name="c:operator" as="xs:string">
+    <param name="expr" as="element()"/>
+    <sequence select="string($expr/token[@field = 'operator'])"/>
+  </function>
+
+  <!-- Is an expression a pointer (or array)? -->
+  <function name="c:is-pointer" as="xs:boolean">
+    <param name="expr" as="element()?"/>
+    <sequence select="matches($expr/@type, '(\*|\[\])$')"/>
+  </function>
+
+  <!-- Is an expression *s, where s is a string? -->
+  <function name="c:is-string-dereference" as="xs:boolean">
+    <param name="expr" as="element()?"/>
+    <sequence select="exists($expr/self::pointer_expression[c:operator(.) = '*'][*[@field = 'argument'] => c:is-string()])"/>
+  </function>
+
+  <!-- Does an expression have side effects (so that it can't be repeated, e.g. in s = s.slice(1))? -->
+  <function name="c:has-side-effects" as="xs:boolean">
+    <param name="expr" as="element()"/>
+    <sequence select="exists($expr/descendant-or-self::*[self::call_expression | self::assignment_expression | self::update_expression])"/>
+  </function>
+
+  <!-- Is an expression's value unused? It is if it's a statement, a for loop's update, or either side of a comma
+       expression whose value is unused -->
+  <function name="c:is-statement" as="xs:boolean">
+    <param name="expr" as="element()"/>
+    <sequence select="exists($expr/parent::expression_statement | $expr[@field = 'update']/parent::for_statement)
+      or exists($expr/parent::comma_expression[c:is-statement(.)])"/>
+  </function>
+
+  <!-- C we can't translate: its text, as ⟦C⟧ -->
+  <function name="c:refuse" as="xs:string">
+    <param name="expr" as="element()"/>
+    <sequence select="'⟦' || string($expr) || '⟧'"/>
+  </function>
+
+  <!-- An index of function declarators (in definitions and prototypes), by name -->
+  <key name="function" match="function_declarator" use="c:name(.)"/>
+
+  <!-- Can an expression be a slice? It can unless it's an argument to a call, and the function's parameter there is a
+       (writable) char *, or we don't know what the parameter is because we don't know the function. (Variadic
+       arguments, such as printf's, are taken to be read-only.) -->
+  <function name="c:can-be-slice" as="xs:boolean">
+    <param name="expr" as="element()"/>
+    <variable name="call" select="$expr/parent::argument_list/parent::call_expression"/>
+    <variable name="function" select="key('function', $call/*[@field = 'function'], $sources)[1]"/>
+    <variable name="position" select="count($expr/preceding-sibling::*[not(self::token | self::comment)]) + 1"/>
+    <variable name="parameter" select="$function/*[@field = 'parameters']/parameter_declaration[$position]"/>
+    <sequence select="empty($call) or (exists($function) and not($parameter/@type = ('char*', 'char[]')))"/>
+  </function>
+
+  <!-- $expr, which is s plus $from (as &s[i] or s + i), as s.slice(i), if it can be a slice -->
+  <function name="c:slice" as="xs:string">
+    <param name="expr" as="element()"/>
+    <param name="s" as="element()"/>
+    <param name="from" as="element()"/>
+    <sequence select="if (c:can-be-slice($expr)) then c:operand($s, c:js($s)) || '.slice(' || c:js($from) || ')' else c:refuse($expr)"/>
+  </function>
+
+  <!-- '\0': undefined -->
+  <template match="char_literal[. = &quot;'\0'&quot;]">undefined</template>
+
+  <!-- *s: s[0] -->
+  <template match="pointer_expression[c:operator(.) = '*'][*[@field = 'argument'] => c:is-string()]" priority="2">
+    <variable name="s" select="*[@field = 'argument']"/>
+    <value-of select="c:operand($s, c:js($s)) || '[0]'"/>
+  </template>
+
+  <!-- &s[i]: s.slice(i), or just s for &s[0] -->
+  <template match="pointer_expression[c:operator(.) = '&amp;'][*[@field = 'argument']/self::subscript_expression[*[@field = 'argument'] => c:is-string()]]" priority="2">
+    <variable name="s" select="*[@field = 'argument']/*[@field = 'argument']"/>
+    <variable name="i" select="*[@field = 'argument']/*[@field = 'index']"/>
+    <value-of select="if ($i = '0') then c:js($s) else c:slice(., $s, $i)"/>
+  </template>
+
+  <!-- s + i (where i is a number): s.slice(i) -->
+  <template match="binary_expression[c:operator(.) = '+'][*[@field = 'left'] => c:is-string()][not(c:is-pointer(*[@field = 'right']))]" priority="2">
+    <value-of select="c:slice(., *[@field = 'left'], *[@field = 'right'])"/>
+  </template>
+
+  <!-- s += i: s = s.slice(i) -->
+  <template match="assignment_expression[c:operator(.) = '+='][*[@field = 'left'][c:is-string(.)][not(c:has-side-effects(.))]]" priority="2">
+    <variable name="s" select="*[@field = 'left']"/>
+    <value-of select="c:js($s) || ' = ' || c:operand($s, c:js($s)) || '.slice(' || c:js(*[@field = 'right']) || ')'"/>
+  </template>
+
+  <!-- s++ or ++s, as a statement: s = s.slice(1); and ++s in an expression: (s = s.slice(1)) -->
+  <template match="update_expression[c:operator(.) = '++'][*[@field = 'argument'][c:is-string(.)][not(c:has-side-effects(.))]]
+      [c:is-statement(.) or *[1]/self::token]" priority="2">
+    <variable name="s" select="*[@field = 'argument']"/>
+    <variable name="js" select="c:js($s) || ' = ' || c:operand($s, c:js($s)) || '.slice(1)'"/>
+    <value-of select="if (c:is-statement(.)) then $js else '(' || $js || ')'"/>
+  </template>
+
+  <!-- s[i] = '\0' (which ends the string at i): s = s.slice(0, i) -->
+  <template match="assignment_expression[c:operator(.) = '='][char_literal[@field = 'right'] = &quot;'\0'&quot;]
+      [*[@field = 'left']/self::subscript_expression[*[@field = 'argument'][c:is-string(.)][not(c:has-side-effects(.))]]]" priority="2">
+    <variable name="s" select="*[@field = 'left']/*[@field = 'argument']"/>
+    <value-of select="c:js($s) || ' = ' || c:operand($s, c:js($s)) || '.slice(0, ' || c:js(*[@field = 'left']/*[@field = 'index']) || ')'"/>
+  </template>
+
+  <!-- *s written through, as in *s = c or *s += 1, or *s++ (moving s): refuse -->
+  <template match="pointer_expression[c:is-string-dereference(.)][@field = 'left'][parent::assignment_expression]
+      | pointer_expression[c:is-string-dereference(.)][@field = 'argument'][parent::update_expression]
+      | pointer_expression[c:operator(.) = '*'][*[@field = 'argument']/self::update_expression[*[@field = 'argument'] => c:is-string()]]" priority="3">
+    <value-of select="c:refuse(.)"/>
+  </template>
+
+  <!-- Any other pointer arithmetic or comparison, e.g. p++, p -= 1, p - q or p &lt; q: refuse -->
+  <template match="update_expression[c:is-pointer(*[@field = 'argument'])]
+      | assignment_expression[c:operator(.) = ('+=', '-=')][c:is-pointer(*[@field = 'left'])]
+      | binary_expression[c:operator(.) = ('+', '-', '&lt;', '&lt;=', '&gt;', '&gt;=')][c:is-pointer(*[@field = 'left']) or c:is-pointer(*[@field = 'right'])]" priority="1">
+    <value-of select="c:refuse(.)"/>
+  </template>
 
 </stylesheet>
