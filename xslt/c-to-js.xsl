@@ -143,8 +143,8 @@
   <template match="field_expression/token[@field = 'operator'][. = '->']">.</template>
 
   <!-- Explicitly concatenate adjacent string literals -->
-  <template match="string_literal[following-sibling::node()[not(self::text()) or normalize-space()][1][self::string_literal]]">
-    <apply-templates select="node()"/><text> +</text>
+  <template match="concatenated_string/string_literal[following-sibling::string_literal]">
+    <apply-templates/><text> +</text>
   </template>
 
   <!-- {a, b, c}, an array's initial value, is [a, b, c]: the { and } tokens in the initializer_list become [ and ] -->
