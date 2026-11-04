@@ -82,6 +82,22 @@
     </copy>
   </template>
 
+  <!-- A struct (or union) definition gets its type, e.g. struct printTableOpt, and each of its fields' declarators
+       gets the type it declares, wherever they are (so that c-to-js.xsl can see what a struct contains) -->
+  <template match="(struct_specifier | union_specifier)[*[@field = 'body']]" priority="1">
+    <copy>
+      <attribute name="type" select="c:struct-type(.)"/>
+      <apply-templates select="@*, node()"/>
+    </copy>
+  </template>
+
+  <template match="field_declaration/*[@field = 'declarator']" priority="1">
+    <copy>
+      <for-each select="c:declared-type(.)"><attribute name="type" select="."/></for-each>
+      <apply-templates select="@*, node()"/>
+    </copy>
+  </template>
+
   <!-- An identifier gets its type, and the name of its declaration (see c:declaration-name, in section 2), from the
        declarator that declares it -->
   <template match="function_definition//identifier" priority="1">

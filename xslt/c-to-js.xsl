@@ -85,6 +85,8 @@
        so grouping adjacent ones with the same file also keeps them in source order. -->
   <template match="/">
     <apply-templates select="c:reached(key('definition', $entry-points, $sources))"/>
+    <!-- Then the functions that copy structs (see STRUCT COPIES, below) -->
+    <value-of select="$copier-types ! (c:copier(.) || '&#10;')" separator="&#10;"/>
     <!-- this more complex alternative only inserts a comment giving the file source -->
     <!-- <for-each-group select="c:reached(key('definition', $entry-points, $sources))" group-adjacent="ancestor::translation_unit/@file">
       <text>/* from {tokenize(current-grouping-key(), '/')[last()]} */&#10;&#10;</text>
@@ -209,7 +211,8 @@
 
   <!-- Does a node only free memory? It does if it's:
        - an expression_statement whose call_expression's function name is in $freeing-functions, e.g. `free(x);`
-       - a block whose statements (other than comments) all only free memory
+       - a block whose statements (other than comments) all only free memory, apart from declarations without side
+         effects (e.g. of a loop variable)
        - an if_statement with no else, whose condition contains no calls, assignments, increments or decrements, and
          whose consequence (its body) only frees memory
        - a for or while loop whose condition (and a for loop's initializer and update) contains no calls, and whose
@@ -219,7 +222,8 @@
     <param name="statement" as="node()"/>
     <variable name="statements" select="$statement/self::compound_statement/*[not(self::token | self::comment)]"/>
     <sequence select="exists($statement/self::expression_statement/call_expression/*[@field = 'function'][. = $freeing-functions])
-      or (exists($statements) and (every $s in $statements satisfies c:is-freeing($s)))
+      or (some $s in $statements satisfies c:is-freeing($s))
+        and (every $s in $statements satisfies c:is-freeing($s) or $s/self::declaration[not(c:has-side-effects(.))])
       or exists($statement/self::if_statement[not(*[@field = 'alternative'])]
         [not(*[@field = 'condition']//(call_expression | assignment_expression | update_expression))]
         [c:is-freeing(*[@field = 'consequence'])])
@@ -235,8 +239,10 @@
   <template match="(compound_statement | case_statement)/*[c:is-freeing(.)]" priority="1"/>
 
   <!-- The whitespace just before such a statement (e.g. a newline and indent): output nothing, so that the deleted
-       statement doesn't leave a blank line -->
-  <template match="(compound_statement | case_statement)/text()[following-sibling::node()[1][c:is-freeing(.)]]"/>
+       statement doesn't leave a blank line. Likewise for the other statements that go, below: labels whose statement
+       goes, and dead returns. -->
+  <template match="(compound_statement | case_statement)/text()[following-sibling::node()[1][c:is-freeing(.) or c:is-dead-return(.)
+    or self::labeled_statement[c:return-after(.)][c:is-freeing(*[last()]) or c:is-unreachable(.)]]]"/>
 
   <!-- pg_malloc_array(type, count) and pg_malloc0_array(type, count) allocate an array, which in JS is just [] (and
        the type, which isn't an expression, doesn't parse) -->
@@ -293,17 +299,34 @@
     <sequence select="$goto/ancestor::function_definition//labeled_statement[*[@field = 'label'] = $goto/*[@field = 'label']]"/>
   </function>
 
-  <!-- A goto that can become a return: output the return_statement instead, by continuing with it (it's
+  <!-- A goto that can become a return: output the return_statement instead, by continuing with what's in it (it's
        elsewhere in the function, but that doesn't matter) -->
   <template match="goto_statement[c:label(.) => c:return-after()]">
-    <apply-templates select="c:label(.) => c:return-after()"/>
+    <apply-templates select="(c:label(.) => c:return-after())/node()"/>
   </template>
 
+  <!-- Is a label unreachable, other than by goto? It is if the statement before it is a return. -->
+  <function name="c:is-unreachable" as="xs:boolean">
+    <param name="label" as="element(labeled_statement)"/>
+    <sequence select="exists($label/preceding-sibling::*[not(self::token or self::comment)][1]/self::return_statement)"/>
+  </function>
+
   <!-- The label of such a goto: continue only with the statement inside it (dropping `error_return:` and the
-       whitespace and comments around it), unless that only frees memory -->
+       whitespace and comments around it), unless that only frees memory, or the label is unreachable (so that
+       statement can only be reached by the gotos, which are now returns) -->
   <template match="labeled_statement[c:return-after(.)]">
-    <apply-templates select="*[last()][not(c:is-freeing(.))]"/>
+    <apply-templates select="*[last()][not(c:is-freeing(.))][not(c:is-unreachable(..))]"/>
   </template>
+
+  <!-- Is a return dead? It is if it's the return after an unreachable label -->
+  <function name="c:is-dead-return" as="xs:boolean">
+    <param name="return" as="element()"/>
+    <variable name="label" select="$return/self::return_statement/preceding-sibling::labeled_statement[1]"/>
+    <sequence select="exists($label[c:is-unreachable(.)][c:return-after(.) is $return])"/>
+  </function>
+
+  <!-- A dead return: output nothing -->
+  <template match="return_statement[c:is-dead-return(.)]"/>
 
 
   <!--
@@ -319,7 +342,12 @@
   <!-- Is an expression a string (a pointer to or array of char, or const char)? -->
   <function name="c:is-string" as="xs:boolean">
     <param name="expr" as="element()"/>
-    <sequence select="matches($expr/@type, '^(const )?char(\*|\[\])$')"/>
+    <sequence select="c:is-string-type($expr/@type)"/>
+  </function>
+
+  <function name="c:is-string-type" as="xs:boolean">
+    <param name="type" as="xs:string?"/>
+    <sequence select="matches($type, '^(const )?char(\*|\[\])$')"/>
   </function>
 
   <!-- Is an expression used as a condition? It is if it's the condition of an if, while or do (inside the
@@ -376,7 +404,12 @@
   <!-- Is an expression's type a struct (or union), e.g. struct PQExpBufferData, rather than e.g. a pointer to one? -->
   <function name="c:is-struct" as="xs:boolean">
     <param name="expr" as="element()"/>
-    <sequence select="matches($expr/@type, '^(const )?(struct|union) [^*()\[\]]+$')"/>
+    <sequence select="c:is-struct-type($expr/@type)"/>
+  </function>
+
+  <function name="c:is-struct-type" as="xs:boolean">
+    <param name="type" as="xs:string?"/>
+    <sequence select="matches($type, '^(const )?(struct|union) [^*()\[\]]+$')"/>
   </function>
 
   <!-- Is an expression a struct or an array (e.g. char*[]), which are objects in JS? -->
@@ -415,13 +448,22 @@
     <value-of select="c:operand($p, $js) || '.value'"/>
   </template>
 
-  <!-- The value that a variable declared without one starts with: {} for a struct or a box, '' for a char array (which
-       is a string), [] for another array, and otherwise none -->
+  <!-- The value that a variable declared without one starts with: {} for a box, and otherwise the empty value of its
+       type -->
   <function name="c:empty-value" as="xs:string?">
     <param name="id" as="element(identifier)"/>
-    <sequence select="if ($id/@declared = $boxed or c:is-struct($id)) then '{}'
-      else if (c:is-string($id) and ends-with($id/@type, '[]')) then &quot;''&quot;
-      else if (ends-with($id/@type, '[]')) then '[]'
+    <sequence select="if ($id/@declared = $boxed) then '{}' else c:empty-value-of($id/@type)"/>
+  </function>
+
+  <!-- The empty value of a type: '' for a char array (which is a string), [] for another array, and for a struct, an
+       object with the empty values of the fields that have them (since C structs contain their structs and arrays):
+       e.g. { fieldSep: {}, recordSep: {} } for struct printTableOpt. Otherwise, none. -->
+  <function name="c:empty-value-of" as="xs:string?">
+    <param name="type" as="xs:string?"/>
+    <variable name="fields" select="c:fields($type) ! (c:empty-value-of(@type) ! (c:field-name(..) || ': ' || .))"/>
+    <sequence select="if (c:is-string-type($type) and ends-with($type, '[]')) then &quot;''&quot;
+      else if (ends-with($type, '[]')) then '[]'
+      else if (c:is-struct-type($type)) then (if (exists($fields)) then '{ ' || string-join($fields, ', ') || ' }' else '{}')
       else ()"/>
   </function>
 
@@ -569,6 +611,132 @@
       | assignment_expression[c:operator(.) = ('+=', '-=')][c:is-pointer(*[@field = 'left'])]
       | binary_expression[c:operator(.) = ('+', '-', '&lt;', '&lt;=', '&gt;', '&gt;=')][c:is-pointer(*[@field = 'left']) or c:is-pointer(*[@field = 'right'])]" priority="1">
     <value-of select="c:refuse(.)"/>
+  </template>
+
+  <!--
+    * STRUCT COPIES
+
+    Assigning a C struct copies it, but assigning a JS object doesn't. So `printQueryOpt myopt = pset.popt;` is
+    myopt = { ...pset.popt }. A C struct also contains its structs and arrays, which need copying too: so a struct
+    type with some has a function that does that, which is output after everything else, e.g.
+
+      function copy_printQueryOpt(s) {
+        return { ...s, topt: copy_printTableOpt(s.topt) };
+      }
+
+    To know what a struct contains, add-types.xsl gives each struct definition its type, and each field declarator
+    the type it declares.
+  -->
+
+  <!-- An index of struct definitions, by type, e.g. struct printTableOpt -->
+  <key name="struct" match="(struct_specifier | union_specifier)[@type]" use="@type"/>
+
+  <!-- The declarators of a struct type's fields, e.g. for `char *a, *b;`, the pointer_declarators *a and *b -->
+  <function name="c:fields" as="element()*">
+    <param name="type" as="xs:string?"/>
+    <sequence select="key('struct', replace($type, '^const ', ''), $sources)[1]/*[@field = 'body']/field_declaration/*[@field = 'declarator']"/>
+  </function>
+
+  <!-- A field declarator's name -->
+  <function name="c:field-name" as="xs:string">
+    <param name="declarator" as="element()"/>
+    <sequence select="string($declarator/descendant-or-self::field_identifier[1])"/>
+  </function>
+
+  <!-- A copy of $js, a value of type $type: [...js] for an array (unless it's a string, which can't change), and for
+       a struct, { ...js }, or if it contains structs or arrays, e.g. copy_printQueryOpt(js) -->
+  <function name="c:copy" as="xs:string">
+    <param name="js" as="xs:string"/>
+    <param name="type" as="xs:string?"/>
+    <sequence select="if (ends-with($type, '[]') and not(c:is-string-type($type))) then '[...' || $js || ']'
+      else if (not(c:is-struct-type($type))) then $js
+      else if (empty(c:nested-copies($type))) then '{ ...' || $js || ' }'
+      else c:copier-name($type) || '(' || $js || ')'"/>
+  </function>
+
+  <!-- For a struct type, copies of the fields of s that need copying (those that are structs or arrays), e.g.
+       topt: copy_printTableOpt(s.topt) -->
+  <function name="c:nested-copies" as="xs:string*">
+    <param name="type" as="xs:string?"/>
+    <sequence select="c:fields($type)[c:is-struct-type(@type) or (ends-with(@type, '[]') and not(c:is-string-type(@type)))]
+      ! (c:field-name(.) || ': ' || c:copy('s.' || c:field-name(.), @type))"/>
+  </function>
+
+  <!-- The name of a struct type's copy function, e.g. copy_printQueryOpt -->
+  <function name="c:copier-name" as="xs:string">
+    <param name="type" as="xs:string"/>
+    <sequence select="'copy_' || replace(replace($type, '^(const )?(struct|union) ', ''), '\W', '_')"/>
+  </function>
+
+  <!-- A struct type's copy function -->
+  <function name="c:copier" as="xs:string">
+    <param name="type" as="xs:string"/>
+    <sequence select="'function ' || c:copier-name($type) || '(s) {&#10;  return { ...s, ' || string-join(c:nested-copies($type), ', ') || ' };&#10;}'"/>
+  </function>
+
+  <!-- Can an expression be copied? It can if it's a variable, field or array element (not e.g. a function's result,
+       which is already new), and has no side effects -->
+  <function name="c:is-copyable" as="xs:boolean">
+    <param name="expr" as="element()?"/>
+    <sequence select="exists($expr[self::identifier | self::field_expression | self::subscript_expression][not(c:has-side-effects(.))]
+      | $expr/self::parenthesized_expression/*[not(self::token | self::comment)][c:is-copyable(.)])"/>
+  </function>
+
+  <!-- If an element copies a struct, the struct's type: it does if it's a declarator (in a declaration) with a value,
+       or an assignment, of a struct, where the value is copyable -->
+  <function name="c:copied-type" as="xs:string?">
+    <param name="node" as="element()"/>
+    <sequence select="(
+      $node/self::init_declarator[parent::declaration][*[@field = 'value'] => c:is-copyable()]/descendant-or-self::identifier[1],
+      $node/self::assignment_expression[c:operator(.) = '='][*[@field = 'right'] => c:is-copyable()]/*[@field = 'left']
+      )[c:is-struct(.)]/string(@type)"/>
+  </function>
+
+  <!-- The struct types that need a copy function: those copied in the definitions we translate, and those copied by
+       those copy functions, and so on (like c:reached, above), that contain structs or arrays -->
+  <variable name="copier-types" select="c:copier-types(distinct-values(
+    c:reached(key('definition', $entry-points, $sources))//(init_declarator | assignment_expression) ! c:copied-type(.)
+    ! replace(., '^const ', '')))[exists(c:nested-copies(.))]"/>
+
+  <function name="c:copier-types" as="xs:string*">
+    <param name="found" as="xs:string*"/>
+    <variable name="new" select="distinct-values($found ! c:fields(.)[c:is-struct-type(@type)]/replace(@type, '^const ', ''))[not(. = $found)]"/>
+    <sequence select="if (exists($new)) then c:copier-types(($found, $new)) else $found"/>
+  </function>
+
+  <!-- A declarator copying a struct, e.g. myopt = pset.popt: myopt = { ...pset.popt } -->
+  <template match="init_declarator[c:copied-type(.)]">
+    <apply-templates select="*[@field = 'declarator']"/> = {c:copy(c:js(*[@field = 'value']), c:copied-type(.))}</template>
+
+  <!-- An assignment copying a struct, e.g. a = b: a = { ...b } -->
+  <template match="assignment_expression[c:copied-type(.)]">
+    <apply-templates select="*[@field = 'left']"/> = {c:copy(c:js(*[@field = 'right']), c:copied-type(.))}</template>
+
+  <!--
+    * OTHER EXPRESSIONS
+  -->
+
+  <!-- (type) x: just x -->
+  <template match="cast_expression">
+    <apply-templates select="*[@field = 'value']"/>
+  </template>
+
+  <!-- a / b, where a and b are integers: Math.trunc(a / b), since JS division isn't integer division -->
+  <function name="c:is-integer" as="xs:boolean">
+    <param name="expr" as="element()"/>
+    <sequence select="exists($expr/@type) and not(c:is-pointer($expr) or c:is-struct($expr) or $expr/@type = ('double', 'float', 'void'))"/>
+  </function>
+
+  <template match="binary_expression[c:operator(.) = '/'][c:is-integer(*[@field = 'left'])][c:is-integer(*[@field = 'right'])]" priority="5">
+    <variable name="js"><next-match/></variable>
+    <value-of select="'Math.trunc(' || $js || ')'"/>
+  </template>
+
+  <!-- snprintf(buf, size, format, ...), as a statement: buf = sprintf(format, ...) -->
+  <template match="call_expression[*[@field = 'function'] = 'snprintf'][c:is-statement(.)]">
+    <variable name="arguments" select="*[@field = 'arguments']/*[not(self::token | self::comment)]"/>
+    <value-of select="c:js($arguments[1]) || ' = sprintf('"/>
+    <apply-templates select="$arguments[3], $arguments[3]/following-sibling::node()"/>
   </template>
 
 </stylesheet>

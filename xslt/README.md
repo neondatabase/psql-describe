@@ -110,7 +110,7 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
    <sequence select="$rest[self::return_statement][count($rest) = 1][$label/../parent::function_definition]"/>
    ```
 
-   On `describe.c`, this turns all 64 `goto error_return`s into `return`s, and removes all 15 labels.
+   On `describe.c`, this turns all 64 `goto error_return`s into `return`s, and removes all 15 labels. Where a label can only be reached by `goto` (because the statement before it is a `return`), the `return` after it is then dead, and goes too.
 
 6. **Types:** before translating, a separate stylesheet, `add-types.xsl`, copies the document, giving each expression in a function a `type` attribute where its type can be worked out, and each identifier a `declared` attribute naming its declaration. For example, `if (pattern)`, where `pattern` is a `const char *` parameter of `describeAggregates`, becomes:
 
@@ -167,11 +167,24 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
 
    The slices, `[0]`s, `undefined`s and refusals are exactly the same as `translate/`'s.
 
+9. **Struct copies:** assigning a C struct copies it, but assigning a JS object doesn't, so `printQueryOpt myopt = pset.popt;` is `myopt = { ...pset.popt }`. A C struct also contains its structs and arrays, so a struct type with some gets a copy function, output after everything else:
+
+   ```js
+   function copy_printQueryOpt(s) {
+     return { ...s, topt: copy_printTableOpt(s.topt) };
+   }
+   ```
+
+   Likewise, a struct declared without a value starts with its nested structs and arrays: `printTableOpt opt;` is `opt = { fieldSep: {}, recordSep: {} }`. To make this possible, `add-types.xsl` gives each struct definition its type, and each field declarator the type it declares. The copies, copy functions and initial values are exactly the same as `translate/`'s.
+
+10. **Other expressions:** a cast `(type) x` is just `x`; `a / b`, where `a` and `b` are integers, is `Math.trunc(a / b)` (wrapping whatever else applies, using `next-match`); and `snprintf(buf, size, format, ...)`, as a statement, is `buf = sprintf(format, ...)`. These too are exactly the same as `translate/`'s.
+
 ## Results
 
-`node translate/compare.ts translated.js xslt/out` compares the translation with the hand-maintained port. Of the 70 translated functions that are in the port, 64 are now valid JS (3 identical to the port), as for `translate/`. Of the other 6, 4 have C marked for porting by hand (writing through a `char *`, or passing a slice to a function that might write to it), and 2 have casts, which aren't ported yet.
+`node translate/compare.ts translated.js xslt/out` compares the translation with the hand-maintained port. Of the 70 translated functions that are in the port, 64 are now valid JS (3 identical to the port), as for `translate/`. Of the other 6, 5 have C marked for porting by hand (writing through a `char *`, pointer comparisons, or passing a slice to a function that might write to it), as in `translate/`, and 1 has `sizeof(char *)`.
+
+Normalised by `compare.ts` and compared function by function, this translation now differs from `translate/`'s only where it should: catalog constants are expanded by pcpp (`relkind == 'r'`, not `relkind == RELKIND_RELATION`), `WHEREAND()` is expanded where it's used (not turned into an arrow function), and `ignore_slash_options` keeps its loop (see 4, above). It also has the struct copy functions as functions of their own.
 
 ## Not yet done
 
-- Everything else in `translate/`: casts, `snprintf`, integer division, struct copies and nested initial values, and slicing in globals and header constants (not just functions).
-- Tidying the blank lines left where a deleted label and its frees used to be.
+- Slicing in globals (not just functions).
