@@ -5,17 +5,22 @@ A proof of concept for an alternative to `translate/`: turn the C parse tree int
 ```bash
 PG=../postgres/src
 node xslt/c-to-xml.ts $PG/bin/psql/command.c $PG/bin/psql/describe.c $PG/fe_utils/string_utils.c \
-  xslt/libc.h $PG/include/common/*.h $PG/include/fe_utils/*.h $PG/interfaces/libpq/*.h $PG/bin/psql/*.h > tmp/sources.xml
+  xslt/libc.h $PG/include/catalog/*.h $PG/include/common/*.h $PG/include/fe_utils/*.h $PG/interfaces/libpq/*.h \
+  $PG/bin/psql/*.h > tmp/sources.xml
+until npx xslt3 -xsl:xslt/preprocess.xsl -s:tmp/sources.xml | xargs node xslt/c-to-xml.ts > tmp/next.xml &&
+  cmp -s tmp/next.xml tmp/sources.xml; do mv tmp/next.xml tmp/sources.xml; done
 npx xslt3 -xsl:xslt/add-types.xsl -s:tmp/sources.xml -o:tmp/typed.xml
 npx xslt3 -xsl:xslt/c-to-js.xsl -s:tmp/typed.xml -o:tmp/translated.js
 node translate/compare.ts tmp/translated.js xslt/out
 ```
 
-The headers (and `libc.h`, a few libc prototypes) are there for their types. Adding types takes about 8s, and translating about 3s. So while working on `c-to-js.xsl`, only the last two lines need rerunning, and `typed.xml` is there to look at. The last line compares the translation with the hand-maintained port, as for `translate/`, writing `xslt/out/residual.diff`.
+The headers (and `libc.h`, a few libc prototypes) are there for their types and `#define`s. The `until` loop preprocesses the C (see below), and takes about 30s. Adding types then takes about 12s, and translating about 6s. So while working on `c-to-js.xsl`, only the last two lines need rerunning, and `typed.xml` is there to look at. The last line compares the translation with the hand-maintained port, as for `translate/`, writing `xslt/out/residual.diff`.
 
 ## The XML
 
-`c-to-xml.ts` writes the tree-sitter parse trees of the C files as one XML document: a `<sources>` element containing a `<translation_unit file="…">` for each file. Within that, each named node becomes an element, and a node in a field gets a `field` attribute. Unnamed tokens (punctuation, keywords) are plain text, except those in a field, such as operators, which become `<token>` elements. Everything else between nodes, such as whitespace, is text too, so each `translation_unit`'s text content is exactly the C source. For example:
+`c-to-xml.ts` writes the tree-sitter parse trees of the C files as one XML document: a `<sources>` element containing a `<translation_unit file="…">` for each file. Within that, each named node becomes an element, and a node in a field gets a `field` attribute. Each unnamed token (punctuation, keywords, operators) becomes a `<token>` element, so the only text between elements is whitespace. Each `translation_unit`'s text content is exactly the C source. That's all `c-to-xml.ts` does.
+
+For example:
 
 ```c
 if (!x->ok)
@@ -26,8 +31,9 @@ becomes:
 
 ```xml
 <if_statement>
-  if
-  <parenthesized_expression field="condition">(
+  <token>if</token>
+  <parenthesized_expression field="condition">
+    <token>(</token>
     <unary_expression>
       <token field="operator">!</token>
       <field_expression field="argument">
@@ -36,14 +42,38 @@ becomes:
         <field_identifier field="field">ok</field_identifier>
       </field_expression>
     </unary_expression>
-  )</parenthesized_expression>
-  <goto_statement field="consequence">goto <statement_identifier field="label">error_return</statement_identifier>;</goto_statement>
+    <token>)</token>
+  </parenthesized_expression>
+  <goto_statement field="consequence">
+    <token>goto</token> <statement_identifier field="label">error_return</statement_identifier><token>;</token>
+  </goto_statement>
 </if_statement>
 ```
 
+## Preprocessing
+
+Tree-sitter parses C without preprocessing it, which mostly works, but not always. For example, in `"... != " CppAsString2(RELKIND_RELATION) " AND ..."`, it reads `CppAsString2` as a macro that expands to a string (like `PRId64` in `"%" PRId64`), which makes the concatenated string the function in a call, and the parse goes wrong from there.
+
+So `preprocess.xsl` expands a few macros, as the C preprocessor would, and writes the files back out as C (under `tmp/pp`), to be parsed again:
+
+- `PGDLLIMPORT`, `pg_nodiscard`, `pg_attribute_printf(f, a)`, `pg_attribute_format_arg(a)` and `pg_attribute_no_sanitize_address()` are annotations that expand to nothing (as `c.h` defines them when the compiler doesn't support them), and otherwise spoil the parse of declarations.
+- `CppAsString(x)` is C's `#` operator, and `CppAsString2(x)` expands `x` first, using the `#define`s in all the files: so `CppAsString2(RELKIND_RELATION)` is `"'r'"`.
+- `#ifdef NOT_USED` blocks are dropped, since by convention Postgres never defines `NOT_USED`.
+
+Like the C preprocessor, it works on tokens, so it never touches comments, strings, or other names that just begin the same way (unlike the regexes in `translate/`, which also erase the catalog's `pg_attribute_rel`, for example). It goes through each file's tokens once, in order, tracking parentheses to find each macro's arguments. Each macro's expansion is a template, e.g.:
+
+```xml
+<template mode="expand" match="*[. = 'CppAsString2']">
+  <param name="arguments" as="xs:string"/>
+  <value-of select="c:expand-defines($arguments) => c:stringize()"/>
+</template>
+```
+
+Tree-sitter lexes only the tokens that make sense where it is in its parse, so where the parse goes wrong, the tokens after it can be wrong too: after one misparsed `CppAsString2(...)`, `describe.c` has another that's lexed as part of a string. So the loop expands, parses again and repeats, until nothing changes (like the C preprocessor's rescanning of expanded text, but over whole files). Here, that takes two passes, plus a third to confirm.
+
 ## The stylesheet
 
-`c-to-js.xsl` declares `<mode on-no-match="text-only-copy"/>`, which copies text and descends into elements by default. So a stylesheet with no templates would reproduce the C exactly (for `describe.c`, 221 KB of C as 1.5 MB of XML, in under a second). Each template then rewrites one construct.
+`c-to-js.xsl` declares `<mode on-no-match="text-only-copy"/>`, which copies text and descends into elements by default. So a stylesheet with no templates would reproduce the C exactly (for `describe.c`, 226 KB of C as 1.9 MB of XML, in under a second). Each template then rewrites one construct.
 
 The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl` (and, for types, `add-types.xsl`) are:
 
@@ -66,10 +96,11 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
 
    A function in the result gets `async`, and a call to it gets `await` (in parentheses where it's the function in another call, or what's accessed in `f()->x` or `f()[i]`). As in `translate/`, that's 57 `async` functions and 141 `await`s, exactly the same ones.
 
-2. **A fixed pattern:** `a->b` is `a.b`.
+2. **Fixed patterns:** `a->b` is `a.b`, and an initialiser list `{a, b}` is an array, `[a, b]` (its braces are the text directly inside it).
 
    ```xml
    <template match="field_expression/token[@field = 'operator'][. = '->']">.</template>
+   <template match="initializer_list/text()">{translate(., '{}', '[]')}</template>
    ```
 
 3. **Declarators, however deep:** a declaration's types are replaced by `let`, and a function keeps only its name and its parameters' names. The name in a declarator (`*x`, `**x`, `x[10]`, `(*x)(void)`, …) is simply its first identifier: `$declarator/descendant-or-self::identifier[1]`. Tree-sitter queries can't express this, because they can't recurse.
@@ -85,13 +116,14 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
 
    On `describe.c`, this turns all 64 `goto error_return`s into `return`s, and removes all 15 labels.
 
-6. **Types:** before translating, a separate stylesheet, `add-types.xsl`, copies the document, giving each expression in a function a `type` attribute where its type can be worked out. For example, `if (pattern)`, where `pattern` is a `const char *`, becomes:
+6. **Types:** before translating, a separate stylesheet, `add-types.xsl`, copies the document, giving each expression in a function a `type` attribute where its type can be worked out, and each identifier a `declared` attribute naming its declaration. For example, `if (pattern)`, where `pattern` is a `const char *` parameter of `describeAggregates`, becomes:
 
    ```xml
-   <if_statement>if <parenthesized_expression field="condition">(<identifier type="char*">pattern</identifier>)...
+   <if_statement>if <parenthesized_expression field="condition">(<identifier type="char*"
+     declared="describeAggregates.pattern">pattern</identifier>)...
    ```
 
-   Rules in `c-to-js.xsl` then just test the attribute. A type is written as its base type plus a suffix for each declarator, as C would write them: `char *s` is `char*`, `char *s[10]` is `char*[]`, and `char *f(int i)` is `char*()`. Typedefs are replaced by what they stand for, and a struct is named by its tag (or a made-up name, if it has none). In `add-types.xsl`, each kind of expression has a template in mode `type` that gives its type, e.g. for `s.f` and `p->f`:
+   Rules in `c-to-js.xsl` then just test the attributes. A type is written as its base type plus a suffix for each declarator, as C would write them: `char *s` is `char*`, `char *s[10]` is `char*[]`, and `char *f(int i)` is `char*()`. Typedefs are replaced by what they stand for, and a struct type is `struct` plus the struct's tag (or, if it has none, its typedef name, or a made-up name such as `describeOneTableDetails.tableinfo`). In `add-types.xsl`, each kind of expression has a template in mode `type` that gives its type, e.g. for `s.f` and `p->f`:
 
    ```xml
    <template mode="type" match="field_expression" as="xs:string?">
@@ -103,7 +135,7 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
    </template>
    ```
 
-   An identifier's declaration is found by looking in each enclosing scope (block, `for` loop, function parameters), where the innermost scope's declaration is just the last one in document order, and otherwise among top-level declarations in any file (using a `key`).
+   An identifier's declaration is found by looking in each enclosing scope (block, `for` loop, function parameters), where the innermost scope's declaration is just the last one in document order, and otherwise among top-level declarations in any file (using a `key`). A declaration in a function is named by the function plus the name declared, e.g. `describeAggregates.pattern`, or `describeFunctions.i#2` for the second `i` declared in `describeFunctions`.
 
    The first rule to use types gives a string (`char*` or `char[]`) used as a condition an explicit `NULL` test, because an empty string is false in JS but not in C. So `if (pattern)` becomes `if (pattern != NULL)`, and `!pattern` becomes `pattern == NULL`:
 
@@ -116,7 +148,20 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
 
    (`next-match` is how one rule wraps another: here, e.g., an `await`.) This adds 91 `NULL` tests, on identifiers, struct fields, calls (e.g. `strchr(cmd, 'x')`) and dereferences, and they are exactly the same as `translate/`'s. The one exception is in a loop that only frees memory, which `translate/` deletes.
 
+7. **Pointers:** JS objects and arrays are already references, so a pointer to a struct or array is just the struct or array: `&buf` is `buf`, and `*p` is `p`. Other pointers are to variables that a function is passed to set, such as `obj_oid` in `lookup_object_oid(..., &obj_oid)`, so a local variable whose address is taken is boxed, as `{ value }`. Then `&obj_oid` is the box, any other `obj_oid` is `obj_oid.value`, and in `lookup_object_oid`, `*obj_oid` is `obj_oid.value` too. A struct or box declared without a value starts as `{}`, and an array as `[]`. Thanks to the `declared` attributes, finding the boxed variables is a single expression:
+
+   ```xml
+   <variable name="boxed" select="distinct-values($sources//pointer_expression[token[@field = 'operator'] = '&amp;']
+     /identifier[@field = 'argument'][not(c:is-object(.))][key('local-declaration', @declared)]/@declared)"/>
+   ```
+
+   The boxes, `.value`s and initial values are exactly the same as `translate/`'s, except for the loop that only frees memory (above), and the arrays that `translate/` creates from `pg_malloc_array(...)` calls, which aren't ported yet.
+
+## Results
+
+`node translate/compare.ts translated.js xslt/out` compares the translation with the hand-maintained port. Of the 70 translated functions that are in the port, 59 are now valid JS (3 identical to the port), against 64 for `translate/`. Most of the rest are blocked by `char *` used as a string (`*cp`, `*target++ = ...`, `&cmd[2]`), or by array allocation (`pg_malloc_array(char *, n)`).
+
 ## Not yet done
 
-- Everything else in `translate/`: the rules that need types (boxing, string suffixes, struct copies, integer division), the preprocessor (for now, a few header declarations with annotations such as `pg_attribute_printf` don't parse, so they go untyped), and slicing in globals and header constants (not just functions).
+- Everything else in `translate/`: the rules that need types (string suffixes, struct copies and nested initial values, integer division), array allocation (`pg_malloc_array`), macros defined in functions (such as `WHEREAND()`), and slicing in globals and header constants (not just functions).
 - Tidying the blank lines left where a deleted label and its frees used to be.

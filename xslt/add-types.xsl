@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Adds C types to C as XML from c-to-xml.ts, for c-to-js.xsl. The output is the same XML, plus type attributes, so
-  its text is still exactly the C source.
+  its text is still exactly the (preprocessed) C source.
 
   Usage: npx xslt3 -xsl:xslt/add-types.xsl -s:sources.xml -o:typed.xml
 
@@ -9,18 +9,20 @@
 
   WHAT IT DOES
 
-  Some of c-to-js.xsl's rules depend on the C types of expressions. So we copy the whole document, giving each
-  expression in a function a type attribute, where we can work out its type. For example, if pattern is declared
-  as `const char *pattern`, then `if (pattern)` becomes:
+  Some of c-to-js.xsl's rules depend on the C types of expressions, or on which declaration a name refers to. So we
+  copy the whole document, giving each expression in a function a type attribute, where we can work out its type,
+  and each identifier a declared attribute, naming its declaration. For example, if pattern is a parameter of
+  describeAggregates, declared as `const char *pattern`, then `if (pattern)` becomes:
 
-    <if_statement>if <parenthesized_expression field="condition">(<identifier type="char*">pattern</identifier>)...
+    <if_statement>if <parenthesized_expression field="condition">(<identifier type="char*"
+      declared="describeAggregates.pattern">pattern</identifier>)...
 
-  and c-to-js.xsl's rules then just test the attribute, e.g. identifier[@type = 'char*'].
+  and c-to-js.xsl's rules then just test the attributes, e.g. identifier[@type = 'char*'].
 
-  A type is written as its base type (char, int, a struct name, ...), followed by what the declarators make of it,
-  in the order C would write them: * for a pointer, [] for an array, () for a function. So `char *s` is char*,
-  `char *s[10]` (an array of char*) is char*[], and `char *f(int i)` (a function returning char*) is char*().
-  A typedef is replaced by what it stands for, so `PQExpBuffer buf` is PQExpBufferData*.
+  A type is written as its base type (char, int, struct PQExpBufferData, ...), followed by what the declarators make
+  of it, in the order C would write them: * for a pointer, [] for an array, () for a function. So `char *s` is
+  char*, `char *s[10]` (an array of char*) is char*[], and `char *f(int i)` (a function returning char*) is
+  char*(). A typedef is replaced by what it stands for, so `PQExpBuffer buf` is struct PQExpBufferData*.
 
   HOW
 
@@ -46,7 +48,7 @@
     - tableinfo is an identifier, so we look for its declaration (section 2), and find it in the function's body:
       `struct { ... char *reloftype; ... } tableinfo;`.
     - That declaration's type is a struct with no name, so it gets a made-up name, describeOneTableDetails.tableinfo,
-      and that's tableinfo's type (section 3).
+      and tableinfo's type is struct describeOneTableDetails.tableinfo (section 3).
     - So we look up the struct with that name, and in it, find the declarator *reloftype. The base type in its
       declaration is char, and it's a pointer_declarator, so its type is char* (section 3 again).
 -->
@@ -60,13 +62,23 @@
 
   <output method="xml" indent="no"/>
 
-  <!-- Copy everything, adding the types of elements in functions -->
+  <!-- Copy everything, adding the types of elements in functions (if they have one) -->
   <mode on-no-match="shallow-copy"/>
 
   <template match="function_definition//*">
-    <variable name="type" select="c:type(.)"/>
     <copy>
-      <if test="exists($type)"><attribute name="type" select="$type"/></if>
+      <for-each select="c:type(.)"><attribute name="type" select="."/></for-each>
+      <apply-templates select="@*, node()"/>
+    </copy>
+  </template>
+
+  <!-- An identifier gets its type, and the name of its declaration (see c:declaration-name, in section 2), from the
+       declarator that declares it -->
+  <template match="function_definition//identifier" priority="1">
+    <variable name="declarator" select="c:declarator(.)"/>
+    <copy>
+      <for-each select="c:declared-type($declarator)"><attribute name="type" select="."/></for-each>
+      <for-each select="$declarator ! c:declaration-name(.)"><attribute name="declared" select="."/></for-each>
       <apply-templates select="@*, node()"/>
     </copy>
   </template>
@@ -93,9 +105,9 @@
     <sequence select="'char*'"/>
   </template>
 
-  <!-- (e): the type of e, the one child element (other than any comments: the parentheses themselves are text) -->
+  <!-- (e): the type of e, the one child element other than the ( and ) tokens (and any comments) -->
   <template mode="type" match="parenthesized_expression" as="xs:string?">
-    <sequence select="c:type(*[not(self::comment)])"/>
+    <sequence select="c:type(*[not(self::token | self::comment)])"/>
   </template>
 
   <!-- &x: a pointer to x's type -->
@@ -172,6 +184,30 @@
     <sequence select="($local, $global)[1]"/>
   </function>
 
+  <!-- A name for the declaration that a declarator is in. Outside functions, names are unique, so it's just the name
+       declared. In a function (other than the function's own name), it's the function's name plus the name declared:
+       e.g. describeAggregates.pattern. If the function declares that name more than once (in different blocks), the
+       second is e.g. describeFunctions.i#2, and so on. -->
+  <function name="c:declaration-name" as="xs:string">
+    <param name="declarator" as="element()"/>
+    <variable name="local-name" select="c:local-name($declarator)"/>
+    <!-- The declarators in the function with the same name, before this one -->
+    <variable name="before" select="key('local', $local-name, root($declarator))[. &lt;&lt; $declarator]"/>
+    <sequence select="if (empty($local-name)) then c:name($declarator)
+      else $local-name || (if ($before) then '#' || count($before) + 1 else '')"/>
+  </function>
+
+  <!-- For a declarator in a function, the function's name plus the name declared, e.g. describeAggregates.pattern -->
+  <function name="c:local-name" as="xs:string?">
+    <param name="declarator" as="element()"/>
+    <sequence select="$declarator[not(parent::function_definition)]/ancestor::function_definition
+      ! (c:name(descendant::function_declarator[1]) || '.' || c:name($declarator))"/>
+  </function>
+
+  <!-- An index of the declarators in functions, by function name plus name declared -->
+  <key name="local" match="function_definition//declaration/*[@field = 'declarator'] |
+    function_definition//parameter_declaration/*[@field = 'declarator']" use="c:local-name(.)"/>
+
   <!--
     * 3. WHAT TYPE DOES A DECLARATION GIVE?
   -->
@@ -224,9 +260,9 @@
     <sequence select="'int'"/>
   </template>
 
-  <!-- A struct or union: its name (see c:struct-name, below) -->
+  <!-- A struct or union: e.g. struct printTableOpt, or union PGresAttValue (see c:struct-type, below) -->
   <template mode="base-type" match="struct_specifier | union_specifier" as="xs:string">
-    <sequence select="c:struct-name(.)"/>
+    <sequence select="c:struct-type(.)"/>
   </template>
 
   <!-- An index of typedefs, by name -->
@@ -257,8 +293,14 @@
     <sequence select="string(($tag, $typedef-names, $made-up)[1])"/>
   </function>
 
-  <!-- An index of struct (and union) definitions, by name -->
-  <key name="struct" match="(struct_specifier | union_specifier)[*[@field = 'body']]" use="c:struct-name(.)"/>
+  <!-- A struct's type: struct (or union), plus its name -->
+  <function name="c:struct-type" as="xs:string">
+    <param name="struct" as="element()"/>
+    <sequence select="substring-before(local-name($struct), '_') || ' ' || c:struct-name($struct)"/>
+  </function>
+
+  <!-- An index of struct (and union) definitions, by type -->
+  <key name="struct" match="(struct_specifier | union_specifier)[*[@field = 'body']]" use="c:struct-type(.)"/>
 
   <!--
     * TYPES AS STRINGS

@@ -1,7 +1,8 @@
 // Writes the tree-sitter parse trees of C files as one XML document: a <sources> element containing a
 // <translation_unit file="..."> for each file. Within that, each named node becomes an element, and a node in a
-// field gets a field attribute. An unnamed token is text, unless it's in a field (e.g. an operator), when it
-// becomes a <token> element. The XML loses nothing: each translation_unit's text content is exactly the C source.
+// field gets a field attribute. Each unnamed token (e.g. punctuation, keywords and operators) becomes a <token>
+// element, so the only text outside elements is whitespace (including \ line continuations). The XML loses
+// nothing: each translation_unit's text content is exactly the C source.
 //
 // Usage: node xslt/c-to-xml.ts path/to/file.c ... > sources.xml
 
@@ -21,7 +22,7 @@ const toXML = (node: Node, src: string, attrs: Record<string, string | null> = {
     .filter(([, value]) => value !== null)
     .map(([name, value]) => ` ${name}="${escape(value!, true)}"`).join('');
 
-  if (!node.isNamed) return attrs.field ? `<token${attrsXML}>${escape(node.text)}</token>` : escape(node.text);
+  if (!node.isNamed) return `<token${attrsXML}>${escape(node.text)}</token>`;
 
   let xml = `<${node.type}${attrsXML}>`;
   let pos = node.startIndex;

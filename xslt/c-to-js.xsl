@@ -8,19 +8,23 @@
 
   The document is a <sources> element, containing a <translation_unit file="..."> for each C file. Within that, each
   tree-sitter node is an element named after its type, and a node in one of its parent's fields has a field
-  attribute. Operators are <token> elements, and everything else (other punctuation, whitespace, comments' text)
-  is text. So the text of the XML is exactly the C source. For example, `f(&buf);` is:
+  attribute. Unnamed tokens (punctuation, keywords, operators) are <token> elements, and the only text between
+  elements is whitespace. So the text of the XML is exactly the C source (after preprocess.xsl). For example,
+  `f(&buf);` is:
 
     <expression_statement>
       <call_expression>
         <identifier field="function">f</identifier>
         <argument_list field="arguments">
-          (<pointer_expression>
+          <token>(</token>
+          <pointer_expression>
             <token field="operator">&amp;</token>
             <identifier field="argument">buf</identifier>
-          </pointer_expression>)
+          </pointer_expression>
+          <token>)</token>
         </argument_list>
-      </call_expression>;
+      </call_expression>
+      <token>;</token>
     </expression_statement>
 
   HOW XSLT PROCESSES IT
@@ -143,6 +147,10 @@
     <apply-templates select="node()"/><text> +</text>
   </template>
 
+  <!-- {a, b, c}, an array's initial value, is [a, b, c]: the { and } tokens in the initializer_list become [ and ] -->
+  <template match="initializer_list/token[. = '{']">[</template>
+  <template match="initializer_list/token[. = '}']">]</template>
+
   <!--
     * DECLARATORS, HOWEVER DEEP
 
@@ -212,9 +220,9 @@
   <!-- A statement that only frees memory: output nothing -->
   <template match="(expression_statement | if_statement)[c:is-freeing(.)]"/>
 
-  <!-- The text just before such a statement, e.g. `{` plus a newline and indent: output it without its trailing
-       whitespace, so that the deleted statement doesn't leave a blank line -->
-  <template match="text()[following-sibling::node()[1][c:is-freeing(.)]]">{replace(., '\s+$', '')}</template>
+  <!-- The whitespace just before such a statement (e.g. a newline and indent): output nothing, so that the deleted
+       statement doesn't leave a blank line -->
+  <template match="text()[following-sibling::node()[1][c:is-freeing(.)]]"/>
 
   <!--
     * SIBLING AXES
@@ -252,8 +260,9 @@
   <!-- The return that goto $label can become, if there is one -->
   <function name="c:return-after" as="element(return_statement)?">
     <param name="label" as="element(labeled_statement)?"/>
-    <!-- The statement inside the labeled_statement, then the elements that follow it, except comments and frees -->
-    <variable name="rest" select="($label/*[last()], $label/following-sibling::*)[not(self::comment or c:is-freeing(.))]"/>
+    <!-- The statement inside the labeled_statement, then the elements that follow it, except tokens (the block's
+         closing }), comments and frees -->
+    <variable name="rest" select="($label/*[last()], $label/following-sibling::*)[not(self::token or self::comment or c:is-freeing(.))]"/>
     <!-- $rest, if it's a single return_statement, and $label's parent (a compound_statement) is a function body -->
     <sequence select="$rest[self::return_statement][count($rest) = 1][$label/../parent::function_definition]"/>
   </function>
@@ -327,5 +336,82 @@
     <variable name="test" select="c:operand($argument, $js) || ' == NULL'"/>
     <value-of select="if (c:is-condition(.)) then $test else '(' || $test || ')'"/>
   </template>
+
+  <!--
+    * POINTERS
+
+    In JS, objects and arrays are already references, so a pointer to a struct or array is just the struct or array:
+    &buf is buf, and *p is p.
+
+    Other pointers are to variables, which are passed to a function to set them: e.g. exec_command_sf_sv calls
+    lookup_object_oid(..., &obj_oid), which does `*obj_oid = ...`. So a variable whose address is taken is boxed, as
+    an object { value }. In exec_command_sf_sv, obj_oid is declared as obj_oid = {}, &obj_oid is the box, obj_oid,
+    and otherwise obj_oid is obj_oid.value. Then in lookup_object_oid, *obj_oid is obj_oid.value too.
+
+    To tell which identifiers are the same variable, add-types.xsl gives each one a declared attribute, naming its
+    declaration: e.g. <identifier declared="exec_command_sf_sv.obj_oid">obj_oid</identifier>.
+  -->
+
+  <!-- Is an expression's type a struct (or union), e.g. struct PQExpBufferData, rather than e.g. a pointer to one? -->
+  <function name="c:is-struct" as="xs:boolean">
+    <param name="expr" as="element()"/>
+    <sequence select="matches($expr/@type, '^(struct|union) [^*()\[\]]+$')"/>
+  </function>
+
+  <!-- Is an expression a struct or an array (e.g. char*[]), which are objects in JS? -->
+  <function name="c:is-object" as="xs:boolean">
+    <param name="expr" as="element()"/>
+    <sequence select="c:is-struct($expr) or ends-with($expr/@type, '[]')"/>
+  </function>
+
+  <!-- An index of the names declared in functions (outside their parameters), by declared attribute -->
+  <key name="local-declaration" match="function_definition//declaration//identifier[@field = 'declarator']" use="@declared"/>
+
+  <!-- The boxed variables: the (declared attributes of) variables declared in functions, other than structs and
+       arrays, that x is in some &x -->
+  <variable name="boxed" select="distinct-values($sources//pointer_expression[token[@field = 'operator'] = '&amp;']
+    /identifier[@field = 'argument'][not(c:is-object(.))][key('local-declaration', @declared)]/@declared)"/>
+
+  <!-- &x, where x is a struct, an array or a box: just x -->
+  <template match="pointer_expression[token[@field = 'operator'] = '&amp;'][*[@field = 'argument'] ! (c:is-object(.) or @declared = $boxed)]">
+    <apply-templates select="*[@field = 'argument']"/>
+  </template>
+
+  <!-- A boxed variable x, other than where it's declared or in &x: x.value -->
+  <template match="identifier[@declared = $boxed][not(@field = 'declarator' or ../token[@field = 'operator'] = '&amp;')]">{.}.value</template>
+
+  <!-- *p, where p points to a struct: just p -->
+  <template match="pointer_expression[token[@field = 'operator'] = '*'][c:is-struct(.)]">
+    <apply-templates select="*[@field = 'argument']"/>
+  </template>
+
+  <!-- *p, where p points to something else (but not a char: then p is a string, which is another matter): p is a box,
+       so p.value -->
+  <template match="pointer_expression[token[@field = 'operator'] = '*'][not(c:is-struct(.))]
+      [*[@field = 'argument'][ends-with(@type, '*')][not(c:is-string(.))]]">
+    <variable name="p" select="*[@field = 'argument']"/>
+    <variable name="js"><apply-templates select="$p"/></variable>
+    <value-of select="c:operand($p, $js) || '.value'"/>
+  </template>
+
+  <!-- The value that a variable declared without one starts with: {} for a struct or a box, '' for a char array (which
+       is a string), [] for another array, and otherwise none -->
+  <function name="c:empty-value" as="xs:string?">
+    <param name="id" as="element(identifier)"/>
+    <sequence select="if ($id/@declared = $boxed or c:is-struct($id)) then '{}'
+      else if ($id/@type = 'char[]') then &quot;''&quot;
+      else if (ends-with($id/@type, '[]')) then '[]'
+      else ()"/>
+  </function>
+
+  <!-- A declarator without a value, e.g. buf in `PQExpBufferData buf;`: add its empty value, if it has one, so buf = {}.
+       (next-match outputs the declarator as usual.) -->
+  <template match="declaration/*[@field = 'declarator'][not(self::init_declarator)][descendant-or-self::identifier[1] => c:empty-value()]">
+    <next-match/><text> = {descendant-or-self::identifier[1] => c:empty-value()}</text>
+  </template>
+
+  <!-- A boxed variable declared with a value, e.g. n in `int n = 0;`: n = { value: 0 } -->
+  <template match="declaration/init_declarator[descendant-or-self::identifier[1]/@declared = $boxed]">
+    <apply-templates select="*[@field = 'declarator']"/> = {{ value: <apply-templates select="*[@field = 'value']"/> }}</template>
 
 </stylesheet>
