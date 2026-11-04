@@ -3,3 +3,4 @@ local.txt
 psql.txt
 test/cache/
 translate/out
+tmp/

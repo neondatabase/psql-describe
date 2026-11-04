@@ -2,7 +2,7 @@
 <!--
   Translates C to JS, given C as XML from c-to-xml.ts.
 
-  Usage: npx xslt3 -xsl:xslt/c-to-js.xsl -s:sources.xml -o:translated.js
+  Usage: npx xslt3 -xslt/c-to-js.xsl -s:sources.xml -o:translated.js
 
   THE XML
 
@@ -11,9 +11,17 @@
   attribute. Operators are <token> elements, and everything else (other punctuation, whitespace, comments' text)
   is text. So the text of the XML is exactly the C source. For example, `f(&buf);` is:
 
-    <expression_statement><call_expression><identifier field="function">f</identifier><argument_list
-      field="arguments">(<pointer_expression><token field="operator">&amp;</token><identifier
-      field="argument">buf</identifier></pointer_expression>)</argument_list></call_expression>;</expression_statement>
+    <expression_statement>
+      <call_expression>
+        <identifier field="function">f</identifier>
+        <argument_list field="arguments">
+          (<pointer_expression>
+            <token field="operator">&amp;</token>
+            <identifier field="argument">buf</identifier>
+          </pointer_expression>)
+        </argument_list>
+      </call_expression>;
+    </expression_statement>
 
   HOW XSLT PROCESSES IT
 
@@ -22,8 +30,8 @@
   are, and visits an element's children in order. So with no templates at all, the output would be the C, unchanged.
   (In fact, the template for the root, below, visits only the functions we need.)
 
-  A template outputs whatever it contains: literal text, the values of {expressions} (in xsl:text), and the result
-  of <xsl:apply-templates select="..."/>, which visits the selected nodes in the same way. Selecting nothing (or
+  A template outputs whatever it contains: literal text, the values of {expressions} (in text), and the result
+  of <apply-templates select="..."/>, which visits the selected nodes in the same way. Selecting nothing (or
   having an empty template) drops a node and everything in it.
 
   XPATH IN BRIEF
@@ -36,66 +44,70 @@
     x => f()                  f(x)
     [1], [last()]             the first, last
 -->
-<xsl:stylesheet version="3.0" expand-text="yes"
-  xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+<stylesheet
+  version="3.0"
+  expand-text="yes"
+  xmlns="http://www.w3.org/1999/XSL/Transform"
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
   xmlns:c="urn:c-to-js"
   exclude-result-prefixes="#all">
 
-  <xsl:output method="text"/>
-  <xsl:mode on-no-match="text-only-copy"/>
+  <output method="text"/>
+  <mode on-no-match="text-only-copy"/>
 
   <!-- The source document, so that functions can look things up in it -->
-  <xsl:variable name="sources" select="/"/>
+  <variable name="sources" select="/"/>
 
   <!--
-    0. FOLLOWING CALLS FROM THE ENTRY POINTS
-
-    We translate only the functions the entry points need: the entry points themselves, the functions they mention,
-    the functions those mention, and so on. The output is grouped by file, in source order.
+    * FOLLOWING CALLS FROM THE ENTRY POINTS
+    We translate only the entry point functions and (recursively) the functions they call.
   -->
 
-  <xsl:param name="entry-points" select="'exec_command_d', 'exec_command_list', 'exec_command_sf_sv'"/>
+  <param name="entry-points" select="'exec_command_d', 'exec_command_list', 'exec_command_sf_sv'"/>
 
-  <!-- An index of top-level function definitions by name (see c:name, below). So key('definition', 'f', $sources) is
-       f's function_definition, and key('definition', ('f', 'g', 'x'), $sources) is the function_definitions of f and g
-       (x has no definition, e.g. because it's a variable, so finds nothing). -->
-  <xsl:key name="definition" match="translation_unit/function_definition" use="c:name(descendant::function_declarator[1])"/>
+  <!-- An index of top-level function definitions by name (see c:name, below) -->
+  <key name="definition" match="translation_unit/function_definition" use="c:name(descendant::function_declarator[1])"/>
 
   <!-- The definitions reached so far, plus the definitions of every name they mention, and so on, until there are no
        more. (Like except, | treats nodes as a set, so a definition is never included twice.) -->
-  <xsl:function name="c:reached" as="element(function_definition)*">
-    <xsl:param name="found" as="element(function_definition)*"/>
+  <function name="c:reached" as="element(function_definition)*">
+    <param name="found" as="element(function_definition)*"/>
     <!-- The definitions of the names of all identifiers anywhere in $found, except those we've already got -->
-    <xsl:variable name="new" select="key('definition', $found//identifier, $sources) except $found"/>
-    <xsl:sequence select="if (exists($new)) then c:reached($found | $new) else $found"/>
-  </xsl:function>
+    <variable name="new" select="key('definition', $found//identifier, $sources) except $found"/>
+    <sequence select="if (exists($new)) then c:reached($found | $new) else $found"/>
+  </function>
 
   <!-- At the root: visit the definitions reached from the entry points, grouped by file. They come in document order,
        so grouping adjacent ones with the same file also keeps them in source order. -->
-  <xsl:template match="/">
-    <xsl:for-each-group select="c:reached(key('definition', $entry-points))" group-adjacent="ancestor::translation_unit/@file">
-      <xsl:text>/* from {tokenize(current-grouping-key(), '/')[last()]} */&#10;&#10;</xsl:text>
-      <xsl:for-each select="current-group()">
-        <xsl:apply-templates select="."/>
-        <xsl:text>&#10;&#10;</xsl:text>
-      </xsl:for-each>
-    </xsl:for-each-group>
-  </xsl:template>
+  <template match="/">
+    <apply-templates select="c:reached(key('definition', $entry-points))"/>
+    <!-- this more complex alternative only inserts a comment giving the file source -->
+    <!-- <for-each-group select="c:reached(key('definition', $entry-points))" group-adjacent="ancestor::translation_unit/@file">
+      <text>/* from {tokenize(current-grouping-key(), '/')[last()]} */&#10;&#10;</text>
+      <for-each select="current-group()">
+        <apply-templates select="."/>
+        <text>&#10;&#10;</text>
+      </for-each>
+    </for-each-group> -->
+  </template>
 
   <!--
-    1. A FIXED PATTERN
+    * A FIXED PATTERN
 
     a->b is a.b. In the XML, a->b is:
-      <field_expression><identifier field="argument">a</identifier><token field="operator">-&gt;</token><field_identifier
-        field="field">b</field_identifier></field_expression>
+    
+      <field_expression>
+        <identifier field="argument">a</identifier>
+        <token field="operator">-&gt;</token>
+        <field_identifier field="field">b</field_identifier>
+      </field_expression>
   -->
 
   <!-- Matches the -> token in a field_expression, and outputs . instead -->
-  <xsl:template match="field_expression/token[@field = 'operator'][. = '->']">.</xsl:template>
+  <template match="field_expression/token[@field = 'operator'][. = '->']">.</template>
 
   <!--
-    2. DECLARATORS, HOWEVER DEEP
+    * DECLARATORS, HOWEVER DEEP
 
     A function keeps only its name and its parameters' names, and a declaration's types are replaced with let.
 
@@ -104,96 +116,70 @@
     However deep the wrapping, the name is the declarator's first identifier.
   -->
 
-  <xsl:function name="c:name" as="xs:string">
-    <xsl:param name="declarator" as="element()"/>
+  <function name="c:name" as="xs:string">
+    <param name="declarator" as="element()"/>
     <!-- The first identifier element, in document order, that is $declarator itself or anywhere inside it -->
-    <xsl:sequence select="string($declarator/descendant-or-self::identifier[1])"/>
-  </xsl:function>
+    <sequence select="string($declarator/descendant-or-self::identifier[1])"/>
+  </function>
 
-  <!-- bool
-       describeAggregates(const char *pattern, bool verbose)
-       {...}
-
-     is:
-
-       <function_definition><primitive_type field="type">bool</primitive_type>
-       <function_declarator field="declarator"><identifier field="declarator">describeAggregates</identifier><parameter_list
-         field="parameters">(<parameter_declaration>...<pointer_declarator field="declarator">*<identifier ...>pattern</identifier>
-         </pointer_declarator></parameter_declaration>, <parameter_declaration>...</parameter_declaration>)</parameter_list></function_declarator>
-       <compound_statement field="body">{...}</compound_statement></function_definition>
-
-     and becomes:
-
-       function describeAggregates(pattern, verbose)
-       {...}
-  -->
-  <xsl:template match="function_definition">
-    <!-- The function_declarator, which has the function's name and parameters (and may be inside a pointer_declarator,
-         if the function returns a pointer) -->
-    <xsl:variable name="signature" select="descendant::function_declarator[1]"/>
+  <!-- `bool describeAggregates(const char *pattern, bool verbose)` becomes: `function describeAggregates(pattern, verbose)` -->
+  <template match="function_definition">
+    <variable name="comment" select="preceding-sibling::*[1][self::comment]"/>
+    <!-- The function_declarator, which has the function's name and parameters (and may be inside a pointer_declarator) -->
+    <variable name="signature" select="descendant::function_declarator[1]"/>
     <!-- Each parameter's declarator: e.g. the <pointer_declarator> holding pattern, and the <identifier> verbose -->
-    <xsl:variable name="params" select="$signature/*[@field = 'parameters']/parameter_declaration/*[@field = 'declarator']"/>
-    <xsl:text>function {c:name($signature)}({string-join($params ! c:name(.), ', ')})</xsl:text>
+    <variable name="params" select="$signature/*[@field = 'parameters']/parameter_declaration/*[@field = 'declarator']"/>
+    <text>{$comment}&#10;function {c:name($signature)}({string-join($params ! c:name(.), ', ')})</text>
     <!-- Continue with the whitespace before the body (the newline before {), then the body itself -->
-    <xsl:apply-templates select="*[@field = 'body']/(preceding-sibling::node()[1], .)"/>
-  </xsl:template>
+    <apply-templates select="*[@field = 'body']/(preceding-sibling::node()[1], .)"/>
+    <text>&#10;&#10;</text>
+  </template>
 
-  <!-- const char *a, *b = "x";
-
-     is:
-
-       <declaration><type_qualifier>const</type_qualifier> <primitive_type field="type">char</primitive_type> <pointer_declarator
-         field="declarator">*<identifier ...>a</identifier></pointer_declarator>, <init_declarator field="declarator"><pointer_declarator
-         field="declarator">*<identifier ...>b</identifier></pointer_declarator> = <string_literal field="value">"<string_content>x</string_content>"</string_literal></init_declarator>;</declaration>
-
-     and becomes:
-
-       let a, b = "x";
-  -->
-  <xsl:template match="declaration">
+  <!-- `const char *a, *b = "x";` becomes: `let a, b = "x";` -->
+  <template match="declaration">
     <!-- The first declarator: here, the pointer_declarator *a -->
-    <xsl:variable name="first" select="*[@field = 'declarator'][1]"/>
-    <xsl:text>let </xsl:text>
+    <variable name="first" select="*[@field = 'declarator'][1]"/>
+    <text>let </text>
     <!-- Continue with the first declarator and everything after it (skipping the types before it): here, *a, then
          the text `, `, then the init_declarator *b = "x", then the text `;` -->
-    <xsl:apply-templates select="$first, $first/following-sibling::node()"/>
-  </xsl:template>
+    <apply-templates select="$first, $first/following-sibling::node()"/>
+  </template>
 
   <!-- *a or a[10]: output only the declarator within, e.g. the identifier a (so dropping the * and the [10]) -->
-  <xsl:template match="pointer_declarator | array_declarator">
-    <xsl:apply-templates select="*[@field = 'declarator']"/>
-  </xsl:template>
+  <template match="pointer_declarator | array_declarator">
+    <apply-templates select="*[@field = 'declarator']"/>
+  </template>
 
   <!--
-    3. CONTEXT
+    * CONTEXT
 
     A statement that only frees memory goes, along with the whitespace before it. That includes an if statement whose
     body only frees memory (and whose condition has no side effects), e.g. `if (x) PQclear(res);`.
   -->
 
-  <xsl:variable name="freeing-functions" select="'free', 'pg_free', 'PQclear', 'termPQExpBuffer', 'destroyPQExpBuffer', 'printTableCleanup'"/>
+  <param name="freeing-functions" select="'free', 'pg_free', 'PQclear', 'termPQExpBuffer', 'destroyPQExpBuffer', 'printTableCleanup'"/>
 
   <!-- Does a node only free memory? It does if it's:
-         - an expression_statement whose call_expression's function name is in $freeing-functions, e.g. `free(x);`, or
-         - an if_statement with no else, whose condition contains no calls, assignments, increments or decrements, and whose
-           consequence (its body) only frees memory -->
-  <xsl:function name="c:is-freeing" as="xs:boolean">
-    <xsl:param name="statement" as="node()"/>
-    <xsl:sequence select="exists($statement/self::expression_statement/call_expression/*[@field = 'function'][. = $freeing-functions])
+       - an expression_statement whose call_expression's function name is in $freeing-functions, e.g. `free(x);`, or
+       - an if_statement with no else, whose condition contains no calls, assignments, increments or decrements, and whose
+         consequence (its body) only frees memory -->
+  <function name="c:is-freeing" as="xs:boolean">
+    <param name="statement" as="node()"/>
+    <sequence select="exists($statement/self::expression_statement/call_expression/*[@field = 'function'][. = $freeing-functions])
       or exists($statement/self::if_statement[not(*[@field = 'alternative'])]
         [not(*[@field = 'condition']//(call_expression | assignment_expression | update_expression))]
         [c:is-freeing(*[@field = 'consequence'])])"/>
-  </xsl:function>
+  </function>
 
   <!-- A statement that only frees memory: output nothing -->
-  <xsl:template match="(expression_statement | if_statement)[c:is-freeing(.)]"/>
+  <template match="(expression_statement | if_statement)[c:is-freeing(.)]"/>
 
   <!-- The text just before such a statement, e.g. `{` plus a newline and indent: output it without its trailing
        whitespace, so that the deleted statement doesn't leave a blank line -->
-  <xsl:template match="text()[following-sibling::node()[1][c:is-freeing(.)]]">{replace(., '\s+$', '')}</xsl:template>
+  <template match="text()[following-sibling::node()[1][c:is-freeing(.)]]">{replace(., '\s+$', '')}</template>
 
   <!--
-    4. SIBLING AXES
+    * SIBLING AXES
 
     If a label at the top level of a function is followed only by frees and a return, then `goto label;` is that
     return, and the label itself goes. For example:
@@ -226,30 +212,86 @@
   -->
 
   <!-- The return that goto $label can become, if there is one -->
-  <xsl:function name="c:return-after" as="element(return_statement)?">
-    <xsl:param name="label" as="element(labeled_statement)?"/>
+  <function name="c:return-after" as="element(return_statement)?">
+    <param name="label" as="element(labeled_statement)?"/>
     <!-- The statement inside the labeled_statement, then the elements that follow it, except comments and frees -->
-    <xsl:variable name="rest" select="($label/*[last()], $label/following-sibling::*)[not(self::comment or c:is-freeing(.))]"/>
+    <variable name="rest" select="($label/*[last()], $label/following-sibling::*)[not(self::comment or c:is-freeing(.))]"/>
     <!-- $rest, if it's a single return_statement, and $label's parent (a compound_statement) is a function body -->
-    <xsl:sequence select="$rest[self::return_statement][count($rest) = 1][$label/../parent::function_definition]"/>
-  </xsl:function>
+    <sequence select="$rest[self::return_statement][count($rest) = 1][$label/../parent::function_definition]"/>
+  </function>
 
   <!-- The labeled_statement that a goto_statement goes to: the one in the same function with the same label -->
-  <xsl:function name="c:label" as="element(labeled_statement)?">
-    <xsl:param name="goto" as="element(goto_statement)"/>
-    <xsl:sequence select="$goto/ancestor::function_definition//labeled_statement[*[@field = 'label'] = $goto/*[@field = 'label']]"/>
-  </xsl:function>
+  <function name="c:label" as="element(labeled_statement)?">
+    <param name="goto" as="element(goto_statement)"/>
+    <sequence select="$goto/ancestor::function_definition//labeled_statement[*[@field = 'label'] = $goto/*[@field = 'label']]"/>
+  </function>
 
   <!-- A goto that can become a return: output the return_statement instead, by continuing with it (it's
        elsewhere in the function, but that doesn't matter) -->
-  <xsl:template match="goto_statement[c:label(.) => c:return-after()]">
-    <xsl:apply-templates select="c:label(.) => c:return-after()"/>
-  </xsl:template>
+  <template match="goto_statement[c:label(.) => c:return-after()]">
+    <apply-templates select="c:label(.) => c:return-after()"/>
+  </template>
 
   <!-- The label of such a goto: continue only with the statement inside it (dropping `error_return:` and the
        whitespace and comments around it). That statement only frees memory, so it outputs nothing too. -->
-  <xsl:template match="labeled_statement[c:return-after(.)]">
-    <xsl:apply-templates select="*[last()]"/>
-  </xsl:template>
+  <template match="labeled_statement[c:return-after(.)]">
+    <apply-templates select="*[last()]"/>
+  </template>
 
-</xsl:stylesheet>
+  <!--
+    * TYPES
+
+    In C, a string (char *) used as a condition is true unless it's NULL. In JS, an empty string is false too. So a
+    string used as a condition gets an explicit NULL test: `if (pattern)` becomes `if (pattern != NULL)`, and
+    `if (!pattern)` becomes `if (pattern == NULL)`.
+
+    To know whether an identifier is a string, we find its declaration, and look at the declared type. For now, we
+    only do this for identifiers (not, e.g., struct fields or function calls).
+  -->
+
+  <!-- The declarator that declares an identifier, if there is one. Each enclosing element that's a scope (a block,
+       a for loop, a function, or a whole file) may declare names: in a block or file, in its declarations; in a for
+       loop, in its initializer; and in a function, in its parameters. Inner scopes come later in the document, so
+       the last matching declarator is from the innermost scope. -->
+  <function name="c:declarator" as="element()?">
+    <param name="id" as="element(identifier)?"/>
+    <variable name="declarations" select="$id/ancestor::*/(
+        self::compound_statement/declaration,
+        self::for_statement/declaration,
+        self::function_definition/descendant::function_declarator[1]/*[@field = 'parameters']/parameter_declaration,
+        self::translation_unit/declaration)"/>
+    <sequence select="($declarations/*[@field = 'declarator'][c:name(.) = $id])[last()]"/>
+  </function>
+
+  <!-- Is an expression a string? It is if it's an identifier declared with type char (or const char, etc.), and a
+       declarator that's a single * around the name: `char *s` or `char *s = ...`, but not `char **s` or
+       `char *s[10]`. So we're looking for a pointer_declarator whose own declarator is the identifier. -->
+  <function name="c:is-string" as="xs:boolean">
+    <param name="expr" as="element()"/>
+    <variable name="declarator" select="$expr/self::identifier => c:declarator()"/>
+    <sequence select="exists($declarator[../*[@field = 'type'] = 'char']
+      /descendant-or-self::pointer_declarator[1][*[@field = 'declarator']/self::identifier])"/>
+  </function>
+
+  <!-- Is an expression used as a condition? It is if it's the condition of an if, while or do (inside the
+       parentheses), or of a for or ?:, or an operand of && or || -->
+  <function name="c:is-condition" as="xs:boolean">
+    <param name="expr" as="element()"/>
+    <sequence select="exists(
+      $expr/parent::parenthesized_expression[@field = 'condition'][parent::if_statement | parent::while_statement | parent::do_statement] |
+      $expr[@field = 'condition'][parent::for_statement | parent::conditional_expression] |
+      $expr[@field = ('left', 'right')]/parent::binary_expression[token[@field = 'operator'] = ('&amp;&amp;', '||')])"/>
+  </function>
+
+  <!-- A string used as a condition, e.g. the identifier in `if (pattern)`: output it, plus != NULL -->
+  <template match="identifier[c:is-condition(.)][c:is-string(.)]">{.} != NULL</template>
+
+  <!-- !s, where s is a string, e.g. in `if (!pattern)`: output s == NULL instead, in parentheses unless it's itself
+       a condition (so `if (!pattern)` becomes `if (pattern == NULL)`, but `x = !pattern` becomes
+       `x = (pattern == NULL)`) -->
+  <template match="unary_expression[token[@field = 'operator'] = '!'][*[@field = 'argument'] => c:is-string()]">
+    <variable name="test">{*[@field = 'argument']} == NULL</variable>
+    <value-of select="if (c:is-condition(.)) then $test else '(' || $test || ')'"/>
+  </template>
+
+</stylesheet>
