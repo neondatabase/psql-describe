@@ -10,44 +10,6 @@ const PG_UTF8 = 6;
 
 /* CONSTANTS TRANSLATED FROM C */
 
-const
-  DEFACLOBJ_RELATION = 'r',    /* table, view */
-  DEFACLOBJ_SEQUENCE = 'S',    /* sequence */
-  DEFACLOBJ_FUNCTION = 'f',    /* function */
-  DEFACLOBJ_TYPE = 'T',        /* type */
-  DEFACLOBJ_NAMESPACE = 'n',   /* namespace */
-  DEFACLOBJ_LARGEOBJECT = 'L'; /* large object */
-
-const
-  ATTRIBUTE_IDENTITY_ALWAYS = 'a',
-  ATTRIBUTE_IDENTITY_BY_DEFAULT = 'd',
-  ATTRIBUTE_GENERATED_STORED = 's',
-  ATTRIBUTE_GENERATED_VIRTUAL = 'v';
-
-const
-  RELKIND_RELATION = 'r',
-  RELKIND_INDEX = 'i',
-  RELKIND_SEQUENCE = 'S',
-  RELKIND_TOASTVALUE = 't',
-  RELKIND_VIEW = 'v',
-  RELKIND_MATVIEW = 'm',
-  RELKIND_COMPOSITE_TYPE = 'c',
-  RELKIND_FOREIGN_TABLE = 'f',
-  RELKIND_PARTITIONED_TABLE = 'p',
-  RELKIND_PARTITIONED_INDEX = 'I';
-
-const
-  INT8OID = 20,
-  INT2OID = 21,
-  INT4OID = 23,
-  OIDOID = 26,
-  XIDOID = 28,
-  CIDOID = 29,
-  XID8OID = 5069,
-  FLOAT4OID = 700,
-  FLOAT8OID = 701,
-  MONEYOID = 790,
-  NUMERICOID = 1700;
 
 export function describeDataToString(item) {
   return typeof item === 'string' ? item : tableToString(item);
@@ -143,6 +105,30 @@ export function describe(
       return result;
     };
 
+    // Just enough of libpq's PQexec: a result has a status, and a failed query's result has error fields
+    async function PQexec(conn, query) {
+      throwIfCancelled();
+      try {
+        return { ...await runQuery(query), status: PGRES_TUPLES_OK };
+      } catch (err) {
+        return { status: PGRES_FATAL_ERROR, errorFields: { [PG_DIAG_SEVERITY]: 'ERROR', [PG_DIAG_MESSAGE_PRIMARY]: err.message } };
+      } finally {
+        throwIfCancelled();
+      }
+    }
+    const PQresultStatus = res => res.status;
+    const PQresultErrorField = (res, field) => res.errorFields?.[field] ?? NULL;
+    const standard_strings = () => std_strings;
+
+    // Just enough of C's stdio: a stream is an object with write(), and stdout writes to outputFn (each write being
+    // one item of output). There's no pager.
+    const stdout = { write: text => outputFn(text.replace(/\n+$/, '')) };
+    const fputs = (str, stream) => stream.write(str);
+    const fprintf = (stream, template, ...args) => stream.write(sprintf(template, ...args));
+    const printf = (template, ...args) => fprintf(stdout, template, ...args);
+    const fflush = noop, ClosePager = noop;
+    const PageOutput = (lines, topt) => stdout;
+
     let pset;
     try {
       // get server version, if not supplied
@@ -156,6 +142,9 @@ export function describe(
 
       pset = {
         sversion,
+        queryFout: stdout,
+        logfile: NULL,
+        echo_hidden: echoHidden ? PSQL_ECHO_HIDDEN_ON : PSQL_ECHO_HIDDEN_OFF,
         db: {  // PGconn struct
           dbName,
           sversion,
@@ -534,51 +523,6 @@ export function describe(
     }
 
 
-    /* from command.c */
-
-    /*
-     * \sf/\sv -- show a function/view's source code
-     */
-    async function exec_command_sf_sv(scan_state, active_branch, cmd, is_func) {
-      let status = PSQL_CMD_SKIP_LINE;
-      let show_linenumbers = (strchr(cmd, '+') != NULL);
-      let buf = { /* struct */ };
-      let obj_desc;
-      let obj_oid = { value: InvalidOid };
-      let eot = is_func ? EditableFunction : EditableView;
-
-      initPQExpBuffer(buf);
-      obj_desc = psql_scan_slash_option(scan_state,
-        OT_WHOLE_LINE, NULL, true);
-
-      if (!obj_desc) {
-        if (is_func)
-          pg_log_error("function name is required");
-        else
-          pg_log_error("view name is required");
-        status = PSQL_CMD_ERROR;
-      }
-      else if (!await lookup_object_oid(eot, obj_desc, obj_oid)) {
-        /* error already reported */
-        status = PSQL_CMD_ERROR;
-      }
-      else if (!await get_create_object_cmd(eot, obj_oid.value, buf)) {
-        /* error already reported */
-        status = PSQL_CMD_ERROR;
-      }
-      else {
-        if (show_linenumbers) {
-          /* add line numbers */
-          print_with_linenumbers(buf.data, is_func);
-        }
-        else {
-          /* just send the definition to output */
-          outputFn(buf.data);
-        }
-      }
-
-      return status;
-    }
 
     /*
      * Write text at *lines to output with line numbers.
@@ -591,7 +535,7 @@ export function describe(
      *
      * Caution: this scribbles on *lines.
      */
-    function print_with_linenumbers(lines, is_func) {
+    function print_with_linenumbers(output, lines, is_func) {
       let in_header = is_func;
       let lineno = 0;
       let result = '';
@@ -615,201 +559,10 @@ export function describe(
           result += sprintf("%-7d %s\n", lineno, line);
       }
 
-      outputFn(result);
+      fputs(result, output);
     }
 
-    /*
-     * Look up the object identified by obj_type and desc.  If successful,
-     * store its OID in *obj_oid and return true, else return false.
-     *
-     * Note that we'll fail if the object doesn't exist OR if there are multiple
-     * matching candidates OR if there's something syntactically wrong with the
-     * object description; unfortunately it can be hard to tell the difference.
-     */
-    async function lookup_object_oid(obj_type, desc, obj_oid) {
-      let result = true;
-      let query = { /* struct */ };
-      initPQExpBuffer(query);
-      let res;
 
-      switch (obj_type) {
-        case EditableFunction:
-          /*
-           * We have a function description, e.g. "x" or "x(int)".  Issue a
-           * query to retrieve the function's OID using a cast to regproc or
-           * regprocedure (as appropriate).
-           */
-          printfPQExpBuffer(query, "/* %s */\n", _("Get function's OID"));
-          appendPQExpBufferStr(query, "SELECT ");
-          appendStringLiteralConn(query, desc, pset.db);
-          appendPQExpBuffer(query, "::pg_catalog.%s::pg_catalog.oid",
-            strchr(desc, '(') !== NULL ? "regprocedure" : "regproc");
-          break;
-
-        case EditableView:
-          /*
-           * Convert view name (possibly schema-qualified) to OID.  Note:
-           * this code doesn't check if the relation is actually a view.
-           * We'll detect that in get_create_object_cmd().
-           */
-          printfPQExpBuffer(query, "/* %s */\n", _("Get view's OID"));
-			    appendPQExpBufferStr(query, "SELECT ");
-          appendStringLiteralConn(query, desc, pset.db);
-          appendPQExpBufferStr(query, "::pg_catalog.regclass::pg_catalog.oid");
-          break;
-      }
-
-      try {
-        res = await PSQLexec(query.data);
-        if (res && PQntuples(res) == 1)
-          obj_oid.value = atooid(PQgetvalue(res, 0, 0));
-        else {
-          pg_log_error("Error when querying");
-          result = false;
-        }
-      } catch (err) {
-        pg_log_error('ERROR:  ' + err.message);
-        result = false;
-      }
-
-      return result;
-    }
-
-    /*
-     * Construct a "CREATE OR REPLACE ..." command that describes the specified
-     * database object.  If successful, the result is stored in buf.
-     */
-    async function get_create_object_cmd(obj_type, oid, buf) {
-      let result = true;
-      let query = { /* struct */ };
-      initPQExpBuffer(query);
-      let res;
-
-      switch (obj_type) {
-        case EditableFunction:
-          printfPQExpBuffer(query, "/* %s */\n", _("Get function's definition"));
-			    appendPQExpBuffer(query,
-            "SELECT pg_catalog.pg_get_functiondef(%u)",
-            oid);
-          break;
-
-        case EditableView:
-          /*
-           * pg_get_viewdef() just prints the query, so we must prepend
-           * CREATE for ourselves.  We must fully qualify the view name to
-           * ensure the right view gets replaced.  Also, check relation kind
-           * to be sure it's a view.
-           *
-           * Starting with PG 9.4, views may have WITH [LOCAL|CASCADED]
-           * CHECK OPTION.  These are not part of the view definition
-           * returned by pg_get_viewdef() and so need to be retrieved
-           * separately.  Materialized views (introduced in 9.3) may have
-           * arbitrary storage parameter reloptions.
-           */
-          printfPQExpBuffer(query, "/* %s */\n", _("Get view's definition and details"));
-          if (pset.sversion >= 90400) {
-            appendPQExpBuffer(query,
-              "SELECT nspname, relname, relkind, " +
-              "pg_catalog.pg_get_viewdef(c.oid, true), " +
-              "pg_catalog.array_remove(pg_catalog.array_remove(c.reloptions,'check_option=local'),'check_option=cascaded') AS reloptions, " +
-              "CASE WHEN 'check_option=local' = ANY (c.reloptions) THEN 'LOCAL'::text " +
-              "WHEN 'check_option=cascaded' = ANY (c.reloptions) THEN 'CASCADED'::text ELSE NULL END AS checkoption " +
-              "FROM pg_catalog.pg_class c " +
-              "LEFT JOIN pg_catalog.pg_namespace n " +
-              "ON c.relnamespace = n.oid WHERE c.oid = %u",
-              oid);
-          }
-          else {
-            appendPQExpBuffer(query,
-              "SELECT nspname, relname, relkind, " +
-              "pg_catalog.pg_get_viewdef(c.oid, true), " +
-              "c.reloptions AS reloptions, " +
-              "NULL AS checkoption " +
-              "FROM pg_catalog.pg_class c " +
-              "LEFT JOIN pg_catalog.pg_namespace n " +
-              "ON c.relnamespace = n.oid WHERE c.oid = %u",
-              oid);
-          }
-          break;
-      }
-
-      res = await PSQLexec(query.data);
-      if (res && PQntuples(res) == 1) {
-        resetPQExpBuffer(buf);
-        switch (obj_type) {
-          case EditableFunction:
-            appendPQExpBufferStr(buf, PQgetvalue(res, 0, 0));
-            break;
-
-          case EditableView:
-            let nspname = PQgetvalue(res, 0, 0);
-            let relname = PQgetvalue(res, 0, 1);
-            let relkind = PQgetvalue(res, 0, 2);
-            let viewdef = PQgetvalue(res, 0, 3);
-            let reloptions = PQgetvalue(res, 0, 4);
-            let checkoption = PQgetvalue(res, 0, 5);
-
-            /*
-             * If the backend ever supports CREATE OR REPLACE
-             * MATERIALIZED VIEW, allow that here; but as of today it
-             * does not, so editing a matview definition in this way
-             * is impossible.
-             */
-            switch (relkind[0]) {
-              /*
-                    case RELKIND_MATVIEW:
-                      appendPQExpBufferStr(buf, "CREATE OR REPLACE MATERIALIZED VIEW ");
-                      break;
-              */
-              case RELKIND_VIEW:
-                appendPQExpBufferStr(buf, "CREATE OR REPLACE VIEW ");
-                break;
-              default:
-                pg_log_error("\"%s.%s\" is not a view",
-                  nspname, relname);
-                result = false;
-                break;
-            }
-            appendPQExpBuffer(buf, "%s.", fmtId(nspname));
-            appendPQExpBufferStr(buf, fmtId(relname));
-
-            /* reloptions, if not an empty array "{}" */
-            if (reloptions != NULL && strlen(reloptions) > 2) {
-              appendPQExpBufferStr(buf, "\n WITH (");
-              if (!appendReloptionsArray(buf, reloptions, "",
-                pset.encoding,
-                pset.db.standard_strings)) {
-                pg_log_error("could not parse reloptions array");
-                result = false;
-              }
-              appendPQExpBufferChar(buf, ')');
-            }
-
-            /* View definition from pg_get_viewdef (a SELECT query) */
-            appendPQExpBuffer(buf, " AS\n%s", viewdef);
-
-            /* Get rid of the semicolon that pg_get_viewdef appends */
-            if (buf.len > 0 && buf.data[buf.len - 1] == ';')
-              buf.data = buf.data.slice(0, buf.len - 1);
-
-            /* WITH [LOCAL|CASCADED] CHECK OPTION */
-            if (checkoption && checkoption[0] != NULL)
-              appendPQExpBuffer(buf, "\n WITH %s CHECK OPTION",
-                checkoption);
-
-            break;
-        }
-        /* Make sure result ends with a newline */
-        if (buf.len > 0 && buf.data[buf.len - 1] != '\n')
-          appendPQExpBufferChar(buf, '\n');
-      }
-      else {
-        pg_log_error("Error when querying");
-        result = false;
-      }
-
-      return result;
-    }
 
     /*
      * Format a reloptions array and append it to the given buffer.
@@ -1320,6 +1073,12 @@ function sizeof(x) {
 function initPQExpBuffer(buf) {
   buf.data = '';
   buf.len = 0;
+}
+
+function createPQExpBuffer() {
+  const buf = {};
+  initPQExpBuffer(buf);
+  return buf;
 }
 
 const resetPQExpBuffer = initPQExpBuffer;

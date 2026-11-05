@@ -18,7 +18,9 @@ This builds the whole JS library from a Postgres source tree: `tmp/lib/describe.
 
 ## The runtime
 
-`runtime.mjs` is the hand-written part of the library: the hand-maintained port (`src/describe.mjs`) without the functions that are now translated. It has the exported `describe()` function, which parses the command and dispatches it, and `PSQLexec`, `pset`, output and cancellation; the C library functions the translation calls (`PQExpBuffer`, `PQgetvalue`, `sprintf`, …); and its own versions of a few C functions, which it either can't translate (because they write through a `char *`, such as `fmtId` and `appendStringLiteral`) or deliberately does differently (`\sf` and `\sv` without a pager, in `exec_command_sf_sv`, `lookup_object_oid` and `get_create_object_cmd`).
+`runtime.mjs` is the hand-written part of the library: the hand-maintained port (`src/describe.mjs`) without the functions that are now translated. It has the exported `describe()` function, which parses the command and dispatches it, and `PSQLexec`, `pset`, output and cancellation; the C library functions the translation calls (`PQExpBuffer`, `PQgetvalue`, `sprintf`, …); and its own versions of the few C functions it can't translate (because they write through a `char *`, such as `fmtId` and `appendStringLiteral`).
+
+For C library functions, it does just enough. For example, `PQexec` runs a query and gives a result with a status (`PGRES_TUPLES_OK` or, if the query fails, `PGRES_FATAL_ERROR`, with error fields for `PQresultErrorField`), and C's stdio is an object with a `write` method, where `stdout` writes to the `outputFn` callback, and there's no pager. So `\sf` and `\sv` (`exec_command_sf_sv` and the functions it calls), which use these, are translated like everything else.
 
 The translation goes in place of the comment `/* TRANSLATED FROM C */`, in `describe()`'s `main()`. Any name visible there (declared in an enclosing scope, or a parameter of an enclosing function) is provided by the runtime, so it isn't translated: the runtime's version wins. Like `c:declarator`, this walks up the scopes, but in the runtime's JS parse tree:
 
@@ -28,7 +30,7 @@ The translation goes in place of the comment `/* TRANSLATED FROM C */`, in `desc
   $marker/ancestor::*/*[@field = 'parameters']/descendant::identifier[not(ancestor::*[@field = 'right'])]))"/>
 ```
 
-A function the runtime provides is `async` if the runtime declares it so (like `PSQLexec`). Enum constants used by the translation or the runtime (e.g. `PSQL_CMD_UNKNOWN`, `OT_NORMAL`) are translated as `const`s, in place of `/* CONSTANTS TRANSLATED FROM C */` at the top level. Any other name the translation uses but no one provides is reported as an external, so that a new Postgres version can't silently produce a library that fails at run time.
+A function the runtime provides is `async` if the runtime declares it so (like `PSQLexec`). Constants used by the translation or the runtime are translated as `const`s, in place of `/* CONSTANTS TRANSLATED FROM C */` at the top level: enum constants (e.g. `PSQL_CMD_UNKNOWN`, `PGRES_TUPLES_OK`), and constants `#define`d in headers, where the value is a single literal (e.g. `PG_DIAG_SEVERITY`, `'S'`, and `INT8OID`, `20`). (Tree-sitter doesn't parse a `#define`'s value, which could be any text, such as `((Oid) 0)`.) Any other name the translation uses but no one provides is reported as an external, so that a new Postgres version can't silently produce a library that fails at run time.
 
 A few runtime functions changed to match the C API, which the port had adapted at each call site instead: `strstr` returns the rest of the string (or `NULL`), as in C, not an index; and a table's last footer is a `printTableFooter`, `{ data }`. And the runtime defines `ngettext` and `pg_log_error_internal`, which the port used but never defined.
 
@@ -80,7 +82,7 @@ So `preprocess.py` first runs each file through a real C preprocessor, [pcpp](ht
 
 and it drops `#ifdef NOT_USED` blocks, since by convention Postgres never defines `NOT_USED`.
 
-`preprocess.py` is pcpp's command-line tool, plus two small changes: it reads only the catalog headers (saying other `#include`d files aren't there, so they're passed through), and it removes comments from `#define` values, as C does. (Otherwise, keeping comments, pcpp stringizes `#define RELKIND_PARTITIONED_TABLE 'p' /* partitioned table */` as `"'p' /* partitioned table */"`.)
+`preprocess.py` is pcpp's command-line tool, plus two small changes: it reads only the catalog headers (saying other `#include`d files aren't there, so they're passed through), and it removes comments from `#define` values, as C does. (Otherwise, keeping comments, pcpp stringizes `#define RELKIND_PARTITIONED_TABLE 'p' /* partitioned table */` as `"'p' /* partitioned table */"`.) In headers, it leaves the `#define`s in place (after expanding their uses), so that constants the runtime uses can be translated; in `.c` files, it removes them.
 
 An earlier version of this did the preprocessing in XSLT, on the tokens in tree-sitter's parse. But tree-sitter lexes only the tokens that make sense where it is in its parse, so where the parse goes wrong, the tokens after it can be wrong too: after one misparsed `CppAsString2(...)`, `describe.c` has another that's lexed as part of a string. So it had to expand, parse again, and repeat until nothing changed. A real preprocessor's lexer doesn't depend on parsing, so one pass is enough. Also, reimplementing parts of a C preprocessor was very much a non-goal here!
 

@@ -92,7 +92,8 @@
     <if test="exists($marker) and exists($externals)">
       <message select="'Not translated or provided by the runtime: ' || string-join($externals, ', ')"/>
     </if>
-    <variable name="constants" select="$constants ! ('const ' || *[@field = 'name'] || ' = ' || c:enumerator-value(.) || ';')"/>
+    <variable name="constants" select="$constants ! ('const ' || *[@field = 'name'] || ' = '
+      || (if (self::preproc_def) then normalize-space(*[@field = 'value']) else c:enumerator-value(.)) || ';')"/>
     <value-of select="if (exists($marker)) then string($runtime-doc)
       => replace(string($constants-marker), string-join($constants, '&#10;'), 'q') => replace(string($marker), $translation, 'q')
       else $translation"/>
@@ -156,17 +157,23 @@
 
   <!--
     * CONSTANTS
-    Enum constants used by the translated functions or by the runtime (and not declared by the runtime) are
-    translated too, as consts. They go in place of the runtime's comment /* CONSTANTS TRANSLATED FROM C */, at the
-    top level, since the runtime may use them before the functions are declared. (Constants that are #defined don't
-    need this: pcpp expands them where they're used.)
+    Constants used by the translated functions or by the runtime (and not declared by the runtime) are translated
+    too, as consts: enum constants, and constants #defined in headers. They go in place of the runtime's comment
+    /* CONSTANTS TRANSLATED FROM C */, at the top level, since the runtime may use them before the functions are
+    declared. (In the C, pcpp has expanded the #defines already, but the runtime uses some, e.g. RELKIND_VIEW.)
   -->
 
   <!-- An index of enum constants by name, e.g. OT_NORMAL in `enum slash_option_type { OT_NORMAL, ... }` -->
   <key name="enumerator" match="enumerator" use="*[@field = 'name']"/>
 
+  <!-- An index of #defines of constants, by name: those whose value is a single number, character or string literal,
+       e.g. `#define RELKIND_VIEW 'v'` (tree-sitter doesn't parse a #define's value, which may be any text, such as
+       `((Oid) 0)`, so we only take those we know are literals) -->
+  <key name="define" match="preproc_def[matches(normalize-space(*[@field = 'value']),
+    '^(-?[0-9]+|0[xX][0-9a-fA-F]+|''([^''\\]|\\.)''|&quot;([^&quot;\\]|\\.)*&quot;)$')]" use="*[@field = 'name']"/>
+
   <variable name="constants" select="(distinct-values(($translated//identifier, $runtime-doc//identifier)[not(. = $provided)])
-    ! key('enumerator', ., $sources)[1]) / ."/>  <!-- (/ . puts them in document order) -->
+    ! (key('enumerator', ., $sources), key('define', ., $sources))[1]) / ."/>  <!-- (/ . puts them in document order) -->
 
   <!-- An enum constant's value: its own, if it has one, or else 1 more than the one before (or 0, if it's first) -->
   <function name="c:enumerator-value" as="xs:string">

@@ -11,7 +11,9 @@
 #
 # pcpp expands the macros below, and those #defined in the files themselves and in the catalog headers they include
 # (for constants such as RELKIND_RELATION). It reads no other #includes, and leaves all #includes, comments and
-# #if logic it can't evaluate as they are.
+# #if logic it can't evaluate as they are. In headers, it also leaves the #defines themselves (having expanded them),
+# so that c-to-js.xsl can translate constants the runtime uses; in .c files, it removes them (e.g. a macro defined
+# in a function, whose uses it has expanded).
 
 import os
 import sys
@@ -49,7 +51,8 @@ for file in files:
     os.makedirs(os.path.dirname(out), exist_ok=True)
     pp = Preprocessor(['pcpp', '-o', out, '-I', include_dir, *(arg for m in MACROS for arg in ('-D', m)),
         *(arg for m in UNDEFINED for arg in ('-U', m)), '--passthru-includes', '.*', '--passthru-unfound-includes',
-        '--passthru-comments', '--passthru-unknown-exprs', '--line-directive', '', file])
+        '--passthru-comments', '--passthru-unknown-exprs', *(['--passthru-defines'] if file.endswith('.h') else []),
+        '--line-directive', '', file])
     if pp.return_code:
         sys.exit(pp.return_code)
     print(out)
