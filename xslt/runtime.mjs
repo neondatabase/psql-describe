@@ -27,7 +27,7 @@ export function describe(
   echoHidden = false,
   sversion = null,
   std_strings = 1,
-  docsURLTemplate = (id) => `https://www.postgresql.org/docs/19/${id}.html`,
+  docsURLTemplate = (id) => `https://www.postgresql.org/docs/${strstr(PG_VERSION, "devel") ? "devel" : PG_MAJORVERSION}/${id}.html`,
 ) {
   let cancel_pressed = false;
 
@@ -48,54 +48,52 @@ export function describe(
     }
     let [, matchedCommand, remaining] = match;
 
-    // synonyms
-    matchedCommand = matchedCommand.replace(/^lo_list/, 'dl');
-    matchedCommand = matchedCommand.replace(/^z/, 'dp');
-
-    if (matchedCommand === '?') {  // command help
-      outputFn(helpText);
-      return false;
-    }
-
-    if (matchedCommand === 'h') {  // SQL help
-      const helpSearch = (remaining ?? '').trim().toUpperCase().replace(/\s+/g, ' ');
-
+    // psql's SQL help (\h), from the docs (see sql-help.generated.mjs)
+    function helpSQL(topic, pager) {
+      const helpSearch = (topic ?? '').trim().toUpperCase().replace(/\s+/g, ' ');
       if (helpSearch === '') {
         outputFn("Available help:\n" + helpIndex.map(arr => arr[0]).join('\n'));
-        return false;
+        return;
+      }
 
-      } else {
-        // first try exact match, or show all with *
-        let matches = helpSearch === '*' ? helpIndex : helpIndex.filter(arr => arr[0] === helpSearch);
-        // next try startsWith
-        if (matches.length === 0) matches = helpIndex.filter(arr => arr[0].startsWith(helpSearch));
-        // lastly, try cutting words off the end
-        if (matches.length === 0) {
-          const searchWords = helpSearch.split(' ');
-          for (let i = searchWords.length; i > 0; i--) {
-            const indexTerm = searchWords.slice(0, i).join(' ');
-            matches = helpIndex.filter(arr => arr[0].startsWith(indexTerm));
-            if (matches.length > 0) break;
-          }
-        }
-
-        if (matches.length === 0) {
-          outputFn(`No help available for "${remaining.trim()}".\nTry \\h with no arguments to see available help.`);
-          return false;
-
-        } else {
-          for (const index of matches) {
-            outputFn(
-              `Command:     ${index[0]}\n` +
-              `Description: ${index[1]}\n` +
-              `Syntax:\n${index[3]}\n\n` +
-              `URL: ${docsURLTemplate(index[2])}`
-            );
-          }
-          return false;
+      // first try exact match, or show all with *
+      let matches = helpSearch === '*' ? helpIndex : helpIndex.filter(arr => arr[0] === helpSearch);
+      // next try startsWith
+      if (matches.length === 0) matches = helpIndex.filter(arr => arr[0].startsWith(helpSearch));
+      // lastly, try cutting words off the end
+      if (matches.length === 0) {
+        const searchWords = helpSearch.split(' ');
+        for (let i = searchWords.length; i > 0; i--) {
+          const indexTerm = searchWords.slice(0, i).join(' ');
+          matches = helpIndex.filter(arr => arr[0].startsWith(indexTerm));
+          if (matches.length > 0) break;
         }
       }
+
+      if (matches.length === 0) {
+        outputFn(`No help available for "${topic.trim()}".\nTry \\h with no arguments to see available help.`);
+        return;
+      }
+      for (const index of matches) {
+        outputFn(
+          `Command:     ${index[0]}\n` +
+          `Description: ${index[1]}\n` +
+          `Syntax:\n${index[3]}\n\n` +
+          `URL: ${docsURLTemplate(index[2])}`
+        );
+      }
     }
+
+    // The \? text (generated from help.c's slashUsage, with only the commands we have: see c-to-js.xsl)
+    const slashUsage = pager => fputs(helpText, stdout);
+
+    // What psql has, but we don't: each reports an error, and its line is left out of the \? text (again, see
+    // c-to-js.xsl). (\? options and \? variables, which are \? with an argument, still have lines.)
+    const unsupported = command => () => { pg_log_error('\\%s is not supported', command); return false; };
+    const usage = unsupported('? options'), helpVariables = unsupported('? variables');
+    const do_lo_export = unsupported('lo_export'), do_lo_import = unsupported('lo_import'),
+      do_lo_unlink = unsupported('lo_unlink');
+    const expand_tilde = noop;
 
     const PSQLexec = async (sql, suppressEcho = false) => {
       throwIfCancelled();
@@ -131,8 +129,9 @@ export function describe(
 
     let pset;
     try {
-      // get server version, if not supplied
-      if (!sversion) {  // covers null, undefined and (importantly) 0
+      // get server version, if not supplied (and needed: not for help)
+      const isHelp = ['?', 'h', 'help'].includes(matchedCommand);
+      if (!sversion && !isHelp) {  // covers null, undefined and (importantly) 0
         const vres = await PSQLexec('SHOW server_version_num', true);
         sversion = parseInt(vres.rows[0][0], 10);
       }
@@ -161,16 +160,20 @@ export function describe(
         }
       };
 
+      // as in exec_command, for the commands we have
       const
+        cmd = matchedCommand,
         scan_state = [remaining, 0],
         result = await (
-          matchedCommand[0] === 'd'
-            ? exec_command_d(scan_state, true, matchedCommand)
-            : matchedCommand === 'sf' || matchedCommand === 'sf+' || matchedCommand === 'sv' || matchedCommand === 'sv+'
-              ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === 'f')
-              : matchedCommand[0] === 'l'
-                ? exec_command_list(scan_state, true, matchedCommand)
-                : PSQL_CMD_UNKNOWN
+          cmd[0] === 'd' ? exec_command_d(scan_state, true, cmd)
+            : cmd === 'h' || cmd === 'help' ? exec_command_help(scan_state, true)
+            : /^l(ist)?(x|\+|x\+|\+x)?$/.test(cmd) ? exec_command_list(scan_state, true, cmd)
+            : cmd.startsWith('lo_') ? exec_command_lo(scan_state, true, cmd)
+            : cmd === 'sf' || cmd === 'sf+' ? exec_command_sf_sv(scan_state, true, cmd, true)
+            : cmd === 'sv' || cmd === 'sv+' ? exec_command_sf_sv(scan_state, true, cmd, false)
+            : /^z(S|x|Sx|xS)?$/.test(cmd) ? exec_command_z(scan_state, true, cmd)
+            : cmd === '?' ? exec_command_slash_command_help(scan_state, true)
+            : PSQL_CMD_UNKNOWN
         );
 
       if (result === PSQL_CMD_UNKNOWN) outputFn(`invalid command \\${matchedCommand}`);
@@ -180,7 +183,8 @@ export function describe(
         while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(sprintf("\\%s: extra argument \"%s\" ignored", matchedCommand, arg));
         if (warnings.length > 0) outputFn(warnings.join('\n'));
       }
-      
+      if (isHelp) return false;  // as before: help is informational
+
     } catch (err) {
       // throw err;
       outputFn('ERROR:  ' + err.message);
@@ -1337,66 +1341,3 @@ function psql_scan_slash_option(scan_state, type, quote, semicolon) {
 function noop(x) {
   return x;
 }
-
-const helpText = `Help
-  \\? [commands]          show help on backslash commands
-  \\h [NAME]              help on syntax of SQL commands, * for all commands
-
-Informational
-  (options: S = show system objects, x = expanded mode, + = additional detail)
-  \\d[Sx+]                list tables, views, and sequences
-  \\d[S+]   NAME          describe table, view, sequence, or index
-  \\da[Sx]  [PATTERN]     list aggregates
-  \\dA[x+]  [PATTERN]     list access methods
-  \\dAc[x+] [AMPTRN [TYPEPTRN]]  list operator classes
-  \\dAf[x+] [AMPTRN [TYPEPTRN]]  list operator families
-  \\dAo[x+] [AMPTRN [OPFPTRN]]   list operators of operator families
-  \\dAp[x+] [AMPTRN [OPFPTRN]]   list support functions of operator families
-  \\db[x+]  [PATTERN]     list tablespaces
-  \\dc[Sx+] [PATTERN]     list conversions
-  \\dconfig[x+] [PATTERN] list configuration parameters
-  \\dC[x+]  [PATTERN]     list casts
-  \\dd[Sx]  [PATTERN]     show object descriptions not displayed elsewhere
-  \\dD[Sx+] [PATTERN]     list domains
-  \\ddp[x]  [PATTERN]     list default privileges
-  \\dE[Sx+] [PATTERN]     list foreign tables
-  \\des[x+] [PATTERN]     list foreign servers
-  \\det[x+] [PATTERN]     list foreign tables
-  \\deu[x+] [PATTERN]     list user mappings
-  \\dew[x+] [PATTERN]     list foreign-data wrappers
-  \\df[anptw][Sx+] [FUNCPTRN [TYPEPTRN ...]]
-                         list [only agg/normal/procedure/trigger/window] functions
-  \\dF[x+]  [PATTERN]     list text search configurations
-  \\dFd[x+] [PATTERN]     list text search dictionaries
-  \\dFp[x+] [PATTERN]     list text search parsers
-  \\dFt[x+] [PATTERN]     list text search templates
-  \\dg[Sx+] [PATTERN]     list roles
-  \\di[Sx+] [PATTERN]     list indexes
-  \\dl[x+]                list large objects, same as \\lo_list
-  \\dL[Sx+] [PATTERN]     list procedural languages
-  \\dm[Sx+] [PATTERN]     list materialized views
-  \\dn[Sx+] [PATTERN]     list schemas
-  \\do[Sx+] [OPPTRN [TYPEPTRN [TYPEPTRN]]]
-                         list operators
-  \\dO[Sx+] [PATTERN]     list collations
-  \\dp[Sx]  [PATTERN]     list table, view, and sequence access privileges
-  \\dP[itnx+] [PATTERN]   list [only index/table] partitioned relations [n=nested]
-  \\drds[x] [ROLEPTRN [DBPTRN]] 
-                         list per-database role settings
-  \\drg[Sx] [PATTERN]     list role grants
-  \\dRp[x+] [PATTERN]     list replication publications
-  \\dRs[x+] [PATTERN]     list replication subscriptions
-  \\ds[Sx+] [PATTERN]     list sequences
-  \\dt[Sx+] [PATTERN]     list tables
-  \\dT[Sx+] [PATTERN]     list data types
-  \\du[Sx+] [PATTERN]     list roles
-  \\dv[Sx+] [PATTERN]     list views
-  \\dx[x+]  [PATTERN]     list extensions
-  \\dX[x+]  [PATTERN]     list extended statistics
-  \\dy[x+]  [PATTERN]     list event triggers
-  \\l[x+]   [PATTERN]     list databases
-  \\lo_list[x+]           list large objects
-  \\sf[+]   FUNCNAME      show a function's definition
-  \\sv[+]   VIEWNAME      show a view's definition
-  \\z[Sx]   [PATTERN]     same as \\dp
-`;

@@ -18,9 +18,11 @@ This builds the whole JS library from a Postgres source tree: `tmp/lib/describe.
 
 ## The runtime
 
-`runtime.mjs` is the hand-written part of the library: the hand-maintained port (`src/describe.mjs`) without the functions that are now translated. It has the exported `describe()` function, which parses the command and dispatches it, and `PSQLexec`, `pset`, output and cancellation; the C library functions the translation calls (`PQExpBuffer`, `PQgetvalue`, `sprintf`, …); and its own versions of the few C functions it can't translate (because they write through a `char *`, such as `fmtId` and `appendStringLiteral`).
+`runtime.mjs` is the hand-written part of the library: the hand-maintained port (`src/describe.mjs`) without the functions that are now translated. It has the exported `describe()` function, which parses the command and dispatches it (as `exec_command` does, for the commands we have), and `PSQLexec`, `pset`, output and cancellation; the C library functions the translation calls (`PQExpBuffer`, `PQgetvalue`, `sprintf`, …); and its own versions of the few C functions it can't translate (because they write through a `char *`, such as `fmtId` and `appendStringLiteral`).
 
-For C library functions, it does just enough. For example, `PQexec` runs a query and gives a result with a status (`PGRES_TUPLES_OK` or, if the query fails, `PGRES_FATAL_ERROR`, with error fields for `PQresultErrorField`), and C's stdio is an object with a `write` method, where `stdout` writes to the `outputFn` callback, and there's no pager. So `\sf` and `\sv` (`exec_command_sf_sv` and the functions it calls), which use these, are translated like everything else.
+For C library functions, it does just enough. For example, `PQexec` runs a query and gives a result with a status (`PGRES_TUPLES_OK` or, if the query fails, `PGRES_FATAL_ERROR`, with error fields for `PQresultErrorField`), and C's stdio is an object with a `write` method, where `stdout` writes to the `outputFn` callback, and there's no pager. So `\sf` and `\sv` (`exec_command_sf_sv` and the functions it calls), which use these, are translated like everything else. So are `\?` and `\h` (`exec_command_slash_command_help` and `exec_command_help`), for which the runtime provides `slashUsage` (which prints the generated `\?` text: see below) and `helpSQL` (which searches the generated SQL help).
+
+What psql has but the library doesn't is declared `unsupported`, e.g. `do_lo_export = unsupported('lo_export')`, which reports an error. This lets `exec_command_lo` be translated whole, for `\lo_list`.
 
 The translation goes in place of the comment `/* TRANSLATED FROM C */`, in `describe()`'s `main()`. Any name visible there (declared in an enclosing scope, or a parameter of an enclosing function) is provided by the runtime, so it isn't translated: the runtime's version wins. Like `c:declarator`, this walks up the scopes, but in the runtime's JS parse tree:
 
@@ -34,7 +36,17 @@ A function the runtime provides is `async` if the runtime declares it so (like `
 
 A few runtime functions changed to match the C API, which the port had adapted at each call site instead: `strstr` returns the rest of the string (or `NULL`), as in C, not an index; and a table's last footer is a `printTableFooter`, `{ data }`. And the runtime defines `ngettext` and `pg_log_error_internal`, which the port used but never defined.
 
-With the generated library bundled as `index.js`, the test matrix passes on Postgres 14–19, with help text, as do the API tests: the same 2,789 checks as the hand-maintained port.
+### The version, and the `\?` text
+
+These are generated too, and go with the constants. `build.sh` reads the version from `configure.ac` (e.g. `19rc1`), as `PG_VERSION`, and `PG_MAJORVERSION` is its leading digits, as configure makes it. The default docs URL is then as psql makes it, in `/docs/devel/` or (here) `/docs/19/`.
+
+The `\?` text is `slashUsage`'s lines (from `help.c`) for the commands we have. To decide if we have a command, the stylesheet follows its name as psql would: through `exec_command`'s `if`-`else` chain, evaluating conditions such as `strcmp(cmd, "sf") == 0`, `cmd[0] == 'd'` and `strncmp(cmd, "lo_", 3) == 0` for that name, and on into the function it calls, if that's passed the name, where `exec_command_lo` tests `strcmp(cmd + 3, "export") == 0`. We have the command if the functions called are all translated or provided, and none is `unsupported`. So `\lo_list` stays, but `\lo_export` goes (`do_lo_export` is unsupported), as does `\copyright` (`exec_command_copyright` is neither translated nor provided). A section stays if any of its commands does. `\? options` and `\? variables` stay, since they're `\?` with an argument (the runtime reports them unsupported).
+
+When a new Postgres version adds a describe command, its line in `\?` comes with it. The matrix checks that each line of the generated `\?` is one of the reference psql's, in order, and the API tests check which commands are there.
+
+### Tests
+
+With the generated library bundled as `index.js`, the test matrix passes on Postgres 14–19, with help text (2,802 checks), as do the 13 API tests.
 
 ## The XML
 
@@ -99,7 +111,7 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
    <sequence select="if (exists($new)) then c:reached($found | $new) else $found"/>
    ```
 
-   Because `|` and `except` treat nodes as sets in document order, the result comes out in source order, ready to group by file. From `exec_command_d`, `exec_command_list` and `exec_command_sf_sv`, this reaches the same 77 functions, in the same order, as `translate/`.
+   Because `|` and `except` treat nodes as sets in document order, the result comes out in source order, ready to group by file. From `exec_command_d`, `exec_command_list` and `exec_command_sf_sv`, this reaches the same 77 functions, in the same order, as `translate/`. (The entry points are now also `exec_command_help`, `exec_command_lo`, `exec_command_slash_command_help` and `exec_command_z`.)
 
 1. **Following calls back to the async seeds:** a function that calls `PSQLexec` or `PQexec` (provided by the JS runtime, and returning a Promise) is `async`, and so is any function that calls an `async` function. This is the same fixed point, run backwards: a second `key` indexes calls by the function called, and each round adds the functions containing calls to those found so far:
 
@@ -211,4 +223,5 @@ Two bugs in the hand-maintained port don't happen in the generated library, and 
 
 ## Not yet done
 
+- Translating `exec_command` itself, keeping only the branches for commands we have (as for the `\?` text), in place of the runtime's dispatch, which repeats those branches by hand.
 - Slicing in globals (not just functions).

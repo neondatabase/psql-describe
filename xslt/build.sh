@@ -14,15 +14,16 @@ mkdir -p "$OUT" "$BUILD"
 # Preprocess and parse the C, add types, and parse the runtime
 rm -rf "$BUILD/pp"
 tmp/venv/bin/python xslt/preprocess.py "$BUILD/pp" "$PG/include" \
-  "$PG/bin/psql/command.c" "$PG/bin/psql/describe.c" "$PG/fe_utils/string_utils.c" xslt/libc.h "$PG/include/postgres_ext.h" \
+  "$PG/bin/psql/command.c" "$PG/bin/psql/describe.c" "$PG/bin/psql/help.c" "$PG/fe_utils/string_utils.c" xslt/libc.h "$PG/include/postgres_ext.h" \
   "$PG"/include/catalog/*.h "$PG"/include/common/*.h "$PG"/include/fe_utils/*.h "$PG"/interfaces/libpq/*.h \
   "$PG"/bin/psql/*.h |
   xargs node xslt/c-to-xml.ts > "$BUILD/sources.xml"
 npx xslt3 -xsl:xslt/add-types.xsl -s:"$BUILD/sources.xml" -o:"$BUILD/typed.xml"
 node xslt/c-to-xml.ts xslt/runtime.mjs > "$BUILD/runtime.xml"
 
-# Translate, into the runtime
-npx xslt3 -xsl:xslt/c-to-js.xsl -s:"$BUILD/typed.xml" -o:"$OUT/describe.mjs" runtime="$PWD/$BUILD/runtime.xml"
+# Translate, into the runtime (with the version, e.g. 19rc1, from configure.ac's `AC_INIT([PostgreSQL], [19rc1], ...)`)
+VERSION=$(sed -n 's/^AC_INIT(\[PostgreSQL\], \[\([^]]*\)\].*/\1/p' "$PG/../configure.ac")
+npx xslt3 -xsl:xslt/c-to-js.xsl -s:"$BUILD/typed.xml" -o:"$OUT/describe.mjs" runtime="$PWD/$BUILD/runtime.xml" version="$VERSION"
 node --check "$OUT/describe.mjs"
 
 # The SQL help (for \h)

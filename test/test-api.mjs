@@ -182,3 +182,35 @@ test('std_strings controls backslash escaping in generated SQL', async () => {
   // standard_conforming_strings off: the backslash is doubled
   assert.ok(sqlNonStd.includes('foo\\\\$bar'));
 });
+
+// 7. Backslash command help ---------------------------------------------------
+
+// Run a command that shouldn't query (given the server version), returning its output
+async function outputOf(cmd) {
+  const outputs = [];
+  await describe(cmd, 'testdb', () => { throw new Error(`runQuery should not be called for ${cmd}`); },
+    x => outputs.push(x), false, 190000).promise;
+  return outputs.join('\n');
+}
+
+test('\\? lists the commands we have, and only those', async () => {
+  const lines = (await outputOf('\\?')).split('\n');
+  const commands = lines.map(line => line.match(/^  \\(\S+)/)?.[1]).filter(Boolean);
+  for (const command of ['?', 'h', 'd[Sx+]', 'dt[Sx+]', 'l[x+]', 'lo_list[x+]', 'sf[+]', 'z[Sx]']) {
+    assert.ok(commands.includes(command), command);
+  }
+  for (const command of ['copyright', 'q', 'x', 'lo_export', 'lo_import', 'lo_unlink']) {
+    assert.ok(!commands.some(c => c.startsWith(command)), command);
+  }
+  // sections with none of our commands are left out
+  assert.deepEqual(lines.filter(line => /^\S/.test(line)), ['Help', 'Informational', 'Large Objects']);
+});
+
+test('commands we don\'t have say so', async () => {
+  assert.equal(await outputOf('\\lo_export 1 file'), '\\lo_export is not supported');
+  assert.equal(await outputOf('\\? options'), '\\? options is not supported');
+});
+
+test('the default docs URL is for the major version psql was built from', async () => {
+  assert.match(await outputOf('\\h SELECT'), /URL: https:\/\/www\.postgresql\.org\/docs\/19\/sql-select\.html/);
+});

@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { helpIndex } from '../src/sql-help.generated.mjs';
+import { describe } from '../index.js';
 
 // images are pinned to multi-arch index digests, so their contents can't change
 // without a commit here
@@ -310,6 +311,26 @@ async function setupDatabase(server, version, pagilaSchema, pagilaData) {
   }
 }
 
+// Our \? lists only some of psql's commands, so rather than compare outputs, check
+// that each of our lines is one of psql's, in the same order
+async function testSlashHelp(server) {
+  console.log('\nBackslash command help');
+  const psqlLines = (await run(
+    runtime,
+    ['exec', server.container, 'psql', '-X', '-U', 'postgres', '-d', POSTGRES_DB, '-c', '\\?'],
+    { capture: true },
+  )).split('\n');
+  const outputs = [];
+  await describe('\\?', POSTGRES_DB, () => { throw new Error('no queries for \\?'); }, x => outputs.push(x)).promise;
+  const lines = outputs.join('\n').split('\n');
+
+  let i = 0;
+  const missing = lines.find(line => (i = psqlLines.indexOf(line, i) + 1) === 0);
+  console.log(missing === undefined ? 'Pass' + ' '.repeat(6 - String(lines.length).length) : '*** FAIL ***',
+    lines.length, ' \\?' + (missing === undefined ? '' : `: not in psql's, in order: ${JSON.stringify(missing)}`));
+  if (missing !== undefined) throw new Error('\\? lines differ from psql\'s');
+}
+
 async function runTests(server, referenceContainer, label, tests) {
   console.log(`\n${label}`);
   await run(
@@ -350,7 +371,10 @@ try {
   const referenceVersion = POSTGRES_VERSIONS.at(-1);
   const referenceServer = await startServer(referenceVersion);
 
-  if (help) await runTests(referenceServer, referenceServer.container, 'SQL help', helpTests);
+  if (help) {
+    await runTests(referenceServer, referenceServer.container, 'SQL help', helpTests);
+    await testSlashHelp(referenceServer);
+  }
 
   for (const version of versions) {
     const server = version.major === referenceVersion.major
