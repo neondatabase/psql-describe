@@ -106,10 +106,11 @@
        more. (Like except, | treats nodes as a set, so a definition is never included twice.) -->
   <function name="c:reached" as="element()*">
     <param name="found" as="element()*"/>
-    <!-- The definitions of the names of all identifiers anywhere in $found (other than names the runtime provides),
-       except those we've already got -->
-    <variable name="new" select="key('definition', ($found//identifier except $dropped-branches//identifier)[not(. = $provided)],
-      $sources) except $found"/>
+    <!-- The definitions of the names of all identifiers anywhere in $found (other than names the runtime provides, and
+       names in dropped branches or in statements that only free memory, which aren't translated), except those we've
+       already got -->
+    <variable name="new" select="key('definition', $found//identifier[not(. = $provided)][exists(key('definition', ., $sources))]
+      [not(ancestor::* intersect $dropped-branches)][not(ancestor::*[c:is-freeing(.)])], $sources) except $found"/>
     <sequence select="if (exists($new)) then c:reached($found | $new) else $found"/>
   </function>
 
@@ -706,33 +707,50 @@
   </template>
 
   <!--
-    A pointer that only ever points into one array is an index into it: e.g. curbuf, in `PQExpBufferData buf[3];` and
-    `curbuf = &buf[0];`, is curbuf = 0. Then it moves and compares as it is (curbuf++, curbuf < maxbuf, and curbuf >= buf
-    as curbuf >= 0), and anything else it's used for uses the element it points to, buf[curbuf] (so curbuf->data is
-    buf[curbuf].data). That works if those are all it's used for: so it's declared, set only to &a[i] (or a) for the same
-    array a, and otherwise only moved (++ or \-\-), compared (with another such pointer into a, or with a), passed to a
-    function, or followed (*p or p->x).
+    A pointer (other than a string) that only ever points into one array is an index into it: e.g. curbuf, in
+    `PQExpBufferData buf[3];` and `curbuf = &buf[0];`, is curbuf = 0. Then it moves and compares as it is (curbuf++,
+    curbuf < maxbuf, and curbuf >= buf as curbuf >= 0), and anything else it's used for uses the element it points to,
+    buf[curbuf] (so curbuf->data is buf[curbuf].data, and *curbuf is buf[curbuf]). That works if those are all it's used
+    for: so it's declared, set only to &a[i] (or a) for the same array a, and otherwise only moved (++ or \-\-),
+    compared (with another such pointer into a, or with a), passed to a function, or followed (*p or p->x).
+
+    The array can be any expression that always gives the same array: one without side effects, whose variables (and
+    the expression itself) aren't set in the function. E.g. footer, in `for (footer = opt->footers; *footer; footer++)`,
+    is an index into opt->footers (a char **, which is the type of footer itself), so *footer is opt.footers[footer].
   -->
 
   <!-- The uses of a variable that set it (p in p = ..., or char *p = ...), and the values they set it to -->
   <function name="c:is-set" as="xs:boolean">
     <param name="id" as="element(identifier)"/>
-    <sequence select="exists($id[@field = 'left']/parent::assignment_expression[c:operator(.) = '='] | $id[@field = 'declarator']/parent::init_declarator)"/>
+    <sequence select="exists($id[@field = 'left']/parent::assignment_expression[c:operator(.) = '='] | $id/ancestor::init_declarator[1][c:set-variable(.) is $id])"/>
   </function>
 
-  <!-- The array that &a[i] or a (as a value) is in: a -->
-  <function name="c:array-of" as="element(identifier)?">
+  <!-- The array that &a[i] or a (as a value, for a pointer of type $type) is in: a -->
+  <function name="c:array-of" as="element()?">
     <param name="value" as="element()"/>
+    <param name="type" as="xs:string"/>
     <sequence select="($value/self::pointer_expression[c:operator(.) = '&amp;']/*[@field = 'argument']/self::subscript_expression/*[@field = 'argument'],
-      $value)/self::identifier[ends-with(@type, '[]')][1]"/>
+      $value[ends-with(@type, '[]') or @type = $type])[c:is-fixed(.)][1]"/>
+  </function>
+
+  <!-- Does an expression always give the same array? It does if it's an array variable, or it has no side effects (or
+       subscripts), and neither it nor its variables are set in its function -->
+  <function name="c:is-fixed" as="xs:boolean">
+    <param name="expr" as="element()"/>
+    <variable name="function" select="$expr/ancestor::function_definition"/>
+    <sequence select="exists($expr/self::identifier[ends-with(@type, '[]')])
+      or empty($expr/descendant-or-self::*[self::call_expression | self::assignment_expression | self::update_expression | self::subscript_expression])
+        and (every $id in $expr/descendant-or-self::identifier satisfies empty($function//identifier[@declared = $id/@declared][c:is-set(.)]))
+        and empty($function//assignment_expression/*[@field = 'left'][normalize-space(.) = normalize-space($expr)])"/>
   </function>
 
   <!-- Pointers that might be into an array (by how they're set), by declared attribute, with the array -->
-  <variable name="array-pointer-candidates" as="map(xs:string, element(identifier))">
+  <variable name="array-pointer-candidates" as="map(xs:string, element())">
     <map>
-      <for-each-group select="$translated//identifier[c:is-pointer(.)][not(ends-with(@type, '[]'))][contains(@declared, '.')]" group-by="@declared">
-        <variable name="arrays" select="current-group()[c:is-set(.)]/../*[@field = ('right', 'value')] ! c:array-of(.)"/>
-        <if test="exists($arrays) and count(current-group()[c:is-set(.)]) = count($arrays) and count(distinct-values($arrays/@declared)) = 1">
+      <for-each-group select="$translated//identifier[c:is-pointer(.)][not(ends-with(@type, '[]') or c:is-string(.))][contains(@declared, '.')]" group-by="@declared">
+        <variable name="type" select="string(@type)"/>
+        <variable name="arrays" select="current-group()[c:is-set(.)]/../*[@field = ('right', 'value')] ! c:array-of(., $type)"/>
+        <if test="exists($arrays) and count(current-group()[c:is-set(.)]) = count($arrays) and count(distinct-values($arrays ! normalize-space(.))) = 1">
           <map-entry key="current-grouping-key()" select="$arrays[1]"/>
         </if>
       </for-each-group>
@@ -757,15 +775,31 @@
       or exists($id/parent::binary_expression[*[@field = ('left', 'right')]/self::identifier[map:contains($array-pointers, @declared)]])"/>
   </function>
 
-  <!-- A pointer into an array p: as an index, p, and otherwise a[p] -->
+  <!-- A pointer into an array p: as an index, p, and otherwise a[p] (where a is output as the array, even if it's also
+       what p is set to, below) -->
   <template match="identifier[map:contains($array-pointers, @declared)]" priority="5">
-    <value-of select="if (c:is-index(.)) then string(.) else c:js($array-pointers(@declared)) || '[' || . || ']'"/>
+    <choose>
+      <when test="c:is-index(.)">{.}</when>
+      <otherwise>
+        <apply-templates select="$array-pointers(@declared)"><with-param name="as-array" tunnel="yes" select="true()"/></apply-templates>
+        <text>[{.}]</text>
+      </otherwise>
+    </choose>
   </template>
 
-  <!-- What such a pointer is set to: &a[i] is i, and a is 0 -->
+  <!-- What such a pointer is set to: &a[i] is i, and a itself is 0 -->
   <template match="*[@field = ('right', 'value')][../(*[@field = 'left'], *[@field = 'declarator'])/self::identifier[map:contains($array-pointers, @declared)][c:is-set(.)]]" priority="5">
-    <apply-templates select="self::pointer_expression/*[@field = 'argument']/*[@field = 'index']"/>
-    <if test="self::identifier">0</if>
+    <param name="as-array" tunnel="yes" select="false()"/>
+    <choose>
+      <when test="$as-array"><next-match/></when>
+      <when test="self::pointer_expression[c:operator(.) = '&amp;']"><apply-templates select="*[@field = 'argument']/*[@field = 'index']"/></when>
+      <otherwise>0</otherwise>
+    </choose>
+  </template>
+
+  <!-- *p, for such a pointer p: a[p] (not p.value, for a pointer to a box) -->
+  <template match="pointer_expression[c:operator(.) = '*'][*[@field = 'argument']/self::identifier[map:contains($array-pointers, @declared)]]" priority="5">
+    <apply-templates select="*[@field = 'argument']"/>
   </template>
 
   <!-- The array, compared with such a pointer: 0 -->

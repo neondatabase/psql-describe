@@ -150,85 +150,6 @@ export function describe(
 
     /* TRANSLATED FROM C */
 
-    function column_type_alignment(ftype) {
-      let align;
-      switch (ftype) {
-        case INT2OID:
-        case INT4OID:
-        case INT8OID:
-        case FLOAT4OID:
-        case FLOAT8OID:
-        case NUMERICOID:
-        case OIDOID:
-        case XIDOID:
-        case XID8OID:
-        case CIDOID:
-        case MONEYOID:
-          align = 'r';
-          break;
-        default:
-          align = 'l';
-          break;
-      }
-      return align;
-    }
-
-    /*
-     * Use this to print query results
-     *
-     * result: result of a successful query
-     * opt: formatting options
-     * fout: where to print to
-     * is_pager: true if caller has already redirected fout to be a pager pipe
-     * flog: if not null, also print the data there (for --log-file option)
-     */
-    function printQuery(result, opt, fout, is_pager, flog) {
-      let cont = {};
-      let i, r, c;
-
-      printTableInit(cont, opt.topt, opt.title,
-        PQnfields(result), PQntuples(result));
-
-      /* Assert caller supplied enough translate_columns[] entries */
-      Assert(opt.translate_columns == NULL || opt.translate_columns == null ||
-        opt.n_translate_columns >= cont.ncolumns);
-
-      for (i = 0; i < cont.ncolumns; i++) {
-        printTableAddHeader(cont, PQfname(result, i),
-          opt.translate_header,
-          column_type_alignment(PQftype(result, i)));
-      }
-
-      /* set cells */
-      for (r = 0; r < cont.nrows; r++) {
-        for (c = 0; c < cont.ncolumns; c++) {
-          let cell;
-          let mustfree = false;
-          let translate;
-
-          if (PQgetisnull(result, r, c))
-            cell = opt.nullPrint ? opt.nullPrint : "";
-          else {
-            cell = PQgetvalue(result, r, c);
-            if (cont.aligns[c] == 'r' && opt.topt.numericLocale) {
-              cell = format_numeric_locale(cell);
-              mustfree = true;
-            }
-          }
-
-          translate = (opt.translate_columns && opt.translate_columns[c]);
-          printTableAddCell(cont, cell, translate, mustfree);
-        }
-      }
-
-      /* set footers */
-      if (opt.footers) {
-        for (let footer of opt.footers) printTableAddFooter(cont, footer);
-      }
-
-      printTable(cont, fout, is_pager, flog);
-    }
-
     /*
      * Initialise a table contents struct.
      *		Must be called before any other printTable method is used.
@@ -713,6 +634,11 @@ function pg_tolower(ch) {
 
 function pg_strcasecmp(s1, s2) {
   return strcmp(s1.toLowerCase(), s2.toLowerCase());
+}
+
+// There's no numericlocale option (in printQuery, numericLocale is never set), so this is never called
+function format_numeric_locale(my_str) {
+  return my_str;
 }
 
 function PQmblenBounded(s, encoding) {  // a JS string is characters, not bytes, so a character's length is 1
