@@ -18,9 +18,11 @@ This builds the whole JS library from a Postgres source tree: `tmp/lib/describe.
 
 ## The runtime
 
-`runtime.mjs` is the hand-written part of the library: the hand-maintained port (`src/describe.mjs`) without the functions that are now translated. It has the exported `describe()` function, which parses the command and dispatches it (as `exec_command` does, for the commands we have), and `PSQLexec`, `pset`, output and cancellation; the C library functions the translation calls (`PQExpBuffer`, `PQgetvalue`, `sprintf`, …); and its own versions of the few C functions it can't translate (because they write through a `char *`, such as `fmtId` and `appendStringLiteral`).
+`runtime.mjs` is the hand-written part of the library: the hand-maintained port (`src/describe.mjs`) without the functions that are now translated. It has the exported `describe()` function, which hands the command to the translated `HandleSlashCmds`, and `PSQLexec`, `pset`, output and cancellation; the C library functions the translation calls (`PQExpBuffer`, `PQgetvalue`, `sprintf`, …); and its own versions of the few C functions it can't translate (because they write through a `char *`, such as `fmtId` and `appendStringLiteral`).
 
 For C library functions, it does just enough. For example, `PQexec` runs a query and gives a result with a status (`PGRES_TUPLES_OK` or, if the query fails, `PGRES_FATAL_ERROR`, with error fields for `PQresultErrorField`), and C's stdio is an object with a `write` method, where `stdout` writes to the `outputFn` callback, and there's no pager. So `\sf` and `\sv` (`exec_command_sf_sv` and the functions it calls), which use these, are translated like everything else. So are `\?` and `\h` (`exec_command_slash_command_help` and `exec_command_help`), for which the runtime provides `slashUsage` (which prints the generated `\?` text: see below) and `helpSQL` (which searches the generated SQL help).
+
+`HandleSlashCmds` and `exec_command` are translated too, so psql decides what's an invalid command, and warns about extra arguments. For these, the runtime has `psql_scan_slash_command` (which reads the command name, up to whitespace or a backslash, as psql's lexer does) and stubs for the `\if` stack (we're always in an active branch). psql logs each error or warning as a line on stderr, so messages logged one after another are one item of output.
 
 What psql has but the library doesn't is declared `unsupported`, e.g. `do_lo_export = unsupported('lo_export')`, which reports an error. This lets `exec_command_lo` be translated whole, for `\lo_list`.
 
@@ -88,7 +90,7 @@ Tree-sitter parses C without preprocessing it, which mostly works, but not alway
 
 So `preprocess.py` first runs each file through a real C preprocessor, [pcpp](https://github.com/ned14/pcpp) (written in Python), set up to expand only a few macros and to leave everything else alone: `#include`s, comments, and any `#if` logic it can't evaluate. It expands:
 
-- the annotations `PGDLLIMPORT`, `pg_nodiscard`, `pg_attribute_printf(f, a)`, `pg_attribute_format_arg(a)` and `pg_attribute_no_sanitize_address()`, to nothing (as `c.h` defines them when the compiler doesn't support them), since they otherwise spoil the parse of declarations;
+- the annotations `PGDLLIMPORT`, `pg_nodiscard`, `pg_attribute_printf(f, a)`, `pg_attribute_format_arg(a)`, `pg_attribute_no_sanitize_address()` and `pg_noreturn`, to nothing (as `c.h` defines them when the compiler doesn't support them), since they otherwise spoil the parse of declarations;
 - `CppAsString(x)`, which is C's `#` operator, and `CppAsString2(x)`, which expands `x` first (both as in `c.h`);
 - macros `#define`d in the file itself (e.g. `WHEREAND()` in `processSQLNamePattern`), and in the catalog headers it includes, which are the only `#include`s it reads. So `CppAsString2(RELKIND_RELATION)` is `"'r'"`, and `RELKIND_RELATION` elsewhere is `'r'`.
 
@@ -104,14 +106,24 @@ An earlier version of this did the preprocessing in XSLT, on the tokens in tree-
 
 The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl` (and, for types, `add-types.xsl`) are:
 
-0. **Following calls from the entry points:** only the functions that the entry points need are translated. A `key` indexes function definitions by name. Then a recursive function looks up every identifier in the definitions reached so far (`key()` takes a whole sequence of names at once) until nothing new turns up:
+0. **Following calls from the entry points:** only the functions and global variables that the entry points need are translated. The entry points are the names the runtime uses but doesn't provide, which is just `HandleSlashCmds` (so the runtime's call to it decides what's translated). A `key` indexes definitions by name: of functions, and of global variables (other than `extern` declarations). Then a recursive function looks up every identifier in the definitions reached so far (`key()` takes a whole sequence of names at once) until nothing new turns up:
 
    ```xml
    <variable name="new" select="key('definition', $found//identifier, $sources) except $found"/>
    <sequence select="if (exists($new)) then c:reached($found | $new) else $found"/>
    ```
 
-   Because `|` and `except` treat nodes as sets in document order, the result comes out in source order, ready to group by file. From `exec_command_d`, `exec_command_list` and `exec_command_sf_sv`, this reaches the same 77 functions, in the same order, as `translate/`. (The entry points are now also `exec_command_help`, `exec_command_lo`, `exec_command_slash_command_help` and `exec_command_z`.)
+   Because `|` and `except` treat nodes as sets in document order, the result comes out in source order, ready to group by file. From `exec_command_d`, `exec_command_list` and `exec_command_sf_sv`, this reaches the same 77 functions, in the same order, as `translate/`.
+
+   `HandleSlashCmds` calls `exec_command`, which has a branch for every backslash command, e.g. `else if (cmd[0] == 'd') status = exec_command_d(...);`. Only the branches for the functions in the `commands` parameter stay (`exec_command_d`, `exec_command_list`, `exec_command_sf_sv`, `exec_command_lo`, `exec_command_z`, `exec_command_help` and `exec_command_slash_command_help`). The others are `$dropped-branches`, whose identifiers aren't followed or counted as externals, and an `if` whose branch is dropped is replaced by its `else`:
+
+   ```xml
+   <template match="if_statement[*[@field = 'consequence'] intersect $dropped-branches]">
+     <apply-templates select="*[@field = 'alternative']/*[not(self::token | self::comment)]"/>
+   </template>
+   ```
+
+   Global variables are translated where the functions are, in `main()`, which therefore runs the command last, once everything is declared. They are `restricted` (used by `HandleSlashCmds`) and `quote_all_identifiers` (used by the runtime's `fmtId`), which the runtime had declared by hand. A global declared without a value starts with zero, as in C: `static bool restricted;` is `let restricted = false;` (and a pointer would be `NULL`). To make this possible, `add-types.xsl` types the names of global variables, as well as everything in functions.
 
 1. **Following calls back to the async seeds:** a function that calls `PSQLexec` or `PQexec` (provided by the JS runtime, and returning a Promise) is `async`, and so is any function that calls an `async` function. This is the same fixed point, run backwards: a second `key` indexes calls by the function called, and each round adds the functions containing calls to those found so far:
 
@@ -208,7 +220,7 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
 
    Likewise, a struct declared without a value starts with its nested structs and arrays: `printTableOpt opt;` is `opt = { fieldSep: {}, recordSep: {} }`. To make this possible, `add-types.xsl` gives each struct definition its type, and each field declarator the type it declares. The copies, copy functions and initial values are exactly the same as `translate/`'s.
 
-10. **Other expressions:** a cast `(type) x` is just `x`; `a / b`, where `a` and `b` are integers, is `Math.trunc(a / b)` (wrapping whatever else applies, using `next-match`); and `snprintf(buf, size, format, ...)`, as a statement, is `buf = sprintf(format, ...)`. These too are exactly the same as `translate/`'s.
+10. **Other expressions:** a cast `(type) x` is just `x`; `a / b`, where `a` and `b` are integers, is `Math.trunc(a / b)` (wrapping whatever else applies, using `next-match`), where an integer has one of C's integer types (e.g. `int`, `unsigned short int` or `bool`) or the C library's (e.g. `size_t` or `int64_t`), which works because `c.h` is among the inputs, so Postgres's own typedefs are resolved (e.g. `int64` to `int64_t`, and `float4` to `float`); and `snprintf(buf, size, format, ...)`, as a statement, is `buf = sprintf(format, ...)`. These too are exactly the same as `translate/`'s.
 
 ## Results
 
@@ -220,8 +232,3 @@ Two bugs in the hand-maintained port don't happen in the generated library, and 
 
 - `\du` and `\dg` fail with "ERROR: ngettext is not defined" whenever a role has a connection limit (the port calls `ngettext`, for "1 connection" or "3 connections", but never defines it). This is now in the test matrix, with roles limited to 1 and 3 connections.
 - On a Postgres 10 server, `\dfp` says "\df does not take a "p" option with server version 10.0005", not "10": the port lost an integer division (`Math.floor`) in `formatPGVersionNumber`. This is now in the API tests (with `sversion` 100005).
-
-## Not yet done
-
-- Translating `exec_command` itself, keeping only the branches for commands we have (as for the `\?` text), in place of the runtime's dispatch, which repeats those branches by hand.
-- Slicing in globals (not just functions).

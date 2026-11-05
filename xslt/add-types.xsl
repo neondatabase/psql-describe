@@ -98,9 +98,10 @@
     </copy>
   </template>
 
-  <!-- An identifier gets its type, and the name of its declaration (see c:declaration-name, in section 2), from the
-       declarator that declares it -->
-  <template match="function_definition//identifier" priority="1">
+  <!-- An identifier in a function, or the name of a global variable (not one in its value), gets its type, and the
+       name of its declaration (see c:declaration-name, in section 2), from the declarator that declares it -->
+  <template match="function_definition//identifier | translation_unit/declaration//identifier[not(ancestor::*[@field = 'value'])]"
+    priority="1">
     <variable name="declarator" select="c:declarator(.)"/>
     <copy>
       <for-each select="c:declared-type($declarator)"><attribute name="type" select="."/></for-each>

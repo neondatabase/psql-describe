@@ -2,7 +2,8 @@
 <!--
   Translates C to JS, given C as XML from c-to-xml.ts, with types added by add-types.xsl.
 
-  Usage: npx xslt3 -xsl:xslt/c-to-js.xsl -s:typed.xml -o:translated.js
+  Usage: npx xslt3 -xsl:xslt/c-to-js.xsl -s:typed.xml -o:describe.mjs runtime=/path/to/runtime.xml (see xslt/build.sh)
+  Without a runtime, it outputs just the translation, of what you name, e.g. entry-points=HandleSlashCmds.
 
   THE XML
 
@@ -64,26 +65,54 @@
 
   <!--
     * FOLLOWING CALLS FROM THE ENTRY POINTS
-    We translate only the entry point functions and (recursively) the functions they call.
+    We translate only the C that the runtime uses (HandleSlashCmds), and (recursively) the functions and global
+    variables that uses. That includes exec_command, which calls a function for each backslash command, in a chain of if statements such as
+    `else if (cmd[0] == 'd') status = exec_command_d(...);`. We want only some commands, and the branches for others go
+    (with everything only they would reach).
   -->
 
-  <param name="entry-points" select="'exec_command_d', 'exec_command_help', 'exec_command_list', 'exec_command_lo',
+  <!-- The entry points: the names the runtime uses, but doesn't provide (see THE RUNTIME, below) -->
+  <param name="entry-points" select="distinct-values($runtime-doc//identifier)[not(. = $provided)]"/>
+  <param name="commands" select="'exec_command_d', 'exec_command_help', 'exec_command_list', 'exec_command_lo',
     'exec_command_sf_sv', 'exec_command_slash_command_help', 'exec_command_z'"/>
 
-  <!-- An index of top-level function definitions by name (see c:name, below) -->
-  <key name="definition" match="translation_unit/function_definition" use="c:name(descendant::function_declarator[1])"/>
+  <!-- The branches that go: in exec_command, those that set status to the result of a call to a function that isn't
+       one of $commands -->
+  <variable name="dropped-branches" select="key('definition', 'exec_command', $sources)//if_statement
+    /*[@field = 'consequence'][assignment_expression[*[@field = 'left'] = 'status']
+      /*[@field = 'right']/self::call_expression[not(*[@field = 'function'] = $commands)]]"/>
+
+  <!-- An if statement whose branch goes is replaced by what comes after its else, if anything -->
+  <template match="if_statement[*[@field = 'consequence'] intersect $dropped-branches]">
+    <apply-templates select="*[@field = 'alternative']/*[not(self::token | self::comment)]"/>
+  </template>
+
+  <!-- An index of top-level definitions by name: of functions, and of global variables (declarations, other than
+       those of functions, and those that are extern, which say that a variable is defined elsewhere) -->
+  <key name="definition" match="translation_unit/function_definition
+    | translation_unit/declaration[not(.//function_declarator)][not(storage_class_specifier = 'extern')]"
+    use="c:defined-names(.)"/>
+
+  <!-- The names a definition defines: a function's name, or the names of the variables in a declaration (see c:name,
+       below) -->
+  <function name="c:defined-names" as="xs:string*">
+    <param name="definition" as="element()"/>
+    <sequence select="if ($definition/self::function_definition) then c:name($definition/descendant::function_declarator[1])
+      else $definition/*[@field = 'declarator'] ! c:name(.)"/>
+  </function>
 
   <!-- The definitions reached so far, plus the definitions of every name they mention, and so on, until there are no
        more. (Like except, | treats nodes as a set, so a definition is never included twice.) -->
-  <function name="c:reached" as="element(function_definition)*">
-    <param name="found" as="element(function_definition)*"/>
+  <function name="c:reached" as="element()*">
+    <param name="found" as="element()*"/>
     <!-- The definitions of the names of all identifiers anywhere in $found (other than names the runtime provides),
        except those we've already got -->
-    <variable name="new" select="key('definition', $found//identifier[not(. = $provided)], $sources) except $found"/>
+    <variable name="new" select="key('definition', ($found//identifier except $dropped-branches//identifier)[not(. = $provided)],
+      $sources) except $found"/>
     <sequence select="if (exists($new)) then c:reached($found | $new) else $found"/>
   </function>
 
-  <!-- The definitions to translate: those reached from the entry points, other than those the runtime provides -->
+  <!-- The definitions to translate: those reached from the entry points (other than those the runtime provides) -->
   <variable name="translated" select="c:reached(key('definition', $entry-points[not(. = $provided)], $sources))"/>
 
   <!-- At the root: output the runtime, with the translation in place of its marker (or just the translation, if
@@ -151,13 +180,13 @@
 
   <!-- The externals: names that the translated functions use, but that are neither declared in them, nor translated,
        nor provided by the runtime. (A name declared in a function has a declared attribute such as
-       describeAggregates.pattern, with a dot.) Names in C that rules drop don't count: in statements that only free
-       memory, array allocations, and snprintf statements. -->
+       describeAggregates.pattern, with a dot.) Names in C that rules drop don't count: in dropped branches, statements
+       that only free memory, array allocations, and snprintf statements. -->
   <variable name="externals" select="
-    let $reached := $translated return distinct-values(($reached//identifier except $reached//(*[c:is-freeing(.)] | call_expression[*[@field = 'function'] = $array-allocators])//identifier)
+    let $reached := $translated return distinct-values(($reached//identifier except ($dropped-branches | $reached//(*[c:is-freeing(.)] | call_expression[*[@field = 'function'] = $array-allocators]))//identifier)
       [not(contains(@declared, '.'))]
       [not(. = 'snprintf' and ../self::call_expression[c:is-statement(.)])]
-      [not(. = ($provided, $reached ! c:name(descendant::function_declarator[1]), $constants/*[@field = 'name']))])"/>
+      [not(. = ($provided, $reached ! c:defined-names(.), $constants/*[@field = 'name']))])"/>
 
   <!--
     * CONSTANTS
@@ -204,7 +233,7 @@
     /(self::lexical_declaration | self::variable_declaration)/variable_declarator
     [*[@field = 'value']/self::call_expression/*[@field = 'function'] = 'unsupported']/*[@field = 'name']"/>
 
-  <variable name="available" select="($provided, $translated ! c:name(descendant::function_declarator[1]),
+  <variable name="available" select="($provided, $translated ! c:defined-names(.),
     $freeing-functions)[not(. = $unsupported)]"/>
 
   <!-- The text inside a C string or char literal's quotes, e.g. `\\d[Sx+]` (escapes as they are), or the texts
@@ -281,7 +310,7 @@
     <sequence select="every $call in $branch//call_expression satisfies
       (let $callee := string($call/*[@field = 'function']),
            $position := index-of($call/*[@field = 'arguments']/*[not(self::token | self::comment)] ! string(.), $var)[1],
-           $definition := $translated[c:name(descendant::function_declarator[1]) = $callee]
+           $definition := $translated[self::function_definition][c:defined-names(.) = $callee]
        return $callee = $available and (empty($position) or empty($definition) or c:has-command($definition,
          c:name($definition/descendant::function_declarator[1]/*[@field = 'parameters']/parameter_declaration[$position]),
          $name)))"/>
@@ -409,6 +438,14 @@
     <!-- Continue with the first declarator and everything after it (skipping the types before it): here, *a, then
          the text `, `, then the init_declarator *b = "x", then the text `;` -->
     <apply-templates select="$first, $first/following-sibling::node()"/>
+  </template>
+
+  <!-- A global variable's declaration, like a function's definition, comes after its comment (if any), and before a
+       blank line -->
+  <template match="translation_unit/declaration">
+    <text>{preceding-sibling::*[1][self::comment]}&#10;</text>
+    <next-match/>
+    <text>&#10;&#10;</text>
   </template>
 
   <!-- *a or a[10]: output only the declarator within, e.g. the identifier a (so dropping the * and the [10]) -->
@@ -691,6 +728,16 @@
     <next-match/><text> = {descendant-or-self::identifier[1] => c:empty-value()}</text>
   </template>
 
+  <!-- A global variable declared without a value starts with zero, as in C (unless it has an empty value, above):
+       false for a bool, NULL for a pointer, and 0 for a number. E.g. `static bool restricted;` is
+       `let restricted = false;` -->
+  <template match="translation_unit/declaration/*[@field = 'declarator'][not(self::init_declarator)]" priority="1">
+    <variable name="id" select="descendant-or-self::identifier[1]"/>
+    <next-match/>
+    <text> = {(c:empty-value($id), if ($id/@type = 'bool') then 'false' else if (ends-with($id/@type, '*')) then 'NULL'
+      else '0')[1]}</text>
+  </template>
+
   <!-- A boxed variable declared with a value, e.g. n in `int n = 0;`: n = { value: 0 } -->
   <template match="declaration/init_declarator[descendant-or-self::identifier[1]/@declared = $boxed]">
     <apply-templates select="*[@field = 'declarator']"/> = {{ value: <apply-templates select="*[@field = 'value']"/> }}</template>
@@ -939,10 +986,17 @@
     <apply-templates select="*[@field = 'value']"/>
   </template>
 
-  <!-- a / b, where a and b are integers: Math.trunc(a / b), since JS division isn't integer division -->
+  <!-- a / b, where a and b are integers: Math.trunc(a / b), since JS division isn't integer division. An integer's
+       type (apart from any const) is either made of C's integer type words, in any order, as C allows (e.g. int,
+       unsigned short int, or bool; enums are int), or one of the C library's integer types (typedefs in system headers,
+       which add-types.xsl leaves as they are, while it resolves Postgres's: e.g. int64 to int64_t, and float4 to
+       float) -->
   <function name="c:is-integer" as="xs:boolean">
     <param name="expr" as="element()"/>
-    <sequence select="exists($expr/@type) and not(c:is-pointer($expr) or c:is-struct($expr) or $expr/@type = ('double', 'float', 'void'))"/>
+    <variable name="words" select="tokenize($expr/@type)[. != 'const']"/>
+    <sequence select="exists($words) and (every $word in $words satisfies $word = ('char', 'short', 'int', 'long', 'signed', 'unsigned', 'bool'))
+      or string-join($words) = ('int8_t', 'int16_t', 'int32_t', 'int64_t', 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
+        'size_t', 'ptrdiff_t', 'intptr_t', 'uintptr_t')"/>
   </function>
 
   <template match="binary_expression[c:operator(.) = '/'][c:is-integer(*[@field = 'left'])][c:is-integer(*[@field = 'right'])]" priority="5">

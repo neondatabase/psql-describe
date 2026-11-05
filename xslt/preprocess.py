@@ -23,7 +23,7 @@ MACROS = [
     # Annotations on declarations, which expand to nothing on our platforms (as c.h defines them when the compiler
     # doesn't support them), and otherwise confuse the parse of declarations
     'PGDLLIMPORT=', 'pg_nodiscard=', 'pg_attribute_printf(f,a)=', 'pg_attribute_format_arg(a)=',
-    'pg_attribute_no_sanitize_address()=',
+    'pg_attribute_no_sanitize_address()=', 'pg_noreturn=',
     # C's # (stringizing) operator, and the same after expanding the argument (as in c.h)
     'CppAsString(identifier)=#identifier', 'CppAsString2(x)=CppAsString(x)',
 ]

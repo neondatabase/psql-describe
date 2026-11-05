@@ -1,7 +1,5 @@
 import { helpIndex } from './sql-help.generated.mjs';
 
-const quote_all_identifiers = 0;
-
 const NULL = null;
 const FUNC_MAX_ARGS = 100;
 const ESCAPE_STRING_SYNTAX = 'E';
@@ -39,20 +37,31 @@ export function describe(
     if (cancel_pressed) throw new Error('cancelled');
   }
 
+  // Each item of output goes to outputFn, except that messages logged one after another (e.g. a warning for each
+  // extra argument) are one item, as they'd be lines together on psql's stderr
+  let logged = [];
+  function flushLog() {
+    if (logged.length > 0) outputFn(logged.join('\n'));
+    logged = [];
+  }
+  function output(item) {
+    flushLog();
+    outputFn(item);
+  }
+
   async function main() {
-    // parse and run command
-    const match = cmd.match(/^\\([?hdzsl]\S*)(.*)/);
-    if (!match) {
-      outputFn(`unsupported command: ${cmd}`);
+    if (cmd[0] !== '\\') {
+      output(`unsupported command: ${cmd}`);
       return false;
     }
-    let [, matchedCommand, remaining] = match;
+    // what's after the backslash, as psql's lexer leaves it for HandleSlashCmds
+    const scan_state = [cmd.slice(1), 0];
 
     // psql's SQL help (\h), from the docs (see sql-help.generated.mjs)
     function helpSQL(topic, pager) {
       const helpSearch = (topic ?? '').trim().toUpperCase().replace(/\s+/g, ' ');
       if (helpSearch === '') {
-        outputFn("Available help:\n" + helpIndex.map(arr => arr[0]).join('\n'));
+        output("Available help:\n" + helpIndex.map(arr => arr[0]).join('\n'));
         return;
       }
 
@@ -71,11 +80,11 @@ export function describe(
       }
 
       if (matches.length === 0) {
-        outputFn(`No help available for "${topic.trim()}".\nTry \\h with no arguments to see available help.`);
+        output(`No help available for "${topic.trim()}".\nTry \\h with no arguments to see available help.`);
         return;
       }
       for (const index of matches) {
-        outputFn(
+        output(
           `Command:     ${index[0]}\n` +
           `Description: ${index[1]}\n` +
           `Syntax:\n${index[3]}\n\n` +
@@ -97,7 +106,7 @@ export function describe(
 
     const PSQLexec = async (sql, suppressEcho = false) => {
       throwIfCancelled();
-      if (echoHidden && !suppressEcho) outputFn(`/**** INTERNAL QUERY ****/\n${sql}\n/************************/`);
+      if (echoHidden && !suppressEcho) output(`/**** INTERNAL QUERY ****/\n${sql}\n/************************/`);
       const result = await runQuery(sql);
       throwIfCancelled();
       return result;
@@ -120,81 +129,20 @@ export function describe(
 
     // Just enough of C's stdio: a stream is an object with write(), and stdout writes to outputFn (each write being
     // one item of output). There's no pager.
-    const stdout = { write: text => outputFn(text.replace(/\n+$/, '')) };
+    const stdout = { write: text => output(text.replace(/\n+$/, '')) };
     const fputs = (str, stream) => stream.write(str);
     const fprintf = (stream, template, ...args) => stream.write(sprintf(template, ...args));
     const printf = (template, ...args) => fprintf(stdout, template, ...args);
     const fflush = noop, ClosePager = noop;
     const PageOutput = (lines, topt) => stdout;
 
-    let pset;
-    try {
-      // get server version, if not supplied (and needed: not for help)
-      const isHelp = ['?', 'h', 'help'].includes(matchedCommand);
-      if (!sversion && !isHelp) {  // covers null, undefined and (importantly) 0
-        const vres = await PSQLexec('SHOW server_version_num', true);
-        sversion = parseInt(vres.rows[0][0], 10);
-      }
-
-      const expandedSearchString = matchedCommand.startsWith('dx') ? matchedCommand.slice(2) : matchedCommand;
-      const expanded = expandedSearchString.indexOf('x') !== -1 ? 1 : 0;
-
-      pset = {
-        sversion,
-        queryFout: stdout,
-        logfile: NULL,
-        echo_hidden: echoHidden ? PSQL_ECHO_HIDDEN_ON : PSQL_ECHO_HIDDEN_OFF,
-        db: {  // PGconn struct
-          dbName,
-          sversion,
-          std_strings,
-          status: CONNECTION_OK,
-          encoding: PG_UTF8
-        },
-        popt: {  // print options
-          topt: {  // table options
-            default_footer: true,
-            expanded,
-          },
-          nullPrint: '',
-        }
-      };
-
-      // as in exec_command, for the commands we have
-      const
-        cmd = matchedCommand,
-        scan_state = [remaining, 0],
-        result = await (
-          cmd[0] === 'd' ? exec_command_d(scan_state, true, cmd)
-            : cmd === 'h' || cmd === 'help' ? exec_command_help(scan_state, true)
-            : /^l(ist)?(x|\+|x\+|\+x)?$/.test(cmd) ? exec_command_list(scan_state, true, cmd)
-            : cmd.startsWith('lo_') ? exec_command_lo(scan_state, true, cmd)
-            : cmd === 'sf' || cmd === 'sf+' ? exec_command_sf_sv(scan_state, true, cmd, true)
-            : cmd === 'sv' || cmd === 'sv+' ? exec_command_sf_sv(scan_state, true, cmd, false)
-            : /^z(S|x|Sx|xS)?$/.test(cmd) ? exec_command_z(scan_state, true, cmd)
-            : cmd === '?' ? exec_command_slash_command_help(scan_state, true)
-            : PSQL_CMD_UNKNOWN
-        );
-
-      if (result === PSQL_CMD_UNKNOWN) outputFn(`invalid command \\${matchedCommand}`);
-      // if result === PSQL_CMD_ERROR, the error message was printed already
-      else {
-        let arg, warnings = [];
-        while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(sprintf("\\%s: extra argument \"%s\" ignored", matchedCommand, arg));
-        if (warnings.length > 0) outputFn(warnings.join('\n'));
-      }
-      if (isHelp) return false;  // as before: help is informational
-
-    } catch (err) {
-      // throw err;
-      outputFn('ERROR:  ' + err.message);
-      return cancel_pressed ? null : false;
-    }
-
     function pg_log_error(template, ...args) {
-      outputFn(sprintf(template, ...args));
+      logged.push(sprintf(template, ...args));
     }
-    const pg_log_error_internal = pg_log_error;
+    const pg_log_error_internal = pg_log_error, pg_log_error_hint = pg_log_error, pg_log_warning = pg_log_error;
+
+    // psql's \if stack (cstack): we're always in an active branch
+    const conditional_active = cstack => true, conditional_stack_push = noop, conditional_stack_pop = noop;
 
 
     /* TRANSLATED FROM C */
@@ -523,7 +471,7 @@ export function describe(
     }
 
     function printTable(cont, fout, is_pager, flog) {
-      outputFn({ ...cont });  // must clone in case same content object is reused (and thus mutated) later
+      output({ ...cont });  // must clone in case same content object is reused (and thus mutated) later
     }
 
 
@@ -746,68 +694,51 @@ export function describe(
       return id_return.data;
     }
 
+    // Run the command (after everything is declared, including the translated globals)
+    let pset;
+    try {
+      // get server version, if not supplied (and needed: not for help)
+      const isHelp = ['?', 'h', 'help'].includes(psql_scan_slash_command([...scan_state]));
+      if (!sversion && !isHelp) {  // covers null, undefined and (importantly) 0
+        const vres = await PSQLexec('SHOW server_version_num', true);
+        sversion = parseInt(vres.rows[0][0], 10);
+      }
 
+      pset = {
+        sversion,
+        cur_cmd_interactive: false,
+        queryFout: stdout,
+        logfile: NULL,
+        echo_hidden: echoHidden ? PSQL_ECHO_HIDDEN_ON : PSQL_ECHO_HIDDEN_OFF,
+        db: {  // PGconn struct
+          dbName,
+          sversion,
+          std_strings,
+          status: CONNECTION_OK,
+          encoding: PG_UTF8
+        },
+        popt: {  // print options
+          topt: {  // table options
+            default_footer: true,
+            expanded: 0,
+          },
+          nullPrint: '',
+        }
+      };
 
+      await HandleSlashCmds(scan_state, {}, createPQExpBuffer(), createPQExpBuffer());
+      if (isHelp) return false;  // as before: help is informational
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    } catch (err) {
+      // throw err;
+      output('ERROR:  ' + err.message);
+      return cancel_pressed ? null : false;
+    }
 
     return true;
   }
 
-  const promise = main();
+  const promise = main().finally(flushLog);
   return { promise, cancel };
 }
 
@@ -1337,6 +1268,15 @@ function psql_scan_slash_option(scan_state, type, quote, semicolon) {
     }
   }
 }
+
+// The command name, after the backslash: up to whitespace or another backslash (as in psqlscanslash.l)
+function psql_scan_slash_command(scan_state) {
+  const [name] = scan_state[0].slice(scan_state[1]).match(/^[^\s\\]*/);
+  scan_state[1] += name.length;
+  return name;
+}
+
+const psql_scan_slash_command_end = noop;
 
 function noop(x) {
   return x;
