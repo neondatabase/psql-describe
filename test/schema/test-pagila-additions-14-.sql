@@ -104,6 +104,10 @@ CREATE CAST (dimensions AS text)
 -- a user-defined collation with \dO
 CREATE COLLATION traditional FROM "C";
 
+-- roles with connection limits (singular and plural) with \du
+CREATE ROLE one_connection_role LOGIN CONNECTION LIMIT 1;
+CREATE ROLE three_connections_role LOGIN CONNECTION LIMIT 3;
+
 -- RLS policies and trigger/rule firing states with \d+ and \dp
 CREATE ROLE app_reader;
 CREATE TABLE secured_table (

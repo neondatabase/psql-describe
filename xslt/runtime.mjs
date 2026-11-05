@@ -203,52 +203,6 @@ export function describe(
     }
     const pg_log_error_internal = pg_log_error;
 
-    /*
-     * validateSQLNamePattern
-     *
-     * Wrapper around string_utils's processSQLNamePattern which also checks the
-     * pattern's validity.  In addition to that function's parameters, takes a
-     * 'maxparts' parameter specifying the maximum number of dotted names the
-     * pattern is allowed to have, and a 'added_clause' parameter that returns by
-     * reference whether a clause was added to 'buf'.  Returns whether the pattern
-     * passed validation, after logging any errors.
-     */
-    function validateSQLNamePattern(buf, pattern, have_where,
-      force_escape, schemavar,
-      namevar, altnamevar,
-      visibilityrule, added_clause /* bool return param */,
-      maxparts) {
-      let dbbuf = { /* struct */ };
-      let dotcnt = {};
-      let added;
-
-      initPQExpBuffer(dbbuf);
-      added = processSQLNamePattern(pset.db, buf, pattern, have_where, force_escape,
-        schemavar, namevar, altnamevar,
-        visibilityrule, dbbuf, dotcnt);
-      dotcnt = dotcnt.value;
-      if (added_clause) added_clause.value = added;
-
-      if (dotcnt >= maxparts) {
-        pg_log_error("improper qualified name (too many dotted names): %s",
-          pattern);
-        return false;
-      }
-
-      if (maxparts > 1 && dotcnt == maxparts - 1) {
-        if (PQdb(pset.db) == NULL) {
-          pg_log_error("You are currently not connected to a database.");
-          return false;
-        }
-        if (strcmp(PQdb(pset.db), dbbuf.data) != 0) {
-          pg_log_error("cross-database references are not implemented: %s",
-            pattern);
-          return false;
-        }
-      }
-
-      return true;
-    }
 
     /* TRANSLATED FROM C */
 

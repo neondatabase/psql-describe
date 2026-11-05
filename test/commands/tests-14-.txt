@@ -192,6 +192,7 @@
 \duS
 \duS+
 \du p?stgres
+\du *connection*_role
 \dx
 \dx+
 \dx+ ??text

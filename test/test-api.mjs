@@ -157,6 +157,14 @@ test('an explicit sversion changes the generated SQL', async () => {
   assert.ok(!sql14.includes('datlocale'));
 });
 
+test('messages about an old server give its major version, as psql does', async () => {
+  // \df's "p" (procedures) option needs Postgres 11+, so a 10.5 server is refused before any query is run
+  const outputs = [];
+  await describe('\\dfp', 'testdb', async () => emptyResult, (...x) => outputs.push(describeDataToString(...x)),
+    false, 100005).promise;
+  assert.equal(outputs.join('\n'), '\\df does not take a "p" option with server version 10');
+});
+
 // 6. std_strings ------------------------------------------------------------
 
 test('std_strings controls backslash escaping in generated SQL', async () => {
