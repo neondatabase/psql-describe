@@ -37,16 +37,19 @@ export function describe(
     if (cancel_pressed) throw new Error('cancelled');
   }
 
-  // Each item of output goes to outputFn, except that messages logged one after another (e.g. a warning for each
-  // extra argument) are one item, as they'd be lines together on psql's stderr
-  let logged = [];
-  function flushLog() {
-    if (logged.length > 0) outputFn(logged.join('\n'));
-    logged = [];
+  // Each item of output goes to outputFn, except that text (written to stdout, or logged) is collected, and goes as
+  // one item before the next item, or at the end: e.g. a warning for each extra argument, or each line of \sf+
+  let text = null;
+  function flushText() {
+    if (text !== null) outputFn(text.replace(/\n+$/, ''));
+    text = null;
   }
   function output(item) {
-    flushLog();
+    flushText();
     outputFn(item);
+  }
+  function write(str) {
+    text = (text ?? '') + str;
   }
 
   async function main() {
@@ -127,9 +130,9 @@ export function describe(
     const PQresultErrorField = (res, field) => res.errorFields?.[field] ?? NULL;
     const standard_strings = () => std_strings;
 
-    // Just enough of C's stdio: a stream is an object with write(), and stdout writes to outputFn (each write being
-    // one item of output). There's no pager.
-    const stdout = { write: text => output(text.replace(/\n+$/, '')) };
+    // Just enough of C's stdio: a stream is an object with write(), and stdout writes text (see write, above). There's
+    // no pager.
+    const stdout = { write };
     const fputs = (str, stream) => stream.write(str);
     const fprintf = (stream, template, ...args) => stream.write(sprintf(template, ...args));
     const printf = (template, ...args) => fprintf(stdout, template, ...args);
@@ -137,7 +140,7 @@ export function describe(
     const PageOutput = (lines, topt) => stdout;
 
     function pg_log_error(template, ...args) {
-      logged.push(sprintf(template, ...args));
+      write(sprintf(template, ...args) + '\n');
     }
     const pg_log_error_internal = pg_log_error, pg_log_error_hint = pg_log_error, pg_log_warning = pg_log_error;
 
@@ -146,204 +149,6 @@ export function describe(
 
 
     /* TRANSLATED FROM C */
-
-    /*
-     * Transform a possibly qualified shell-style object name pattern into up to
-     * three SQL-style regular expressions, converting quotes, lower-casing
-     * unquoted letters, and adjusting shell-style wildcard characters into regexp
-     * notation.
-     *
-     * If the dbnamebuf and schemabuf arguments are non-NULL, and the pattern
-     * contains two or more dbname/schema/name separators, we parse the portions of
-     * the pattern prior to the first and second separators into dbnamebuf and
-     * schemabuf, and the rest into namebuf.
-     *
-     * If dbnamebuf is NULL and schemabuf is non-NULL, and the pattern contains at
-     * least one separator, we parse the first portion into schemabuf and the rest
-     * into namebuf.
-     *
-     * Otherwise, we parse all the pattern into namebuf.
-     *
-     * If the pattern contains more dotted parts than buffers to parse into, the
-     * extra dots will be treated as literal characters and written into the
-     * namebuf, though they will be counted.  Callers should always check the value
-     * returned by reference in dotcnt and handle this error case appropriately.
-     *
-     * We surround the regexps with "^(...)$" to force them to match whole strings,
-     * as per SQL practice.  We have to have parens in case strings contain "|",
-     * else the "^" and "$" will be bound into the first and last alternatives
-     * which is not what we want.  Whether this is done for dbnamebuf is controlled
-     * by the want_literal_dbname parameter.
-     *
-     * The regexps we parse into the buffers are appended to the data (if any)
-     * already present.  If we parse fewer fields than the number of buffers we
-     * were given, the extra buffers are unaltered.
-     *
-     * encoding: the character encoding for the given pattern
-     * dbnamebuf: output parameter receiving the database name portion of the
-     * pattern, if any.  Can be NULL.
-     * schemabuf: output parameter receiving the schema name portion of the
-     * pattern, if any.  Can be NULL.
-     * namebuf: output parameter receiving the database name portion of the
-     * pattern, if any.  Can be NULL.
-     * pattern: user-specified pattern option, or NULL if none ("*" is implied).
-     * force_escape: always quote regexp special characters, even outside
-     * double quotes (else they are quoted only between double quotes).
-     * want_literal_dbname: if true, regexp special characters within the database
-     * name portion of the pattern will not be escaped, nor will the dbname be
-     * converted into a regular expression.
-     * dotcnt: output parameter receiving the number of separators parsed from the
-     * pattern.
-     */
-    function patternToSQLRegex(encoding, dbnamebuf /* PQExpBuffer output param */, schemabuf /* PQExpBuffer output param */,
-      namebuf /* PQExpBuffer output param */, pattern, force_escape,
-      want_literal_dbname, dotcnt /* int output param */) {
-      let buf = [{}, {}, {}];
-      let bufIndex = 0;
-      let left_literal = {};
-      let curbuf = {};
-      let maxbuf = {};
-      let inquotes;
-      let left;
-      let cp;
-
-      Assert(pattern);
-      Assert(namebuf);
-
-      /* callers should never expect "dbname.relname" format */
-      Assert(!dbnamebuf || schemabuf);
-      Assert(dotcnt);
-
-      dotcnt.value = 0;
-      inquotes = false;
-      cp = pattern;
-
-      if (dbnamebuf)
-        maxbuf = 2;
-      else if (schemabuf)
-        maxbuf = 1;
-      else
-        maxbuf = 0;
-
-      curbuf = buf[bufIndex];
-      if (want_literal_dbname) {
-        left = true;
-        initPQExpBuffer(left_literal);
-      }
-      else
-        left = false;
-
-      initPQExpBuffer(curbuf);
-      appendPQExpBufferStr(curbuf, "^(");
-
-      let cpIndex = 0;
-      let ch;
-      while ((ch = cp[cpIndex]) != NULL) {
-        if (ch == '"') {
-          if (inquotes && cp[cpIndex + 1] == '"') {
-            /* emit one quote, stay in inquotes mode */
-            appendPQExpBufferChar(curbuf, '"');
-            if (left)
-              appendPQExpBufferChar(left_literal, '"');
-            cpIndex++;
-          }
-          else
-            inquotes = !inquotes;
-          cpIndex++;
-        }
-        else if (!inquotes && isupper(ch)) {
-          appendPQExpBufferChar(curbuf,
-            pg_tolower(ch));
-          if (left)
-            appendPQExpBufferChar(left_literal,
-              pg_tolower(ch));
-          cpIndex++;
-        }
-        else if (!inquotes && ch == '*') {
-          appendPQExpBufferStr(curbuf, ".*");
-          if (left)
-            appendPQExpBufferChar(left_literal, '*');
-          cpIndex++;
-        }
-        else if (!inquotes && ch == '?') {
-          appendPQExpBufferChar(curbuf, '.');
-          if (left)
-            appendPQExpBufferChar(left_literal, '?');
-          cpIndex++;
-        }
-        else if (!inquotes && ch == '.') {
-          left = false;
-          dotcnt.value++;
-          if (bufIndex < maxbuf) {
-            appendPQExpBufferStr(curbuf, ")$");
-            curbuf = buf[++bufIndex];
-            initPQExpBuffer(curbuf);
-            appendPQExpBufferStr(curbuf, "^(");
-            cpIndex++;
-          }
-          else {
-            appendPQExpBufferChar(curbuf, ch);
-            cpIndex++;
-          }
-        }
-        else if (ch == '$') {
-          /*
-           * Dollar is always quoted, whether inside quotes or not. The
-           * reason is that it's allowed in SQL identifiers, so there's a
-           * significant use-case for treating it literally, while because
-           * we anchor the pattern automatically there is no use-case for
-           * having it possess its regexp meaning.
-           */
-          appendPQExpBufferStr(curbuf, "\\$");
-          if (left)
-            appendPQExpBufferChar(left_literal, '$');
-          cpIndex++;
-        }
-        else {
-          /*
-           * Ordinary data character, transfer to pattern
-           *
-           * Inside double quotes, or at all times if force_escape is true,
-           * quote regexp special characters with a backslash to avoid
-           * regexp errors.  Outside quotes, however, let them pass through
-           * as-is; this lets knowledgeable users build regexp expressions
-           * that are more powerful than shell-style patterns.
-           *
-           * As an exception to that, though, always quote "[]", as that's
-           * much more likely to be an attempt to write an array type name
-           * than it is to be the start of a regexp bracket expression.
-           */
-          if ((inquotes || force_escape) &&
-            strchr("|*+?()[]{}.^$\\", ch) != NULL)
-            appendPQExpBufferChar(curbuf, '\\');
-          else if (ch == '[' && cp[cpIndex + 1] == ']')
-            appendPQExpBufferChar(curbuf, '\\');
-
-          if (left)
-            appendPQExpBufferChar(left_literal, ch);
-          appendPQExpBufferChar(curbuf, ch);
-          cpIndex++;
-        }
-      }
-      appendPQExpBufferStr(curbuf, ")$");
-
-      if (namebuf) {
-        appendPQExpBufferStr(namebuf, curbuf.data);
-        curbuf = buf[--bufIndex];
-      }
-
-      if (schemabuf && bufIndex >= 0) {
-        appendPQExpBufferStr(schemabuf, curbuf.data);
-        curbuf = buf[--bufIndex];
-      }
-
-      if (dbnamebuf && bufIndex >= 0) {
-        if (want_literal_dbname)
-          appendPQExpBufferStr(dbnamebuf, left_literal.data);
-        else
-          appendPQExpBufferStr(dbnamebuf, curbuf.data);
-      }
-    }
 
     function column_type_alignment(ftype) {
       let align;
@@ -476,97 +281,7 @@ export function describe(
 
 
 
-    /*
-     * Write text at *lines to output with line numbers.
-     *
-     * For functions, lineno "1" should correspond to the first line of the
-     * function body; lines before that are unnumbered.  We expect that
-     * pg_get_functiondef() will emit that on a line beginning with "AS ",
-     * "BEGIN ", or "RETURN ", and that there can be no such line before
-     * the real start of the function body.
-     *
-     * Caution: this scribbles on *lines.
-     */
-    function print_with_linenumbers(output, lines, is_func) {
-      let in_header = is_func;
-      let lineno = 0;
-      let result = '';
 
-      lines = lines.trimEnd().split('\n');
-      for (let line of lines) {
-        if (in_header &&
-          (strncmp(line, "AS ", 3) == 0 ||
-            strncmp(line, "BEGIN ", 6) == 0 ||
-            strncmp(line, "RETURN ", 7) == 0))
-          in_header = false;
-
-        /* increment lineno only for body's lines */
-        if (!in_header)
-          lineno++;
-
-        /* show current line as appropriate */
-        if (in_header)
-          result += sprintf("        %s\n", line);
-        else
-          result += sprintf("%-7d %s\n", lineno, line);
-      }
-
-      fputs(result, output);
-    }
-
-
-
-    /*
-     * Format a reloptions array and append it to the given buffer.
-     *
-     * "prefix" is prepended to the option names; typically it's "" or "toast.".
-     *
-     * Returns false if the reloptions array could not be parsed (in which case
-     * nothing will have been appended to the buffer), or true on success.
-     *
-     * Note: this logic should generally match the backend's flatten_reloptions()
-     * (in adt/ruleutils.c).
-     */
-    function appendReloptionsArray(buffer, reloptions, prefix, encoding, std_strings) {
-      let options = [];
-      let noptions = {};
-      let i;
-
-      if (!parsePGArray(reloptions, options, noptions)) {
-        return false;
-      }
-
-      noptions = noptions.value;
-      for (i = 0; i < noptions; i++) {
-        let option = options[i];
-
-        /*
-         * Each array element should have the form name=value.  If the "=" is
-         * missing for some reason, treat it like an empty value.
-         */
-        let [name, value] = option.split('=');
-        value ??= "";
-
-        if (i > 0)
-          appendPQExpBufferStr(buffer, ", ");
-        appendPQExpBuffer(buffer, "%s%s=", prefix, fmtId(name));
-
-        /*
-         * In general we need to quote the value; but to avoid unnecessary
-         * clutter, do not quote if it is an identifier that would not need
-         * quoting.  (We could also allow numbers, but that is a bit trickier
-         * than it looks --- for example, are leading zeroes significant?  We
-         * don't want to assume very much here about what custom reloptions
-         * might mean.)
-         */
-        if (strcmp(fmtId(value), value) == 0)
-          appendPQExpBufferStr(buffer, value);
-        else
-          appendStringLiteral(buffer, value, encoding, std_strings);
-      }
-
-      return true;
-    }
 
     /*
      * Deconstruct the text representation of a 1-dimensional Postgres array
@@ -578,7 +293,7 @@ export function describe(
      *
      * NOTE: free'ing itemarray is sufficient to deallocate the working storage.
      */
-    function parsePGArray(atext, items, nitems) {
+    function parsePGArray(atext, itemarray, nitems) {
       let inputlen;
       let strings;
       let curitem;
@@ -594,10 +309,12 @@ export function describe(
        * character for each input character (consider "{,,,,,,,,,,}").
        */
       inputlen = strlen(atext);
+      itemarray.value = NULL;
       nitems.value = 0;
 
       if (inputlen < 2 || atext[0] != '{' || atext[inputlen - 1] != '}')
         return false;			/* bad input */
+      const items = itemarray.value = [];
 
       let at = 0;
       at++;					/* advance over initial '{' */
@@ -676,9 +393,10 @@ export function describe(
          * Note: ScanKeywordLookup() does case-insensitive comparison, but
          * that's fine, since we already know we have all-lower-case.
          */
-        let kw = new Set(["all", "analyse", "analyze", "and", "any", "array", "as", "asc", "asymmetric", "authorization", "between", "bigint", "binary", "bit", "boolean", "both", "case", "cast", "char", "character", "check", "coalesce", "collate", "collation", "column", "concurrently", "constraint", "create", "cross", "current_catalog", "current_date", "current_role", "current_schema", "current_time", "current_timestamp", "current_user", "dec", "decimal", "default", "deferrable", "desc", "distinct", "do", "else", "end", "except", "exists", "extract", "false", "fetch", "float", "for", "foreign", "freeze", "from", "full", "grant", "greatest", "group", "grouping", "having", "ilike", "in", "initially", "inner", "inout", "int", "integer", "intersect", "interval", "into", "is", "isnull", "join", "json", "json_array", "json_arrayagg", "json_object", "json_objectagg", "json_scalar", "json_serialize", "lateral", "leading", "least", "left", "like", "limit", "localtime", "localtimestamp", "national", "natural", "nchar", "none", "normalize", "not", "notnull", "null", "nullif", "numeric", "offset", "on", "only", "or", "order", "out", "outer", "overlaps", "overlay", "placing", "position", "precision", "primary", "real", "references", "returning", "right", "row", "select", "session_user", "setof", "similar", "smallint", "some", "substring", "symmetric", "system_user", "table", "tablesample", "then", "time", "timestamp", "to", "trailing", "treat", "trim", "true", "union", "unique", "user", "using", "values", "varchar", "variadic", "verbose", "when", "where", "window", "with", "xmlattributes", "xmlconcat", "xmlelement", "xmlexists", "xmlforest", "xmlnamespaces", "xmlparse", "xmlpi", "xmlroot", "xmlserialize", "xmltable"]).has(rawid);
+        let kwnum = ScanKeywordNames.indexOf(rawid);  // as ScanKeywordLookup(rawid, &ScanKeywords)
 
-        if (kw) need_quotes = true;
+        if (kwnum >= 0 && ScanKeywordCategories[kwnum] != UNRESERVED_KEYWORD)
+          need_quotes = true;
       }
 
       if (!need_quotes) {
@@ -738,7 +456,7 @@ export function describe(
     return true;
   }
 
-  const promise = main().finally(flushLog);
+  const promise = main().finally(flushText);
   return { promise, cancel };
 }
 
@@ -995,6 +713,10 @@ function pg_tolower(ch) {
 
 function pg_strcasecmp(s1, s2) {
   return strcmp(s1.toLowerCase(), s2.toLowerCase());
+}
+
+function PQmblenBounded(s, encoding) {  // a JS string is characters, not bytes, so a character's length is 1
+  return 1;
 }
 
 function pg_wcswidth(pwcs, len, encoding) {

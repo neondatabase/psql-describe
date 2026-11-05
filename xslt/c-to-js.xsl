@@ -54,6 +54,7 @@
   expand-text="yes"
   xmlns="http://www.w3.org/1999/XSL/Transform"
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:map="http://www.w3.org/2005/xpath-functions/map"
   xmlns:c="urn:c-to-js"
   exclude-result-prefixes="#all">
 
@@ -181,9 +182,10 @@
   <!-- The externals: names that the translated functions use, but that are neither declared in them, nor translated,
        nor provided by the runtime. (A name declared in a function has a declared attribute such as
        describeAggregates.pattern, with a dot.) Names in C that rules drop don't count: in dropped branches, statements
-       that only free memory, array allocations, and snprintf statements. -->
+       that only free memory, array allocations, array sizes in declarations, and snprintf statements. -->
   <variable name="externals" select="
-    let $reached := $translated return distinct-values(($reached//identifier except ($dropped-branches | $reached//(*[c:is-freeing(.)] | call_expression[*[@field = 'function'] = $array-allocators]))//identifier)
+    let $reached := $translated return distinct-values(($reached//identifier except ($dropped-branches | $reached//(*[c:is-freeing(.)] | call_expression[*[@field = 'function'] = $array-allocators]
+      | array_declarator/*[@field = 'size']))/descendant-or-self::identifier)
       [not(contains(@declared, '.'))]
       [not(. = 'snprintf' and ../self::call_expression[c:is-statement(.)])]
       [not(. = ($provided, $reached ! c:defined-names(.), $constants/*[@field = 'name']))])"/>
@@ -703,11 +705,89 @@
     <value-of select="c:operand($p, $js) || '.value'"/>
   </template>
 
-  <!-- The value that a variable declared without one starts with: {} for a box, and otherwise the empty value of its
-       type -->
+  <!--
+    A pointer that only ever points into one array is an index into it: e.g. curbuf, in `PQExpBufferData buf[3];` and
+    `curbuf = &buf[0];`, is curbuf = 0. Then it moves and compares as it is (curbuf++, curbuf < maxbuf, and curbuf >= buf
+    as curbuf >= 0), and anything else it's used for uses the element it points to, buf[curbuf] (so curbuf->data is
+    buf[curbuf].data). That works if those are all it's used for: so it's declared, set only to &a[i] (or a) for the same
+    array a, and otherwise only moved (++ or \-\-), compared (with another such pointer into a, or with a), passed to a
+    function, or followed (*p or p->x).
+  -->
+
+  <!-- The uses of a variable that set it (p in p = ..., or char *p = ...), and the values they set it to -->
+  <function name="c:is-set" as="xs:boolean">
+    <param name="id" as="element(identifier)"/>
+    <sequence select="exists($id[@field = 'left']/parent::assignment_expression[c:operator(.) = '='] | $id[@field = 'declarator']/parent::init_declarator)"/>
+  </function>
+
+  <!-- The array that &a[i] or a (as a value) is in: a -->
+  <function name="c:array-of" as="element(identifier)?">
+    <param name="value" as="element()"/>
+    <sequence select="($value/self::pointer_expression[c:operator(.) = '&amp;']/*[@field = 'argument']/self::subscript_expression/*[@field = 'argument'],
+      $value)/self::identifier[ends-with(@type, '[]')][1]"/>
+  </function>
+
+  <!-- Pointers that might be into an array (by how they're set), by declared attribute, with the array -->
+  <variable name="array-pointer-candidates" as="map(xs:string, element(identifier))">
+    <map>
+      <for-each-group select="$translated//identifier[c:is-pointer(.)][not(ends-with(@type, '[]'))][contains(@declared, '.')]" group-by="@declared">
+        <variable name="arrays" select="current-group()[c:is-set(.)]/../*[@field = ('right', 'value')] ! c:array-of(.)"/>
+        <if test="exists($arrays) and count(current-group()[c:is-set(.)]) = count($arrays) and count(distinct-values($arrays/@declared)) = 1">
+          <map-entry key="current-grouping-key()" select="$arrays[1]"/>
+        </if>
+      </for-each-group>
+    </map>
+  </variable>
+
+  <!-- Those that are used only as above: the pointers into arrays, by declared attribute, with the array -->
+  <variable name="array-pointers" select="map:merge(map:keys($array-pointer-candidates)
+    [let $p := ., $array := $array-pointer-candidates(.) return every $use in $translated//identifier[@declared = $p] satisfies
+      c:is-set($use) or $use/@field = 'declarator'
+      or exists($use/parent::update_expression | $use/parent::argument_list | $use[@field = 'argument']/parent::field_expression[token = '->']
+        | $use/parent::pointer_expression[c:operator(.) = '*'])
+      or $use/parent::binary_expression[c:operator(.) = ('&lt;', '&lt;=', '&gt;', '&gt;=', '==', '!=')]/*[not(. is $use)][@field = ('left', 'right')]
+        /self::identifier[@declared = $array/@declared or map:get($array-pointer-candidates, @declared)/@declared = $array/@declared]]
+    ! map{.: $array-pointer-candidates(.)})"/>
+
+  <!-- Is an identifier a pointer into an array where it's declared, set, moved or compared? (Then it's an index, as it
+       is: e.g. curbuf in curbuf++.) -->
+  <function name="c:is-index" as="xs:boolean">
+    <param name="id" as="element(identifier)"/>
+    <sequence select="c:is-set($id) or $id/@field = 'declarator' or exists($id/parent::update_expression)
+      or exists($id/parent::binary_expression[*[@field = ('left', 'right')]/self::identifier[map:contains($array-pointers, @declared)]])"/>
+  </function>
+
+  <!-- A pointer into an array p: as an index, p, and otherwise a[p] -->
+  <template match="identifier[map:contains($array-pointers, @declared)]" priority="5">
+    <value-of select="if (c:is-index(.)) then string(.) else c:js($array-pointers(@declared)) || '[' || . || ']'"/>
+  </template>
+
+  <!-- What such a pointer is set to: &a[i] is i, and a is 0 -->
+  <template match="*[@field = ('right', 'value')][../(*[@field = 'left'], *[@field = 'declarator'])/self::identifier[map:contains($array-pointers, @declared)][c:is-set(.)]]" priority="5">
+    <apply-templates select="self::pointer_expression/*[@field = 'argument']/*[@field = 'index']"/>
+    <if test="self::identifier">0</if>
+  </template>
+
+  <!-- The array, compared with such a pointer: 0 -->
+  <template match="identifier[ends-with(@type, '[]')][../self::binary_expression/*[@field = ('left', 'right')]/self::identifier[map:contains($array-pointers, @declared)]]" priority="5">0</template>
+
+  <!-- Moving or comparing such a pointer: as it is (and not refused, as other pointer arithmetic is) -->
+  <template match="update_expression[*[@field = 'argument']/self::identifier[map:contains($array-pointers, @declared)]]
+      | binary_expression[*[@field = ('left', 'right')]/self::identifier[map:contains($array-pointers, @declared)]]" priority="5">
+    <apply-templates select="node()"/>
+  </template>
+
+  <!-- The value that a variable declared without one starts with: {} for a box, an array of n empty values for an array
+       of n structs (as a C array contains its structs), e.g. [{}, {}, {}] for `PQExpBufferData buf[3]`, and otherwise
+       the empty value of its type -->
   <function name="c:empty-value" as="xs:string?">
     <param name="id" as="element(identifier)"/>
-    <sequence select="if ($id/@declared = $boxed) then '{}' else c:empty-value-of($id/@type)"/>
+    <variable name="size" select="$id/parent::array_declarator/*[@field = 'size']/self::number_literal"/>
+    <variable name="element-type" select="substring-before($id/@type, '[]')"/>
+    <sequence select="if ($id/@declared = $boxed) then '{}'
+      else if (exists($size) and c:is-struct-type($element-type))
+        then '[' || string-join((1 to xs:integer($size)) ! c:empty-value-of($element-type), ', ') || ']'
+      else c:empty-value-of($id/@type)"/>
   </function>
 
   <!-- The empty value of a type: '' for a char array (which is a string), [] for another array, and for a struct, an
@@ -862,6 +942,74 @@
       [*[@field = 'left']/self::subscript_expression[*[@field = 'argument'][c:is-string(.)][not(c:has-side-effects(.))]]]" priority="2">
     <variable name="s" select="*[@field = 'left']/*[@field = 'argument']"/>
     <value-of select="c:js($s) || ' = ' || c:operand($s, c:js($s)) || '.slice(0, ' || c:js(*[@field = 'left']/*[@field = 'index']) || ')'"/>
+  </template>
+
+  <!-- The string that p points into, if we can tell: s, if p was last set (before $p, in the same function) by
+       p = strchr(s, c), strrchr or strstr (or in a declaration, char *p = ...), and s hasn't been set since -->
+  <function name="c:pointed-into" as="element(identifier)?">
+    <param name="p" as="element(identifier)"/>
+    <!-- Assignments and initialisations in the function, and the variables they set -->
+    <variable name="sets" select="$p/ancestor::function_definition//(assignment_expression[c:operator(.) = '='] | init_declarator)"/>
+    <variable name="last" select="$sets[c:set-variable(.)/@declared = $p/@declared][. &lt;&lt; $p][last()]"/>
+    <variable name="s" select="$last/*[@field = ('right', 'value')]/self::call_expression[*[@field = 'function'] = ('strchr', 'strrchr', 'strstr')]
+      /*[@field = 'arguments']/*[not(self::token | self::comment)][1]/self::identifier"/>
+    <sequence select="$s[empty($sets[c:set-variable(.)/@declared = $s/@declared][. >> $last][. &lt;&lt; $p])]"/>
+  </function>
+
+  <!-- The variable that an assignment or initialisation sets: e.g. p in p = ... (but not *p = ...) or char *p = ... -->
+  <function name="c:set-variable" as="element(identifier)?">
+    <param name="set" as="element()"/>
+    <sequence select="$set/*[@field = 'left']/self::identifier, $set/self::init_declarator/*[@field = 'declarator']/descendant-or-self::identifier[1]"/>
+  </function>
+
+  <!-- The variables that are copies of s at $p, which point to the same string, so that ending s ends them too: those
+       last set (before $p, in the same function) to s itself, e.g. name in name = s, if s hasn't been set since. (Copies
+       made in other ways, e.g. in arrays or structs, aren't found.) -->
+  <function name="c:copies" as="element(identifier)*">
+    <param name="s" as="element(identifier)"/>
+    <param name="p" as="element(identifier)"/>
+    <variable name="sets" select="$p/ancestor::function_definition//(assignment_expression[c:operator(.) = '='] | init_declarator)[. &lt;&lt; $p]"/>
+    <variable name="s-sets" select="$sets[c:set-variable(.)/@declared = $s/@declared]"/>
+    <for-each-group select="$sets[*[@field = ('right', 'value')]/self::identifier/@declared = $s/@declared]" group-by="c:set-variable(.)/@declared">
+      <variable name="copy" select="current-group()[last()]"/>
+      <sequence select="c:set-variable($copy)[$sets[c:set-variable(.)/@declared = current-grouping-key()][last()] is $copy]
+        [empty($s-sets[. >> $copy])]"/>
+    </for-each-group>
+  </function>
+
+  <!-- *p = '\0', where p points into s (see c:pointed-into), which ends s where p is: s = s.slice(0, s.length - p.length),
+       and likewise each copy of s, e.g. (s = ..., name = s) -->
+  <template match="assignment_expression[c:operator(.) = '='][*[@field = 'right'] = &quot;'\0'&quot;]
+      [*[@field = 'left']/self::pointer_expression[c:operator(.) = '*']/*[@field = 'argument']/self::identifier[exists(c:pointed-into(.))]]" priority="2">
+    <variable name="p" select="*[@field = 'left']/*[@field = 'argument']"/>
+    <variable name="s" select="c:pointed-into($p)"/>
+    <variable name="js" select="c:js($s)"/>
+    <value-of select="string-join(($js || ' = ' || $js || '.slice(0, ' || $js || '.length - ' || c:js($p) || '.length)',
+      c:copies($s, $p) ! (c:js(.) || ' = ' || $js)), ', ')"/>
+  </template>
+
+  <!-- *s++, which reads s[0] and moves s on, in a statement that doesn't otherwise use s: s[0], with s = s.slice(1)
+       after it, as below. (C only says that s moves before the next statement.) -->
+  <function name="c:is-read-and-move" as="xs:boolean">
+    <param name="expr" as="element()"/>
+    <variable name="s" select="$expr/self::pointer_expression[c:operator(.) = '*'][not(@field = 'left' and parent::assignment_expression)]
+      /*[@field = 'argument']/self::update_expression[c:operator(.) = '++'][*[1][@field = 'argument']]/identifier[c:is-string(.)]"/>
+    <sequence select="exists($s) and count($expr/ancestor::expression_statement[1]//identifier[@declared = $s/@declared]) = 1"/>
+  </function>
+
+  <template match="pointer_expression[c:is-read-and-move(.)]" priority="4">
+    <variable name="s" select="*[@field = 'argument']/*[@field = 'argument']"/>
+    <value-of select="c:js($s) || '[0]'"/>
+  </template>
+
+  <!-- A statement with *s++ in it, as above: the statement, then (in a comma expression, so that it's still one
+       statement) s = s.slice(1), e.g. appendPQExpBufferChar(buf, s[0]), s = s.slice(1); -->
+  <template match="expression_statement[.//pointer_expression[c:is-read-and-move(.)]]" priority="1">
+    <variable name="moves" select="(.//pointer_expression[c:is-read-and-move(.)]/*[@field = 'argument']/*[@field = 'argument'])
+      ! (c:js(.) || ' = ' || c:js(.) || '.slice(1)')"/>
+    <apply-templates select="*[1]"/>
+    <value-of select="$moves ! (', ' || .)" separator=""/>
+    <apply-templates select="*[1]/following-sibling::node()"/>
   </template>
 
   <!-- *s written through, as in *s = c or *s += 1, or *s++ (moving s): refuse -->

@@ -18,11 +18,13 @@ This builds the whole JS library from a Postgres source tree: `tmp/lib/describe.
 
 ## The runtime
 
-`runtime.mjs` is the hand-written part of the library: the hand-maintained port (`src/describe.mjs`) without the functions that are now translated. It has the exported `describe()` function, which hands the command to the translated `HandleSlashCmds`, and `PSQLexec`, `pset`, output and cancellation; the C library functions the translation calls (`PQExpBuffer`, `PQgetvalue`, `sprintf`, …); and its own versions of the few C functions it can't translate (because they write through a `char *`, such as `fmtId` and `appendStringLiteral`).
+`runtime.mjs` is the hand-written part of the library: the hand-maintained port (`src/describe.mjs`) without the functions that are now translated. It has the exported `describe()` function, which hands the command to the translated `HandleSlashCmds`, and `PSQLexec`, `pset`, output and cancellation; the C library functions the translation calls (`PQExpBuffer`, `PQgetvalue`, `sprintf`, …); and its own versions of the four C functions it can't translate, because they write characters through a `char *`: `fmtId`, `appendStringLiteral`, `appendStringLiteralConn` (into a `PQExpBuffer`'s data) and `parsePGArray` (into a block of memory holding an array of pointers and their strings).
 
-For C library functions, it does just enough. For example, `PQexec` runs a query and gives a result with a status (`PGRES_TUPLES_OK` or, if the query fails, `PGRES_FATAL_ERROR`, with error fields for `PQresultErrorField`), and C's stdio is an object with a `write` method, where `stdout` writes to the `outputFn` callback, and there's no pager. So `\sf` and `\sv` (`exec_command_sf_sv` and the functions it calls), which use these, are translated like everything else. So are `\?` and `\h` (`exec_command_slash_command_help` and `exec_command_help`), for which the runtime provides `slashUsage` (which prints the generated `\?` text: see below) and `helpSQL` (which searches the generated SQL help).
+The keyword list that `fmtId` uses to decide what to quote is generated, though. In psql, `common/keywords.c` makes the keyword categories, `ScanKeywordCategories`, by `#include`-ing `parser/kwlist.h` (a list of `PG_KEYWORD("abort", ABORT_P, UNRESERVED_KEYWORD, BARE_LABEL)` and so on) in an array, having `#define`d `PG_KEYWORD` to give just the category. The names are in a hash table made at build time, so `xslt/keywords.c` does the same as `keywords.c` for those, as `ScanKeywordNames`. Both arrays are translated as globals (the runtime's `fmtId` uses them). (The port's hand-written list was from Postgres 16, missing `json_exists`, `json_query`, `json_table`, `json_value` and `merge_action`, which psql 17 and later quote.)
 
-`HandleSlashCmds` and `exec_command` are translated too, so psql decides what's an invalid command, and warns about extra arguments. For these, the runtime has `psql_scan_slash_command` (which reads the command name, up to whitespace or a backslash, as psql's lexer does) and stubs for the `\if` stack (we're always in an active branch). psql logs each error or warning as a line on stderr, so messages logged one after another are one item of output.
+For C library functions, it does just enough. For example, `PQexec` runs a query and gives a result with a status (`PGRES_TUPLES_OK` or, if the query fails, `PGRES_FATAL_ERROR`, with error fields for `PQresultErrorField`), and C's stdio is an object with a `write` method, where `stdout` writes text, and there's no pager. Text written to `stdout`, or logged as an error or warning, is collected, and goes to the `outputFn` callback as one item before the next table, or at the end. (So the line-by-line output of `\sf+`, or a warning for each extra argument, is one item, as it would be lines together in psql.) So `\sf` and `\sv` (`exec_command_sf_sv` and the functions it calls), which use these, are translated like everything else. So are `\?` and `\h` (`exec_command_slash_command_help` and `exec_command_help`), for which the runtime provides `slashUsage` (which prints the generated `\?` text: see below) and `helpSQL` (which searches the generated SQL help).
+
+`HandleSlashCmds` and `exec_command` are translated too, so psql decides what's an invalid command, and warns about extra arguments. For these, the runtime has `psql_scan_slash_command` (which reads the command name, up to whitespace or a backslash, as psql's lexer does) and stubs for the `\if` stack (we're always in an active branch).
 
 What psql has but the library doesn't is declared `unsupported`, e.g. `do_lo_export = unsupported('lo_export')`, which reports an error. This lets `exec_command_lo` be translated whole, for `\lo_list`.
 
@@ -36,7 +38,7 @@ The translation goes in place of the comment `/* TRANSLATED FROM C */`, in `desc
 
 A function the runtime provides is `async` if the runtime declares it so (like `PSQLexec`). Constants used by the translation or the runtime are translated as `const`s, in place of `/* CONSTANTS TRANSLATED FROM C */` at the top level: enum constants (e.g. `PSQL_CMD_UNKNOWN`, `PGRES_TUPLES_OK`), and constants `#define`d in headers, where the value is a single literal (e.g. `PG_DIAG_SEVERITY`, `'S'`, and `INT8OID`, `20`). (Tree-sitter doesn't parse a `#define`'s value, which could be any text, such as `((Oid) 0)`.) Any other name the translation uses but no one provides is reported as an external, so that a new Postgres version can't silently produce a library that fails at run time.
 
-A few runtime functions changed to match the C API, which the port had adapted at each call site instead: `strstr` returns the rest of the string (or `NULL`), as in C, not an index; and a table's last footer is a `printTableFooter`, `{ data }`. And the runtime defines `ngettext` and `pg_log_error_internal`, which the port used but never defined.
+A few runtime functions changed to match the C API, which the port had adapted at each call site instead: `strstr` returns the rest of the string (or `NULL`), as in C, not an index; a table's last footer is a `printTableFooter`, `{ data }`; and `parsePGArray` sets its result through a pointer, `itemarray`, rather than filling in an array it's given. And the runtime defines `ngettext` and `pg_log_error_internal`, which the port used but never defined.
 
 ### The version, and the `\?` text
 
@@ -92,11 +94,11 @@ So `preprocess.py` first runs each file through a real C preprocessor, [pcpp](ht
 
 - the annotations `PGDLLIMPORT`, `pg_nodiscard`, `pg_attribute_printf(f, a)`, `pg_attribute_format_arg(a)`, `pg_attribute_no_sanitize_address()` and `pg_noreturn`, to nothing (as `c.h` defines them when the compiler doesn't support them), since they otherwise spoil the parse of declarations;
 - `CppAsString(x)`, which is C's `#` operator, and `CppAsString2(x)`, which expands `x` first (both as in `c.h`);
-- macros `#define`d in the file itself (e.g. `WHEREAND()` in `processSQLNamePattern`), and in the catalog headers it includes, which are the only `#include`s it reads. So `CppAsString2(RELKIND_RELATION)` is `"'r'"`, and `RELKIND_RELATION` elsewhere is `'r'`.
+- macros `#define`d in the file itself (e.g. `WHEREAND()` in `processSQLNamePattern`), and in the catalog headers it includes, which are the only `#include`s it reads, apart from `parser/kwlist.h` (see the runtime, above), which it pastes in. So `CppAsString2(RELKIND_RELATION)` is `"'r'"`, and `RELKIND_RELATION` elsewhere is `'r'`.
 
 and it drops `#ifdef NOT_USED` blocks, since by convention Postgres never defines `NOT_USED`.
 
-`preprocess.py` is pcpp's command-line tool, plus two small changes: it reads only the catalog headers (saying other `#include`d files aren't there, so they're passed through), and it removes comments from `#define` values, as C does. (Otherwise, keeping comments, pcpp stringizes `#define RELKIND_PARTITIONED_TABLE 'p' /* partitioned table */` as `"'p' /* partitioned table */"`.) In headers, it leaves the `#define`s in place (after expanding their uses), so that constants the runtime uses can be translated; in `.c` files, it removes them.
+`preprocess.py` is pcpp's command-line tool, plus two small changes: it reads only the catalog headers and the keyword list (saying other `#include`d files aren't there, so they're passed through), and it removes comments from `#define` values, as C does. (Otherwise, keeping comments, pcpp stringizes `#define RELKIND_PARTITIONED_TABLE 'p' /* partitioned table */` as `"'p' /* partitioned table */"`.) In headers, it leaves the `#define`s in place (after expanding their uses), so that constants the runtime uses can be translated; in `.c` files, it removes them.
 
 An earlier version of this did the preprocessing in XSLT, on the tokens in tree-sitter's parse. But tree-sitter lexes only the tokens that make sense where it is in its parse, so where the parse goes wrong, the tokens after it can be wrong too: after one misparsed `CppAsString2(...)`, `describe.c` has another that's lexed as part of a string. So it had to expand, parse again, and repeat until nothing changed. A real preprocessor's lexer doesn't depend on parsing, so one pass is enough. Also, reimplementing parts of a C preprocessor was very much a non-goal here!
 
@@ -123,7 +125,7 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
    </template>
    ```
 
-   Global variables are translated where the functions are, in `main()`, which therefore runs the command last, once everything is declared. They are `restricted` (used by `HandleSlashCmds`) and `quote_all_identifiers` (used by the runtime's `fmtId`), which the runtime had declared by hand. A global declared without a value starts with zero, as in C: `static bool restricted;` is `let restricted = false;` (and a pointer would be `NULL`). To make this possible, `add-types.xsl` types the names of global variables, as well as everything in functions.
+   Global variables are translated where the functions are, in `main()`, which therefore runs the command last, once everything is declared. They are `restricted` (used by `HandleSlashCmds`), and `quote_all_identifiers`, `ScanKeywordNames` and `ScanKeywordCategories` (used by the runtime's `fmtId`). A global declared without a value starts with zero, as in C: `static bool restricted;` is `let restricted = false;` (and a pointer would be `NULL`). To make this possible, `add-types.xsl` types the names of global variables, as well as everything in functions.
 
 1. **Following calls back to the async seeds:** a function that calls `PSQLexec` or `PQexec` (provided by the JS runtime, and returning a Promise) is `async`, and so is any function that calls an `async` function. This is the same fixed point, run backwards: a second `key` indexes calls by the function called, and each round adds the functions containing calls to those found so far:
 
@@ -198,7 +200,13 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
 
    The boxes, `.value`s and initial values are exactly the same as `translate/`'s.
 
-8. **Strings:** a `char *` is modelled as the JS string that's the rest of the C string from where it points. So `*s` is `s[0]`, `&s[i]` and `s + i` are `s.slice(i)`, `s++` is `s = s.slice(1)`, `s[i] = '\0'` is `s = s.slice(0, i)`, and `'\0'`, which ends a C string, is `undefined`, which is what reading past the end of a JS string gives. That only works for reading, so writing through a `char *` (`*s = c`, `*s++`), other pointer arithmetic and comparisons, and passing a slice to a function whose parameter is a (writable) `char *`, are marked `⟦like this⟧` for porting by hand. That last check looks up the function's parameter's `type`:
+8. **Strings:** a `char *` is modelled as the JS string that's the rest of the C string from where it points. So `*s` is `s[0]`, `&s[i]` and `s + i` are `s.slice(i)`, `s++` is `s = s.slice(1)`, `s[i] = '\0'` is `s = s.slice(0, i)`, and `'\0'`, which ends a C string, is `undefined`, which is what reading past the end of a JS string gives. That only works for reading, with three exceptions:
+
+   - `*p = '\0'`, where `p` was set by `p = strchr(s, c)` (or `strrchr` or `strstr`), ends `s` where `p` is: `s = s.slice(0, s.length - p.length)`. Each copy of `s` (a variable last set to `s` itself) is ended too, since in C it's the same string: so in `appendReloptionsArray`, `name = option; separator = strchr(option, '='); *separator = '\0';` ends both, as `option = option.slice(0, option.length - separator.length), name = option`. (Copies made in other ways, e.g. in arrays or structs, aren't found.)
+   - `*s++`, which reads `s[0]` and moves `s` on, is `s[0]`, with `s = s.slice(1)` after it, in a statement that doesn't otherwise use `s`: `appendPQExpBufferChar(curbuf, *cp++);` is `appendPQExpBufferChar(curbuf, cp[0]), cp = cp.slice(1);`. (C only requires that `s` has moved by the next statement, and the comma expression keeps it one statement.)
+   - A pointer that only ever points into one array is an index into it. In `patternToSQLRegex`, `curbuf` and `maxbuf` point into `PQExpBufferData buf[3]`: `curbuf = &buf[0]` is `curbuf = 0`, `curbuf++`, `curbuf < maxbuf` and `curbuf >= buf` (`curbuf >= 0`) are as they are, and `appendPQExpBufferStr(curbuf, ...)` is `appendPQExpBufferStr(buf[curbuf], ...)`. That's only if the pointer is used in no other way (and `buf` is `[{}, {}, {}]`, since a C array contains its structs).
+
+   Otherwise, writing through a `char *` (`*s = c`, `*s++ = c`), other pointer arithmetic and comparisons, and passing a slice to a function whose parameter is a (writable) `char *`, are marked `⟦like this⟧` for porting by hand. That last check looks up the function's parameter's `type`:
 
    ```xml
    <variable name="call" select="$expr/parent::argument_list/parent::call_expression"/>
@@ -208,7 +216,7 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
    <sequence select="empty($call) or (exists($function) and not($parameter/@type = ('char*', 'char[]')))"/>
    ```
 
-   The slices, `[0]`s, `undefined`s and refusals are exactly the same as `translate/`'s.
+   The slices, `[0]`s, `undefined`s and refusals (other than the three exceptions) are exactly the same as `translate/`'s.
 
 9. **Struct copies:** assigning a C struct copies it, but assigning a JS object doesn't, so `printQueryOpt myopt = pset.popt;` is `myopt = { ...pset.popt }`. A C struct also contains its structs and arrays, so a struct type with some gets a copy function, output after everything else:
 
@@ -228,7 +236,8 @@ The stylesheets are commented for readers new to XSLT. The parts of `c-to-js.xsl
 
 Normalised by `compare.ts` and compared function by function, this translation now differs from `translate/`'s only where it should: catalog constants are expanded by pcpp (`relkind == 'r'`, not `relkind == RELKIND_RELATION`), `WHEREAND()` is expanded where it's used (not turned into an arrow function), and `ignore_slash_options` keeps its loop (see 4, above). It also has the struct copy functions as functions of their own.
 
-Two bugs in the hand-maintained port don't happen in the generated library, and each now has a test:
+Three bugs in the hand-maintained port don't happen in the generated library, and each now has a test:
 
 - `\du` and `\dg` fail with "ERROR: ngettext is not defined" whenever a role has a connection limit (the port calls `ngettext`, for "1 connection" or "3 connections", but never defines it). This is now in the test matrix, with roles limited to 1 and 3 connections.
 - On a Postgres 10 server, `\dfp` says "\df does not take a "p" option with server version 10.0005", not "10": the port lost an integer division (`Math.floor`) in `formatPGVersionNumber`. This is now in the API tests (with `sversion` 100005).
+- Identifiers named for keywords added in Postgres 17 (`json_exists`, `json_query`, `json_table`, `json_value` and `merge_action`) aren't quoted, e.g. `\sv "json_table"` gives `CREATE OR REPLACE VIEW public.json_table`, not `public."json_table"`: the port's keyword list was from Postgres 16. The generated library's list comes from `kwlist.h`. This is now in the test matrix, with a view named `json_table`.

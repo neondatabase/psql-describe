@@ -10,8 +10,9 @@
 # from there. So we expand that macro as the C preprocessor does, giving "'r'".
 #
 # pcpp expands the macros below, and those #defined in the files themselves and in the catalog headers they include
-# (for constants such as RELKIND_RELATION). It reads no other #includes, and leaves all #includes, comments and
-# #if logic it can't evaluate as they are. In headers, it also leaves the #defines themselves (having expanded them),
+# (for constants such as RELKIND_RELATION). It reads no other #includes, except the keyword list, parser/kwlist.h, which
+# it pastes in (as in keywords.c). It leaves the other #includes, comments and #if logic it can't evaluate as they
+# are. In headers, it also leaves the #defines themselves (having expanded them),
 # so that c-to-js.xsl can translate constants the runtime uses; in .c files, it removes them (e.g. a macro defined
 # in a function, whose uses it has expanded).
 
@@ -30,9 +31,11 @@ MACROS = [
 UNDEFINED = ['NOT_USED']  # never #defined, by Postgres convention
 
 class Preprocessor(CmdPreprocessor):
-    # Read only the catalog headers: for any other #include, say the file isn't there (so it's passed through)
+    # Read only the catalog headers and the keyword list: for any other #include, say the file isn't there (so it's
+    # passed through)
     def on_file_open(self, is_system_include, includepath):
-        if os.path.join(include_dir, 'catalog', '') not in includepath:
+        if not (os.path.join(include_dir, 'catalog', '') in includepath
+                or includepath == os.path.join(include_dir, 'parser', 'kwlist.h')):
             raise FileNotFoundError(includepath)
         return super().on_file_open(is_system_include, includepath)
 
@@ -50,7 +53,7 @@ for file in files:
     out = os.path.join(out_dir, os.path.normpath(file).lstrip('/').replace('../', ''))
     os.makedirs(os.path.dirname(out), exist_ok=True)
     pp = Preprocessor(['pcpp', '-o', out, '-I', include_dir, *(arg for m in MACROS for arg in ('-D', m)),
-        *(arg for m in UNDEFINED for arg in ('-U', m)), '--passthru-includes', '.*', '--passthru-unfound-includes',
+        *(arg for m in UNDEFINED for arg in ('-U', m)), '--passthru-includes', r'^(?!.*parser/kwlist\.h)', '--passthru-unfound-includes',
         '--passthru-comments', '--passthru-unknown-exprs', *(['--passthru-defines'] if file.endswith('.h') else []),
         '--line-directive', '', file])
     if pp.return_code:

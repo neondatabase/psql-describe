@@ -201,3 +201,6 @@ CREATE TABLE empty_partitioned (
   recorded_on date NOT NULL
 ) PARTITION BY RANGE (recorded_on);
 
+
+-- a view named for a keyword (since Postgres 17), which \sv quotes
+CREATE VIEW "json_table" AS SELECT 1 AS one;

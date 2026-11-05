@@ -211,3 +211,4 @@
 \d+ payment_p2022_01
 \d+ payment_pkey
 \d+ empty_partitioned
+\sv "json_table"
