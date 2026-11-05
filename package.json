@@ -15,7 +15,8 @@
     "build": "esbuild src/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
     "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020",
     "check:translate": "tsc -p translate",
-    "check:xslt": "tsc -p xslt"
+    "check:xslt": "tsc -p xslt",
+    "build:xslt": "xslt/build.sh"
   },
   "type": "module",
   "author": "George MacKerron",

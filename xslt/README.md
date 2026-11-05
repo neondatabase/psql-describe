@@ -4,18 +4,35 @@ A proof of concept for an alternative to `translate/`: turn the C parse tree int
 
 ```bash
 python3 -m venv tmp/venv && tmp/venv/bin/pip install -r xslt/requirements.txt  # once
-
-PG=../postgres/src
-tmp/venv/bin/python xslt/preprocess.py tmp/pp $PG/include \
-  $PG/bin/psql/command.c $PG/bin/psql/describe.c $PG/fe_utils/string_utils.c xslt/libc.h \
-  $PG/include/catalog/*.h $PG/include/common/*.h $PG/include/fe_utils/*.h $PG/interfaces/libpq/*.h $PG/bin/psql/*.h |
-  xargs node xslt/c-to-xml.ts > tmp/sources.xml
-npx xslt3 -xsl:xslt/add-types.xsl -s:tmp/sources.xml -o:tmp/typed.xml
-npx xslt3 -xsl:xslt/c-to-js.xsl -s:tmp/typed.xml -o:tmp/translated.js
-node translate/compare.ts tmp/translated.js xslt/out
+npm run build:xslt -- ../postgres tmp/lib
 ```
 
-The headers (and `libc.h`, a few libc prototypes) are there for their types and `#define`s. Preprocessing (see below) and parsing take about 5s. Adding types then takes about 12s, and translating about 6s. So while working on `c-to-js.xsl`, only the last two lines need rerunning, and `typed.xml` is there to look at. The last line compares the translation with the hand-maintained port, as for `translate/`, writing `xslt/out/residual.diff`.
+This builds the whole JS library from a Postgres source tree: `tmp/lib/describe.mjs`, which is `runtime.mjs` with the translated C in it, and `tmp/lib/sql-help.generated.mjs` (for `\h`). It takes about 30s. The steps, in `xslt/build.sh`, are:
+
+1. `preprocess.py` preprocesses the C files and headers (see below), and `c-to-xml.ts` parses them as XML (`tmp/build/sources.xml`).
+2. `add-types.xsl` adds types (`tmp/build/typed.xml`, which is there to look at).
+3. `c-to-xml.ts` parses `runtime.mjs` too, and `c-to-js.xsl` translates the C into it.
+4. `generate/create-help.mjs` generates the SQL help from the docs.
+
+`node translate/compare.ts tmp/lib/describe.mjs xslt/out` compares the translated functions with the hand-maintained port, as for `translate/`, writing `xslt/out/residual.diff`.
+
+## The runtime
+
+`runtime.mjs` is the hand-written part of the library: the hand-maintained port (`src/describe.mjs`) without the functions that are now translated. It has the exported `describe()` function, which parses the command and dispatches it, and `PSQLexec`, `pset`, output and cancellation; the C library functions the translation calls (`PQExpBuffer`, `PQgetvalue`, `sprintf`, …); and its own versions of a few C functions, which it either can't translate (because they write through a `char *`, such as `fmtId` and `appendStringLiteral`) or deliberately does differently (`\sf` and `\sv` without a pager, in `exec_command_sf_sv`, `lookup_object_oid` and `get_create_object_cmd`).
+
+The translation goes in place of the comment `/* TRANSLATED FROM C */`, in `describe()`'s `main()`. Any name visible there (declared in an enclosing scope, or a parameter of an enclosing function) is provided by the runtime, so it isn't translated: the runtime's version wins. Like `c:declarator`, this walks up the scopes, but in the runtime's JS parse tree:
+
+```xml
+<variable name="provided" select="distinct-values((
+  $marker/ancestor::*[self::statement_block | self::program] ! c:js-declared(.),
+  $marker/ancestor::*/*[@field = 'parameters']/descendant::identifier[not(ancestor::*[@field = 'right'])]))"/>
+```
+
+A function the runtime provides is `async` if the runtime declares it so (like `PSQLexec`). Enum constants used by the translation or the runtime (e.g. `PSQL_CMD_UNKNOWN`, `OT_NORMAL`) are translated as `const`s, in place of `/* CONSTANTS TRANSLATED FROM C */` at the top level. Any other name the translation uses but no one provides is reported as an external, so that a new Postgres version can't silently produce a library that fails at run time.
+
+A few runtime functions changed to match the C API, which the port had adapted at each call site instead: `strstr` returns the rest of the string (or `NULL`), as in C, not an index; and a table's last footer is a `printTableFooter`, `{ data }`. And the runtime defines `ngettext` and `pg_log_error_internal`, which the port used but never defined.
+
+With the generated library bundled as `index.js`, the test matrix passes on Postgres 14–19, with help text, as do the API tests: the same 2,789 checks as the hand-maintained port.
 
 ## The XML
 

@@ -76,19 +76,35 @@
        more. (Like except, | treats nodes as a set, so a definition is never included twice.) -->
   <function name="c:reached" as="element(function_definition)*">
     <param name="found" as="element(function_definition)*"/>
-    <!-- The definitions of the names of all identifiers anywhere in $found, except those we've already got -->
-    <variable name="new" select="key('definition', $found//identifier, $sources) except $found"/>
+    <!-- The definitions of the names of all identifiers anywhere in $found (other than names the runtime provides),
+       except those we've already got -->
+    <variable name="new" select="key('definition', $found//identifier[not(. = $provided)], $sources) except $found"/>
     <sequence select="if (exists($new)) then c:reached($found | $new) else $found"/>
   </function>
 
-  <!-- At the root: visit the definitions reached from the entry points, grouped by file. They come in document order,
-       so grouping adjacent ones with the same file also keeps them in source order. -->
+  <!-- The definitions to translate: those reached from the entry points, other than those the runtime provides -->
+  <variable name="translated" select="c:reached(key('definition', $entry-points[not(. = $provided)], $sources))"/>
+
+  <!-- At the root: output the runtime, with the translation in place of its marker (or just the translation, if
+       there's no runtime) -->
   <template match="/">
-    <apply-templates select="c:reached(key('definition', $entry-points, $sources))"/>
-    <!-- Then the functions that copy structs (see STRUCT COPIES, below) -->
+    <variable name="translation"><call-template name="translation"/></variable>
+    <if test="exists($marker) and exists($externals)">
+      <message select="'Not translated or provided by the runtime: ' || string-join($externals, ', ')"/>
+    </if>
+    <variable name="constants" select="$constants ! ('const ' || *[@field = 'name'] || ' = ' || c:enumerator-value(.) || ';')"/>
+    <value-of select="if (exists($marker)) then string($runtime-doc)
+      => replace(string($constants-marker), string-join($constants, '&#10;'), 'q') => replace(string($marker), $translation, 'q')
+      else $translation"/>
+  </template>
+
+  <!-- The translation: the definitions reached from the entry points, in document order, then the functions that copy
+       structs (see STRUCT COPIES, below) -->
+  <template name="translation">
+    <apply-templates select="$translated"/>
     <value-of select="$copier-types ! (c:copier(.) || '&#10;')" separator="&#10;"/>
     <!-- this more complex alternative only inserts a comment giving the file source -->
-    <!-- <for-each-group select="c:reached(key('definition', $entry-points, $sources))" group-adjacent="ancestor::translation_unit/@file">
+    <!-- <for-each-group select="$translated" group-adjacent="ancestor::translation_unit/@file">
       <text>/* from {tokenize(current-grouping-key(), '/')[last()]} */&#10;&#10;</text>
       <for-each select="current-group()">
         <apply-templates select="."/>
@@ -96,6 +112,76 @@
       </for-each>
     </for-each-group> -->
   </template>
+
+  <!--
+    * THE RUNTIME
+    The translation goes in a hand-written JS runtime (runtime.mjs, as XML from c-to-xml.ts), in place of the comment
+    /* TRANSLATED FROM C */. The runtime provides what C gets from elsewhere (e.g. PQExpBuffer functions, and
+    PSQLexec), and its own versions of functions that we can't (or don't want to) translate. A name that's
+    declared where the comment is (in any enclosing scope) is provided by the runtime, so it isn't translated.
+  -->
+
+  <param name="runtime" select="()"/>
+
+  <variable name="runtime-doc" select="$runtime ! doc(.)"/>
+  <variable name="marker" select="$runtime-doc//comment[. = '/* TRANSLATED FROM C */']"/>
+  <variable name="constants-marker" select="$runtime-doc//comment[. = '/* CONSTANTS TRANSLATED FROM C */']"/>
+
+  <!-- The names declared in a JS scope (a block or the whole program): by functions, classes, variables (including
+       those in destructuring patterns, e.g. { a, b } = ...) and imports -->
+  <function name="c:js-declared" as="xs:string*">
+    <param name="scope" as="element()"/>
+    <variable name="statements" select="$scope/(*, export_statement/*)"/>
+    <sequence select="$statements/(self::function_declaration | self::class_declaration)/*[@field = 'name'],
+      $statements/(self::lexical_declaration | self::variable_declaration)/variable_declarator/*[@field = 'name']
+        /descendant-or-self::*[self::identifier | self::shorthand_property_identifier_pattern],
+      $statements/self::import_statement//import_specifier/*[@field = ('alias', 'name')][last()]"/>
+  </function>
+
+  <!-- The names the runtime provides: those declared in the scopes enclosing the marker, and the parameters of the
+       functions enclosing it (not counting default values, e.g. the `false` in echoHidden = false) -->
+  <variable name="provided" select="distinct-values((
+    $marker/ancestor::*[self::statement_block | self::program] ! c:js-declared(.),
+    $marker/ancestor::*/*[@field = 'parameters']/descendant::identifier[not(ancestor::*[@field = 'right'])]))"/>
+
+  <!-- The externals: names that the translated functions use, but that are neither declared in them, nor translated,
+       nor provided by the runtime. (A name declared in a function has a declared attribute such as
+       describeAggregates.pattern, with a dot.) Names in C that rules drop don't count: in statements that only free
+       memory, array allocations, and snprintf statements. -->
+  <variable name="externals" select="
+    let $reached := $translated return distinct-values(($reached//identifier except $reached//(*[c:is-freeing(.)] | call_expression[*[@field = 'function'] = $array-allocators])//identifier)
+      [not(contains(@declared, '.'))]
+      [not(. = 'snprintf' and ../self::call_expression[c:is-statement(.)])]
+      [not(. = ($provided, $reached ! c:name(descendant::function_declarator[1]), $constants/*[@field = 'name']))])"/>
+
+  <!--
+    * CONSTANTS
+    Enum constants used by the translated functions or by the runtime (and not declared by the runtime) are
+    translated too, as consts. They go in place of the runtime's comment /* CONSTANTS TRANSLATED FROM C */, at the
+    top level, since the runtime may use them before the functions are declared. (Constants that are #defined don't
+    need this: pcpp expands them where they're used.)
+  -->
+
+  <!-- An index of enum constants by name, e.g. OT_NORMAL in `enum slash_option_type { OT_NORMAL, ... }` -->
+  <key name="enumerator" match="enumerator" use="*[@field = 'name']"/>
+
+  <variable name="constants" select="(distinct-values(($translated//identifier, $runtime-doc//identifier)[not(. = $provided)])
+    ! key('enumerator', ., $sources)[1]) / ."/>  <!-- (/ . puts them in document order) -->
+
+  <!-- An enum constant's value: its own, if it has one, or else 1 more than the one before (or 0, if it's first) -->
+  <function name="c:enumerator-value" as="xs:string">
+    <param name="enumerator" as="element(enumerator)"/>
+    <variable name="before" select="$enumerator/preceding-sibling::enumerator[1]"/>
+    <sequence select="if ($enumerator/*[@field = 'value']) then c:js($enumerator/*[@field = 'value'])
+      else if (empty($before)) then '0'
+      else c:enumerator-value($before) ! (if (. castable as xs:integer) then string(xs:integer(.) + 1) else . || ' + 1')"/>
+  </function>
+
+  <!-- The names of the async functions the runtime provides, e.g. PSQLexec in `const PSQLexec = async (sql) => ...` -->
+  <variable name="provided-async" select="$marker/ancestor::*[self::statement_block | self::program]/(*, export_statement/*)/(
+    self::function_declaration[token = 'async']/*[@field = 'name'],
+    (self::lexical_declaration | self::variable_declaration)/variable_declarator
+      [*[@field = 'value'][self::arrow_function | self::function_expression][token = 'async']]/*[@field = 'name'])"/>
 
   <!--
     * FOLLOWING CALLS BACK TO THE ASYNC SEEDS
@@ -112,13 +198,14 @@
        are no more. This works like c:reached, above, but backwards: from callees to callers. -->
   <function name="c:async" as="xs:string*">
     <param name="found" as="xs:string*"/>
-    <!-- The names of the functions containing calls to any of $found, except those we've already got -->
+    <!-- The names of the functions containing calls to any of $found, except those we've already got, and those the
+         runtime provides (which are async only if the runtime says so) -->
     <variable name="new" select="key('call', $found, $sources)/ancestor::function_definition
-      ! c:name(descendant::function_declarator[1])[not(. = $found)]"/>
+      ! c:name(descendant::function_declarator[1])[not(. = ($found, $provided))]"/>
     <sequence select="if (exists($new)) then c:async(distinct-values(($found, $new))) else $found"/>
   </function>
 
-  <variable name="async" select="c:async($async-seeds)"/>
+  <variable name="async" select="c:async(distinct-values(($async-seeds, $provided-async)))"/>
 
   <!-- A call to an async function, e.g. PSQLexec(buf.data): output await PSQLexec(buf.data). That's in parentheses
        if it's the function in another call, or what's accessed in f()->x or f()[i], since e.g. await f().x would
@@ -695,7 +782,7 @@
   <!-- The struct types that need a copy function: those copied in the definitions we translate, and those copied by
        those copy functions, and so on (like c:reached, above), that contain structs or arrays -->
   <variable name="copier-types" select="c:copier-types(distinct-values(
-    c:reached(key('definition', $entry-points, $sources))//(init_declarator | assignment_expression) ! c:copied-type(.)
+    $translated//(init_declarator | assignment_expression) ! c:copied-type(.)
     ! replace(., '^const ', '')))[exists(c:nested-copies(.))]"/>
 
   <function name="c:copier-types" as="xs:string*">

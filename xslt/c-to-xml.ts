@@ -4,6 +4,8 @@
 // element, so the only text outside elements is whitespace (including \ line continuations). The XML loses
 // nothing: each translation_unit's text content is exactly the C source.
 //
+// A JavaScript file (.js or .mjs), such as runtime.mjs, is parsed as JavaScript instead, giving a <program>.
+//
 // Usage: node xslt/c-to-xml.ts path/to/file.c ... > sources.xml
 
 import fs from 'node:fs';
@@ -11,8 +13,9 @@ import { fileURLToPath } from 'node:url';
 import { Parser, Language, type Node } from 'web-tree-sitter';
 
 await Parser.init();
-const c = await Language.load(fileURLToPath(import.meta.resolve('tree-sitter-c/tree-sitter-c.wasm')));
-const parser = new Parser().setLanguage(c);
+const parserFor = async (grammar: string) => new Parser().setLanguage(
+  await Language.load(fileURLToPath(import.meta.resolve(`tree-sitter-${grammar}/tree-sitter-${grammar}.wasm`))));
+const parsers = { c: await parserFor('c'), javascript: await parserFor('javascript') };
 
 const escape = (s: string, quot = false) =>
   s.replace(quot ? /[&<>"]/g : /[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]!));
@@ -36,6 +39,7 @@ const toXML = (node: Node, src: string, attrs: Record<string, string | null> = {
 
 const units = process.argv.slice(2).map(file => {
   const src = fs.readFileSync(file, 'utf8');
+  const parser = /\.m?js$/.test(file) ? parsers.javascript : parsers.c;
   return toXML(parser.parse(src)!.rootNode, src, { file });
 });
 
