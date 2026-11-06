@@ -11,20 +11,28 @@ OUT=${2:-tmp/lib}
 BUILD=tmp/build
 mkdir -p "$OUT" "$BUILD"
 
-# Preprocess and parse the C, add types, and parse the runtime
+echo "Preprocessing C and parsing to XML ..."
 rm -rf "$BUILD/pp"
 tmp/venv/bin/python xslt/preprocess.py "$BUILD/pp" "$PG/include" \
   "$PG/bin/psql/command.c" "$PG/bin/psql/describe.c" "$PG/bin/psql/help.c" "$PG/fe_utils/string_utils.c" "$PG/fe_utils/print.c" xslt/libc.h xslt/keywords.c "$PG/common/keywords.c" "$PG/include/c.h" "$PG/include/postgres_ext.h" \
   "$PG"/include/catalog/*.h "$PG"/include/common/*.h "$PG"/include/fe_utils/*.h "$PG"/interfaces/libpq/*.h \
   "$PG"/bin/psql/*.h |
   xargs node xslt/c-to-xml.ts > "$BUILD/sources.xml"
+
+echo "Typing C XML representation ..."
 npx xslt3 -xsl:xslt/add-types.xsl -s:"$BUILD/sources.xml" -o:"$BUILD/typed.xml"
+
+echo "Parsing JS runtime to XML ..."
 node xslt/c-to-xml.ts xslt/runtime.mjs > "$BUILD/runtime.xml"
 
-# Translate, into the runtime (with the version, e.g. 19rc1, from configure.ac's `AC_INIT([PostgreSQL], [19rc1], ...)`)
+echo "Transforming C to JS ..."
 VERSION=$(sed -n 's/^AC_INIT(\[PostgreSQL\], \[\([^]]*\)\].*/\1/p' "$PG/../configure.ac")
 npx xslt3 -xsl:xslt/c-to-js.xsl -s:"$BUILD/typed.xml" -o:"$OUT/describe.mjs" runtime="$PWD/$BUILD/runtime.xml" version="$VERSION"
+
+echo "Checking JS syntax ..."
 node --check "$OUT/describe.mjs"
 
-# The SQL help (for \h)
+echo "Generating SQL help for \\h ..."
 node generate/create-help.mjs --docdir "${1:-../postgres}/doc/src/sgml/ref" --output "$OUT/sql-help.generated.mjs"
+
+echo "Done."
