@@ -102,8 +102,15 @@
     * INTEGER DIVISION
   -->
 
-  <!-- a / b, where a and b are integers: Math.trunc(a / b) -->
-  <template match="binary_expression[c:operator(.) = '/'][c:is-int(*[@field = 'left'])][c:is-int(*[@field = 'right'])]" priority="10">
+  <!-- `a / b`, where a and b are integers, becomes `Math.trunc(a / b)`
+       (see formatPGVersionNumber) -->
+  <template
+    match="binary_expression
+      [c:operator(.) = '/']
+      [c:is-int(*[@field = 'left'])]
+      [c:is-int(*[@field = 'right'])]"
+    priority="10"
+  >
     <text>Math.trunc(</text>
     <next-match/>
     <text>)</text>
