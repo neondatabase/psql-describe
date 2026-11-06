@@ -39,6 +39,7 @@
 
     10   A wrapper, which adds to what a node would otherwise output (<next-match/>): != NULL, for a string used as a
          condition, and Math.trunc(...), for integer division (types.xsl)
+    9    The await wrapper, for a call to an async function (async.xsl), which goes inside != NULL: (await f()) != NULL
     5    Pointers into arrays, as indexes, which overrides the rules for other pointers and strings (pointers.xsl)
     2-4  Strings: reading and moving on, *s++ (4), beats refusing to write through a pointer (3), which beats
          reading and slicing (2) (strings.xsl)

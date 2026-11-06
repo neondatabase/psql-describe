@@ -17,7 +17,7 @@
 
   <param name="async-seeds" select="'PSQLexec', 'PQexec'"/>
 
-  <!-- The names of the async functions the runtime provides, e.g. PSQLexec in `const PSQLexec = async (sql) => ...` -->
+  <!-- Names of async functions the runtime provides, e.g. PSQLexec in `const PSQLexec = async (sql) => ...` -->
   <variable name="provided-async" select="$runtime-statements/(
     self::function_declaration[token = 'async']/*[@field = 'name'],
     (self::lexical_declaration | self::variable_declaration)/variable_declarator
@@ -41,11 +41,12 @@
 
   <!-- A call to an async function, e.g. PSQLexec(buf.data): output await PSQLexec(buf.data). That's in parentheses
        if it's the function in another call, or what's accessed in f()->x or f()[i], since e.g. await f().x would
-       mean await (f().x). (An async function's definition gets async: see syntax.xsl.) -->
-  <template match="call_expression[*[@field = 'function'] = $async]">
+       mean await (f().x). This wraps what the call would otherwise output (inside != NULL, if that applies too: see
+       the priorities in c-to-js.xsl). (An async function's definition gets async: see syntax.xsl.) -->
+  <template match="call_expression[*[@field = 'function'] = $async]" priority="9">
     <choose>
-      <when test="@field = 'function' or @field = 'argument' and (parent::field_expression | parent::subscript_expression)">(await <apply-templates/>)</when>
-      <otherwise>await <apply-templates/></otherwise>
+      <when test="@field = 'function' or @field = 'argument' and (parent::field_expression | parent::subscript_expression)">(await <next-match/>)</when>
+      <otherwise>await <next-match/></otherwise>
     </choose>
   </template>
 
