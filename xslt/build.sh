@@ -17,13 +17,13 @@ tmp/venv/bin/python xslt/preprocess.py "$BUILD/pp" "$PG/include" \
   "$PG/bin/psql/command.c" "$PG/bin/psql/describe.c" "$PG/bin/psql/help.c" "$PG/fe_utils/string_utils.c" "$PG/fe_utils/print.c" xslt/libc.h xslt/keywords.c "$PG/common/keywords.c" "$PG/include/c.h" "$PG/include/postgres_ext.h" \
   "$PG"/include/catalog/*.h "$PG"/include/common/*.h "$PG"/include/fe_utils/*.h "$PG"/interfaces/libpq/*.h \
   "$PG"/bin/psql/*.h |
-  xargs node xslt/c-to-xml.ts > "$BUILD/sources.xml"
+  xargs node xslt/c-to-xml.ts c > "$BUILD/sources.xml"
 
 echo "Typing C XML representation ..."
 npx xslt3 -xsl:xslt/add-types.xsl -s:"$BUILD/sources.xml" -o:"$BUILD/typed.xml"
 
 echo "Parsing JS runtime to XML ..."
-node xslt/c-to-xml.ts xslt/runtime.mjs > "$BUILD/runtime.xml"
+node xslt/c-to-xml.ts javascript xslt/runtime.mjs > "$BUILD/runtime.xml"
 
 echo "Transforming C to JS ..."
 VERSION=$(sed -n 's/^AC_INIT(\[PostgreSQL\], \[\([^]]*\)\].*/\1/p' "$PG/../configure.ac")

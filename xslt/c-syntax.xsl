@@ -101,16 +101,16 @@
     function, e.g. char*[] for an array of strings.
   -->
 
-  <!-- Is a type a pointer (or array)? -->
-  <function name="c:is-pointer-type" as="xs:boolean">
-    <param name="type" as="xs:string?"/>
-    <sequence select="matches($type, '(\*|\[\])$')"/>
-  </function>
-
   <!-- Is a type an array? -->
   <function name="c:is-array-type" as="xs:boolean">
     <param name="type" as="xs:string?"/>
     <sequence select="ends-with($type, '[]')"/>
+  </function>
+
+  <!-- Is a type a pointer (or array)? -->
+  <function name="c:is-pointer-type" as="xs:boolean">
+    <param name="type" as="xs:string?"/>
+    <sequence select="c:is-array-type($type) or ends-with($type, '*')"/>
   </function>
 
 </stylesheet>

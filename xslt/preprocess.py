@@ -2,7 +2,7 @@
 # (https://github.com/ned14/pcpp), but expanding only a few macros, and leaving everything else as it is. Writes each
 # file under out-dir, and prints the files written, for c-to-xml.ts.
 #
-# Usage: python xslt/preprocess.py out-dir path/to/postgres/src/include file.c ... | xargs node xslt/c-to-xml.ts
+# Usage: python xslt/preprocess.py out-dir path/to/postgres/src/include file.c ... | xargs node xslt/c-to-xml.ts c
 #
 # Tree-sitter parses C without preprocessing it, which mostly works, but not always. For example, in
 # `"... != " CppAsString2(RELKIND_RELATION) " AND ..."`, it reads CppAsString2 as a macro that expands to a string
