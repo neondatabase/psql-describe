@@ -8,8 +8,7 @@ on:
     branches:
       - main
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   dependencies:
@@ -64,6 +63,8 @@ jobs:
 
   test:
     needs: dependencies
+    permissions:
+      contents: read
     runs-on:
       group: databricks-ghec-untrusted-runner-group
       labels: linux-ubuntu-latest-untrusted-2core-8gb
