@@ -101,11 +101,14 @@ export function describe(
 
     // What psql has, but we don't: each reports an error, and its line is left out of the \? text (again, see
     // c-to-js.xsl). (\? options and \? variables, which are \? with an argument, still have lines.)
-    const unsupported = command => () => { pg_log_error('\\%s is not supported', command); return false; };
-    const usage = unsupported('? options'), helpVariables = unsupported('? variables');
-    const do_lo_export = unsupported('lo_export'), do_lo_import = unsupported('lo_import'),
-      do_lo_unlink = unsupported('lo_unlink');
-    const expand_tilde = noop;
+    const
+      unsupported = command => () => { pg_log_error('\\%s is not supported', command); return false; },
+      usage = unsupported('? options'),
+      helpVariables = unsupported('? variables'),
+      do_lo_export = unsupported('lo_export'),
+      do_lo_import = unsupported('lo_import'),
+      do_lo_unlink = unsupported('lo_unlink'),
+      expand_tilde = noop;
 
     const PSQLexec = async (sql, suppressEcho = false) => {
       throwIfCancelled();
@@ -126,26 +129,35 @@ export function describe(
         throwIfCancelled();
       }
     }
-    const PQresultStatus = res => res.status;
-    const PQresultErrorField = (res, field) => res.errorFields?.[field] ?? NULL;
-    const standard_strings = () => std_strings;
+
+    const
+      PQresultStatus = res => res.status,
+      PQresultErrorField = (res, field) => res.errorFields?.[field] ?? NULL,
+      standard_strings = () => std_strings;
 
     // Just enough of C's stdio: a stream is an object with write(), and stdout writes text (see write, above). There's
     // no pager.
-    const stdout = { write };
-    const fputs = (str, stream) => stream.write(str);
-    const fprintf = (stream, template, ...args) => stream.write(sprintf(template, ...args));
-    const printf = (template, ...args) => fprintf(stdout, template, ...args);
-    const fflush = noop, ClosePager = noop;
-    const PageOutput = (lines, topt) => stdout;
+    const
+      stdout = { write },
+      fputs = (str, stream) => stream.write(str),
+      fprintf = (stream, template, ...args) => stream.write(sprintf(template, ...args)),
+      printf = (template, ...args) => fprintf(stdout, template, ...args),
+      fflush = noop,
+      ClosePager = noop,
+      PageOutput = (lines, topt) => stdout;
 
-    function pg_log_error(template, ...args) {
-      write(sprintf(template, ...args) + '\n');
-    }
-    const pg_log_error_internal = pg_log_error, pg_log_error_hint = pg_log_error, pg_log_warning = pg_log_error;
+    // Errors
+    const
+      pg_log_error = (template, ...args) => write(sprintf(template, ...args) + '\n'),
+      pg_log_error_internal = pg_log_error,
+      pg_log_error_hint = pg_log_error,
+      pg_log_warning = pg_log_error;
 
     // psql's \if stack (cstack): we're always in an active branch
-    const conditional_active = cstack => true, conditional_stack_push = noop, conditional_stack_pop = noop;
+    const
+      conditional_active = cstack => true,
+      conditional_stack_push = noop,
+      conditional_stack_pop = noop;
 
 
     /* TRANSLATED FROM C */
@@ -153,12 +165,6 @@ export function describe(
     /*
      * Initialise a table contents struct.
      *		Must be called before any other printTable method is used.
-     *
-     * The title is not duplicated; the caller must ensure that the buffer
-     * is available for the lifetime of the printTableContent struct.
-     *
-     * If you call this, you must call printTableCleanup once you're done with the
-     * table.
      */
     function printTableInit(content, opt, title, ncolumns, nrows) {
       content.opt = opt;
@@ -199,10 +205,6 @@ export function describe(
     function printTable(cont, fout, is_pager, flog) {
       output({ ...cont });  // must clone in case same content object is reused (and thus mutated) later
     }
-
-
-
-
 
     /*
      * Deconstruct the text representation of a 1-dimensional Postgres array
@@ -245,7 +247,6 @@ export function describe(
         if (atext[at] == NULL)
           return false;		/* premature end of string */
 
-        // *** items[curitem] = strings;
         strings = "";
         while (atext[at] != '}' && atext[at] != ',') {
           if (atext[at] == NULL)

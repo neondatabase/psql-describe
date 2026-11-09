@@ -1,33 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Reading C as XML: functions shared by add-types.xsl and c-to-js.xsl, which include this.
+  Reading C as XML: simple XSLT functions shared by add-types.xsl and c-to-js.xsl
 
-  THE XML
-
-  c-to-xml.ts writes C as a <sources> element, containing a <translation_unit file="..."> for each C file. Within
-  that, each tree-sitter node is an element named after its type, and a node in one of its parent's fields has a field
-  attribute. Unnamed tokens (punctuation, keywords, operators) are <token> elements, and the only text between
-  elements is whitespace. So the text of the XML is exactly the C source (after preprocess.py). For example,
-  `f(&buf);` is:
-
-    <expression_statement>
-      <call_expression>
-        <identifier field="function">f</identifier>
-        <argument_list field="arguments">
-          <token>(</token>
-          <pointer_expression>
-            <token field="operator">&amp;</token>
-            <identifier field="argument">buf</identifier>
-          </pointer_expression>
-          <token>)</token>
-        </argument_list>
-      </call_expression>
-      <token>;</token>
-    </expression_statement>
-
-  So the parts of a node are mostly its children in fields: e.g. *[@field = 'function'] is the function called. The
-  functions here get at the parts that aren't so simple.
+  * See c-to-xml.ts for an explanation of the XML input we're processing.
+  * The parts of a node are mostly its children in fields: e.g. `*[@field = 'function']` is a function being called.
+  * Remember that XPath indexes count from 1, so `[1]` means the first match.
 -->
+
 <stylesheet
   version="3.0"
   expand-text="yes"
@@ -35,14 +14,6 @@
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
   xmlns:c="urn:c-to-js"
   exclude-result-prefixes="#all">
-
-  <!--
-    * NAMES
-
-    In C, the name being declared is wrapped in declarators that make it a pointer, array or function: e.g.
-    `char **items` is <pointer_declarator> containing <pointer_declarator> containing <identifier>items</identifier>.
-    However deep the wrapping, the name is the declarator's first identifier.
-  -->
 
   <!-- The element in a declarator that has its name: e.g. the identifier in `char **items`, or (in a typedef) the
        type_identifier in `typedef PQExpBufferData *PQExpBuffer`, or (in a struct) the field_identifier in
@@ -71,10 +42,6 @@
     <sequence select="$function/descendant-or-self::function_declarator[1]/*[@field = 'parameters']/parameter_declaration"/>
   </function>
 
-  <!--
-    * PARTS
-  -->
-
   <!-- An expression's operator, e.g. + or ++ -->
   <function name="c:operator" as="xs:string">
     <param name="expr" as="element()"/>
@@ -93,13 +60,6 @@
     <param name="call" as="element(call_expression)?"/>
     <sequence select="c:inner($call/*[@field = 'arguments'])"/>
   </function>
-
-  <!--
-    * TYPES
-
-    add-types.xsl writes a type as a string: its base type, then * for a pointer, [] for an array, and () for a
-    function, e.g. char*[] for an array of strings.
-  -->
 
   <!-- Is a type an array? -->
   <function name="c:is-array-type" as="xs:boolean">

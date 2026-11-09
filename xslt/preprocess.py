@@ -23,10 +23,15 @@ from pcpp.pcmd import CmdPreprocessor
 MACROS = [
     # Annotations on declarations, which expand to nothing on our platforms (as c.h defines them when the compiler
     # doesn't support them), and otherwise confuse the parse of declarations
-    'PGDLLIMPORT=', 'pg_nodiscard=', 'pg_attribute_printf(f,a)=', 'pg_attribute_format_arg(a)=',
-    'pg_attribute_no_sanitize_address()=', 'pg_noreturn=',
+    'PGDLLIMPORT=',
+    'pg_nodiscard=',
+    'pg_attribute_printf(f,a)=',
+    'pg_attribute_format_arg(a)=',
+    'pg_attribute_no_sanitize_address()=',
+    'pg_noreturn=',
     # C's # (stringizing) operator, and the same after expanding the argument (as in c.h)
-    'CppAsString(identifier)=#identifier', 'CppAsString2(x)=CppAsString(x)',
+    'CppAsString(identifier)=#identifier',
+    'CppAsString2(x)=CppAsString(x)',
 ]
 UNDEFINED = ['NOT_USED']  # never #defined, by Postgres convention
 
@@ -48,13 +53,19 @@ class Preprocessor(CmdPreprocessor):
 
 out_dir, include_dir, *files = sys.argv[1:]
 include_dir = os.path.abspath(include_dir)
+
 for file in files:
     # e.g. tmp/pp/postgres/src/bin/psql/describe.c for ../postgres/src/bin/psql/describe.c
     out = os.path.join(out_dir, os.path.normpath(file).lstrip('/').replace('../', ''))
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    pp = Preprocessor(['pcpp', '-o', out, '-I', include_dir, *(arg for m in MACROS for arg in ('-D', m)),
-        *(arg for m in UNDEFINED for arg in ('-U', m)), '--passthru-includes', r'^(?!.*parser/kwlist\.h)', '--passthru-unfound-includes',
-        '--passthru-comments', '--passthru-unknown-exprs', *(['--passthru-defines'] if file.endswith('.h') else []),
+    pp = Preprocessor(['pcpp', '-o', out, '-I', include_dir,
+        *(arg for m in MACROS for arg in ('-D', m)),
+        *(arg for m in UNDEFINED for arg in ('-U', m)),
+        '--passthru-includes', r'^(?!.*parser/kwlist\.h)',
+        '--passthru-unfound-includes',
+        '--passthru-comments',
+        '--passthru-unknown-exprs',
+        *(['--passthru-defines'] if file.endswith('.h') else []),
         '--line-directive', '', file])
     if pp.return_code:
         sys.exit(pp.return_code)

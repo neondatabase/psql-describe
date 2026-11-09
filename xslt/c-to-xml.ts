@@ -1,12 +1,31 @@
-// Writes the tree-sitter parse trees of C files as one XML document: a <sources> element containing a
-// <translation_unit file="..."> for each file. Within that, each named node becomes an element, and a node in a
-// field gets a field attribute. Each unnamed token (e.g. punctuation, keywords and operators) becomes a <token>
-// element, so the only text outside elements is whitespace (including \ line continuations). The XML loses
-// nothing: each translation_unit's text content is exactly the C source.
+// Usage: node xslt/c-to-xml.ts language path/to/file ... > sources.xml
 //
-// A JavaScript file (.js or .mjs), such as runtime.mjs, is parsed as JavaScript instead, giving a <program>.
+// Write tree-sitter parse trees of code files as one XML document with a <sources> element at the root.
+// * For C, that contains a <translation_unit file="..."> element for each file.
+// * For JS, it contains <program file="..."> elements.
 //
-// Usage: node xslt/c-to-xml.ts language path/to/file.c ... > sources.xml
+// Within those, each named node becomes an element, and a node within a field gets a field attribute.
+// Each unnamed token (e.g. punctuation, keywords and operators) becomes a <token> element, so the only text
+// outside of elements is whitespace (including \ line continuations).
+//
+// The XML loses nothing: each translation_unit or program's text content is exactly the original source.
+//
+// For example, with additional spacing and indentation for ease of reading, `f(&buf);` in C is:
+//
+// <expression_statement>
+//   <call_expression>
+//     <identifier field="function">f</identifier>
+//     <argument_list field="arguments">
+//       <token>(</token>
+//       <pointer_expression>
+//         <token field="operator">&amp;</token>
+//         <identifier field="argument">buf</identifier>
+//       </pointer_expression>
+//       <token>)</token>
+//     </argument_list>
+//   </call_expression>
+//   <token>;</token>
+// </expression_statement>
 
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
