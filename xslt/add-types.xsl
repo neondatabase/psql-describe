@@ -39,7 +39,7 @@
        declared, and may make it a pointer, array or function. For example, `const char *pattern` is:
 
          <parameter_declaration>
-           <type_qualifier>const</type_qualifier> 
+           <type_qualifier>const</type_qualifier>
            <primitive_type field="type">char</primitive_type>
            <pointer_declarator field="declarator">*<identifier field="declarator">pattern</identifier></pointer_declarator>
          </parameter_declaration>
@@ -68,12 +68,21 @@
 
   <output method="xml" indent="no"/>
 
-  <!-- Copy everything, adding the types of elements in functions (if they have one) -->
+  <!--
+    * 0. TOP-LEVEL MATCHING: WHICH ELEMENTS GET A TYPE?
+    Copy everything, adding types to elements inside functions, and to parameters, structs and globals anywhere
+  -->
+
   <mode on-no-match="shallow-copy"/>
 
+  <!-- This template has the default priority of 0.5, so the four below with `priority="1"` take precedence if
+       they match too. Otherwise, this applies a type attribute to anything in a function for which c:type
+       returns a value. -->
   <template match="function_definition//*">
     <copy>
+      <!-- This for-each iterates over 0 or 1 type values (never >1) -->
       <for-each select="c:type(.)"><attribute name="type" select="."/></for-each>
+      <!-- Now continue processing attributes and children ... -->
       <apply-templates select="@*, node()"/>
     </copy>
   </template>
@@ -82,7 +91,7 @@
        declares, wherever it is (so that c-to-js.xsl can see what a function's parameters are) -->
   <template match="parameter_declaration" priority="1">
     <copy>
-      <for-each select="c:parameter-type(.)"><attribute name="type" select="."/></for-each>
+      <attribute name="type" select="c:parameter-type(.)"/>
       <apply-templates select="@*, node()"/>
     </copy>
   </template>
@@ -95,7 +104,6 @@
       <apply-templates select="@*, node()"/>
     </copy>
   </template>
-
   <template match="field_declaration/*[@field = 'declarator']" priority="1">
     <copy>
       <for-each select="c:declared-type(.)"><attribute name="type" select="."/></for-each>
@@ -161,7 +169,9 @@
        an abstract_pointer_declarator) -->
   <template mode="type" match="cast_expression" as="xs:string?">
     <variable name="descriptor" select="*[@field = 'type']"/>
-    <sequence select="if ($descriptor/*[@field = 'declarator']) then $descriptor/*[@field = 'declarator'] => c:declared-type()
+    <sequence select="
+      if ($descriptor/*[@field = 'declarator'])
+      then $descriptor/*[@field = 'declarator'] => c:declared-type()
       else c:qualified-base-type($descriptor)"/>
   </template>
 
@@ -171,8 +181,8 @@
     <variable name="struct" select="if (c:operator(.) = '->') then c:pointee($type) else $type"/>
     <variable name="field" select="*[@field = 'field']"/>
     <!-- The struct's definition (see c:struct-name, below), then the declarator in it that declares $field -->
-    <variable name="declarator" select="(key('struct', $struct, root())/*[@field = 'body']/field_declaration
-      /*[@field = 'declarator'][c:name(.) = $field])[1]"/>
+    <variable name="declarator" select="
+      (key('struct', $struct, root())/*[@field = 'body']/field_declaration/*[@field = 'declarator'][c:name(.) = $field])[1]"/>
     <sequence select="c:declared-type($declarator)"/>
   </template>
 
@@ -195,7 +205,10 @@
   <!-- a op b. A comparison or logical operator gives an int (C's boolean), as does subtracting one pointer from
        another. Adding or subtracting a number to or from a pointer gives the pointer's type: e.g. char* for s + 1.
        Otherwise (for arithmetic on numbers whose types are known), a double gives a double, an int64 an int64, and
-       anything else int. -->
+       anything else int.
+
+       For JS usage we could in principle make some of these bool instead. But we can't do that everywhere (e.g. &&
+       and || in JS can return either of their operands) and nothing hangs on it, so we stick to the C types. -->
   <template mode="type" match="binary_expression" as="xs:string?">
     <variable name="operator" select="c:operator(.)"/>
     <variable name="left" select="c:type(*[@field = 'left'])"/>
@@ -246,7 +259,8 @@
     <variable name="declarations" select="$id/ancestor::*/(
         self::compound_statement/declaration,
         self::for_statement/declaration,
-        self::function_definition/c:parameters(.))"/>
+        self::function_definition/c:parameters(.)
+    )"/>
     <!-- Of their declarators, the last one with the right name. Inner scopes come later in the document, so that's
          the one from the innermost scope. -->
     <variable name="local" select="($declarations/*[@field = 'declarator'][c:name(.) = $id])[last()]"/>
@@ -264,14 +278,17 @@
     <variable name="local-name" select="c:local-name($declarator)"/>
     <!-- The declarators in the function with the same name, before this one -->
     <variable name="before" select="key('local', $local-name, root($declarator))[. &lt;&lt; $declarator]"/>
-    <sequence select="if (empty($local-name)) then c:name($declarator)
+    <sequence select="
+      if (empty($local-name))
+      then c:name($declarator)
       else $local-name || (if ($before) then '#' || count($before) + 1 else '')"/>
   </function>
 
   <!-- For a declarator in a function, the function's name plus the name declared, e.g. describeAggregates.pattern -->
   <function name="c:local-name" as="xs:string?">
     <param name="declarator" as="element()"/>
-    <sequence select="$declarator[not(parent::function_definition)]/ancestor::function_definition
+    <sequence select="
+      $declarator[not(parent::function_definition)]/ancestor::function_definition
       ! (c:function-name(.) || '.' || c:name($declarator))"/>
   </function>
 
@@ -293,7 +310,9 @@
     <variable name="path" select="if ($id) then $declarator/descendant-or-self::* intersect $id/ancestor::*
       else $declarator/descendant-or-self::*"/>
     <variable name="base" select="$declarator/.. ! c:qualified-base-type(.)"/>
-    <variable name="suffixes" as="xs:string*"><apply-templates mode="suffix" select="$path"/></variable>
+    <variable name="suffixes" as="xs:string*">
+      <apply-templates mode="suffix" select="$path"/>
+    </variable>
     <sequence select="$base ! (. || string-join($suffixes))"/>
   </function>
 
@@ -301,13 +320,17 @@
        if it's a char with that qualifier: const char for `const char *s` -->
   <function name="c:qualified-base-type" as="xs:string?">
     <param name="declaration" as="element()"/>
-    <sequence select="c:base-type($declaration/*[@field = 'type']) ! (if (. = 'char' and $declaration/type_qualifier = 'const') then 'const char' else .)"/>
+    <sequence select="
+      c:base-type($declaration/*[@field = 'type'])
+      ! (if (. = 'char' and $declaration/type_qualifier = 'const') then 'const char' else .)"/>
   </function>
 
   <!-- A parameter's type: its declarator's type, or if it has none (e.g. `int` in a prototype), its base type -->
-  <function name="c:parameter-type" as="xs:string?">
+  <function name="c:parameter-type" as="xs:string">
     <param name="parameter" as="element(parameter_declaration)"/>
-    <sequence select="if ($parameter/*[@field = 'declarator']) then $parameter/*[@field = 'declarator'] => c:declared-type()
+    <sequence select="
+      if ($parameter/*[@field = 'declarator'])
+      then $parameter/*[@field = 'declarator'] => c:declared-type()
       else c:qualified-base-type($parameter)"/>
   </function>
 
@@ -335,7 +358,8 @@
     <apply-templates mode="base-type" select="$type"/>
   </function>
 
-  <!-- E.g. char (in `const char`), unsigned int or size_t: the type's own text, as JS sees it -->
+  <!-- E.g. char (in `const char`), unsigned int or size_t: the type's own text, as JS sees it (note: * has
+       the lowest default priority, so more specific matches like `enum_specifier` below will take precedence). -->
   <template mode="base-type" match="*" as="xs:string">
     <sequence select="c:js-base-type(normalize-space(.))"/>
   </template>
