@@ -8,42 +8,89 @@ on:
     branches:
       - main
 
-permissions:
-  id-token: write
-  contents: read
+permissions: {}
 
 jobs:
+  dependencies:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on:
+      group: databricks-ghec-untrusted-runner-group
+      labels: linux-ubuntu-latest-untrusted-2core-8gb
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            /package.json
+            /package-lock.json
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: lts/*
+          registry-url: https://databricks.jfrog.io/artifactory/api/npm/db-npm/
+          always-auth: true
+
+      - name: Setup JFrog CLI with OIDC
+        id: jfrog
+        uses: jfrog/setup-jfrog-cli@279b1f629f43dd5bc658d8361ac4802a7ef8d2d5 # v4.9.1
+        env:
+          JF_URL: https://databricks.jfrog.io
+        with:
+          oidc-provider-name: github-actions
+          disable-auto-build-publish: true
+          disable-auto-evidence-collection: true
+
+      - name: Install dependencies without package scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ steps.jfrog.outputs.oidc-token }}
+        run: npm ci --ignore-scripts
+
+      - name: Archive dependencies
+        run: tar -czf "$RUNNER_TEMP/node_modules.tar.gz" node_modules
+
+      - name: Upload dependencies
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: node-modules
+          path: ${{ runner.temp }}/node_modules.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
   test:
+    needs: dependencies
+    permissions:
+      contents: read
     runs-on:
       group: databricks-ghec-untrusted-runner-group
       labels: linux-ubuntu-latest-untrusted-2core-8gb
 
     steps:
       # setup
-      - name: Harden the runner (audit all outbound calls)
-        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
-        with:
-          egress-policy: audit
-
       - name: Check container runtime
         run: podman info 2>/dev/null || docker info
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
           node-version: lts/*
 
-      - name: Setup JFrog CLI with OIDC
-        uses: jfrog/setup-jfrog-cli@279b1f629f43dd5bc658d8361ac4802a7ef8d2d5 # v4.9.1
-        env:
-          JF_URL: https://databricks.jfrog.io
+      - name: Download dependencies
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          oidc-provider-name: github-actions
+          name: node-modules
+          path: ${{ runner.temp }}/dependencies
 
-      - name: Install package dependencies
+      - name: Restore dependencies and run package scripts
         run: |
-          jf npmc --repo-resolve=db-npm
-          jf npm clean-install
+          tar -xzf "$RUNNER_TEMP/dependencies/node_modules.tar.gz"
+          npm rebuild
 
       # goal
       - name: Run all tests
