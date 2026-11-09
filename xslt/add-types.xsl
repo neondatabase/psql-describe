@@ -5,8 +5,7 @@
 
   Usage: npx xslt3 -xsl:xslt/add-types.xsl -s:sources.xml -o:typed.xml
 
-  (For the XML, see c-syntax.xsl, which has the functions this shares with c-to-js.xsl. For how XSLT works, and
-  XPath in brief, see the comments at the top of c-to-js.xsl.)
+  (For the XML format, see c-to-xml.ts and c-syntax.xsl, which has the functions this shares with c-to-js.xsl.)
 
   WHAT IT DOES
 

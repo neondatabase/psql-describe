@@ -214,3 +214,17 @@ test('commands we don\'t have say so', async () => {
 test('the default docs URL is for the major version psql was built from', async () => {
   assert.match(await outputOf('\\h SELECT'), /URL: https:\/\/www\.postgresql\.org\/docs\/19\/sql-select\.html/);
 });
+
+// 8. Quoting in arguments ---------------------------------------------------
+
+test('quoted arguments follow psql\'s rules, and a quote in a pattern is doubled in SQL', async () => {
+  for (const cmd of [String.raw`\dt "o'x"`, String.raw`\dt 'o''x'`, String.raw`\dt 'o\'x'`, String.raw`\dt o'''x'`]) {
+    assert.match(await firstQuery(cmd, { sversion: 190000 }), /'\^\(o''x\)\$'/, cmd);
+  }
+});
+
+test('an unterminated quote in an argument is an error', async () => {
+  const outputs = [];
+  await describe(String.raw`\dt "o'x`, 'testdb', () => { throw new Error('stop'); }, x => outputs.push(x), false, 190000).promise;
+  assert.match(outputs[0], /^unterminated quoted string$/m);
+});

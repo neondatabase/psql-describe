@@ -159,6 +159,115 @@ export function describe(
       conditional_stack_push = noop,
       conditional_stack_pop = noop;
 
+    /*
+     * Parse off the next argument for a backslash command, and return it as a
+     * malloc'd string.  If there are no more arguments, returns NULL.
+     *
+     * type tells what processing, if any, to perform on the option string;
+     * for example, if it's a SQL identifier, we want to downcase any unquoted
+     * letters.
+     *
+     * if quote is not NULL, *quote is set to 0 if no quoting was found, else
+     * the last quote symbol used in the argument.
+     *
+     * if semicolon is true, unquoted trailing semicolon(s) that would otherwise
+     * be taken as part of the option string will be stripped.
+     *
+     * NOTE: the only possible syntax errors for backslash options are unmatched
+     * quotes, which are detected when we run out of input.  Therefore, on a
+     * syntax error we just throw away the string and return NULL; there is no
+     * need to worry about flushing remaining input.
+     *
+     * (This follows the lexer rules in psqlscanslash.l, for the option types the translation uses. There are no psql
+     * variables here, so :name, :'name' and :"name" stay as they are, as in psql for a variable that isn't set, and
+     * :{?name} is FALSE; and there are no backticks, which psql runs as shell commands, so ` is just a character.)
+     */
+    function psql_scan_slash_option(scan_state, type, quote, semicolon) {
+      if (type !== OT_NORMAL && type !== OT_WHOLE_LINE) throw new Error(`scan type ${type} not implemented`);
+      const [str] = scan_state;
+      const space = /[ \t\n\r\f\v]/;
+      let i = scan_state[1];
+      let result = '';
+      let lastQuote = 0;
+      let unquotedChars = 0;  // characters at the end of the argument that weren't quoted (for stripping semicolons)
+      let m;
+
+      const unterminated = () => {
+        pg_log_error('unterminated quoted string');
+        scan_state[1] = str.length;
+        return NULL;
+      };
+
+      // discard whitespace before the argument
+      while (space.test(str[i] ?? '')) i++;
+
+      if (type === OT_WHOLE_LINE) {
+        // everything to the end of the line, without trailing semicolons and whitespace if semicolon is true
+        result = str.slice(i);
+        i = str.length;
+        if (semicolon) result = result.replace(/[; \t\n\r\f\v]+$/, '');
+
+      } else {
+        for (; ;) {
+          const rest = str.slice(i);
+          // unquoted whitespace ends the argument, and so does a backslash (the start of the next command)
+          if (rest === '' || space.test(rest[0]) || rest[0] === '\\') break;
+
+          if (rest[0] === "'") {
+            // single-quoted text: as it is, except for '' and backslash sequences
+            lastQuote = "'";
+            unquotedChars = 0;
+            i++;
+            for (; ;) {
+              const rest = str.slice(i);
+              if (rest === '') return unterminated();
+              if (rest.startsWith("''")) result += "'", i += 2;
+              else if (rest[0] === "'") { i++; break; }
+              else if ((m = rest.match(/^\\[ntbrf]/))) result += { n: '\n', t: '\t', b: '\b', r: '\r', f: '\f' }[m[0][1]], i += 2;
+              else if ((m = rest.match(/^\\([0-7]{1,3})/))) result += String.fromCharCode(parseInt(m[1], 8)), i += m[0].length;
+              else if ((m = rest.match(/^\\x([0-9A-Fa-f]{1,2})/))) result += String.fromCharCode(parseInt(m[1], 16)), i += m[0].length;
+              else if ((m = rest.match(/^\\(.)/))) result += m[1], i += 2;
+              else result += rest[0], i++;
+            }
+
+          } else if (rest[0] === '"') {
+            // double-quoted text: as it is, including the double quotes
+            const end = str.indexOf('"', i + 1);
+            if (end === -1) return unterminated();
+            lastQuote = '"';
+            unquotedChars = 0;
+            result += str.slice(i, end + 1);
+            i = end + 1;
+
+          } else if ((m = rest.match(/^:(?:[A-Za-z\u0080-￿_0-9]+|'[A-Za-z\u0080-￿_0-9]+'|"[A-Za-z\u0080-￿_0-9]+")/))) {
+            // a variable, which isn't set
+            result += m[0];
+            i += m[0].length;
+            unquotedChars = 0;
+
+          } else if ((m = rest.match(/^:\{\?[A-Za-z\u0080-￿_0-9]+\}/))) {
+            // a test for a variable, which isn't set
+            result += 'FALSE';
+            i += m[0].length;
+
+          } else {
+            result += rest[0];
+            i++;
+            unquotedChars++;
+          }
+        }
+
+        // strip any unquoted trailing semicolons, if requested
+        if (semicolon) while (unquotedChars-- > 0 && result.endsWith(';')) result = result.slice(0, -1);
+      }
+
+      scan_state[1] = i;
+      if (quote != NULL) quote.value = lastQuote;
+
+      // an unquoted empty argument means there are no more
+      return result === '' && lastQuote === 0 ? NULL : result;
+    }
+
 
     /* TRANSLATED FROM C */
 
@@ -612,14 +721,6 @@ function atooid(str) {
   return parseInt(str, 10);
 }
 
-function isWhitespace(chr) {
-  return chr === ' ' || chr === '\t' || chr === '\n' || chr === '\r';
-}
-
-function isQuote(chr) {
-  return chr === '"' || chr === "'";
-}
-
 function isupper(chr) {
   const ch = chr.charCodeAt(0);
   return ch >= 65 && ch <= 90;
@@ -685,9 +786,8 @@ function printfPQExpBuffer(buf, template, ...values) {
 }
 
 function appendStringLiteral(buf, str, encoding, std_strings) {
-  const escaped = str.replace((std_strings ? /[']/g : /['\\]/g), '\\$&');
-  const quoted = "'" + escaped + "'";
-  appendPQExpBufferStr(buf, quoted);
+  // as SQL_STR_DOUBLE: each quote is doubled, and so is each backslash, without standard_conforming_strings
+  appendPQExpBufferStr(buf, "'" + str.replace(std_strings ? /'/g : /['\\]/g, '$&$&') + "'");
 }
 
 function appendStringLiteralConn(buf, str, conn) {
@@ -854,69 +954,6 @@ function PQfnumber(res, field_name) {
   return -1;
 }
 
-
-/*
- * Parse off the next argument for a backslash command, and return it as a
- * malloc'd string.  If there are no more arguments, returns NULL.
- *
- * type tells what processing, if any, to perform on the option string;
- * for example, if it's a SQL identifier, we want to downcase any unquoted
- * letters.
- *
- * if quote is not NULL, *quote is set to 0 if no quoting was found, else
- * the last quote symbol used in the argument.
- *
- * if semicolon is true, unquoted trailing semicolon(s) that would otherwise
- * be taken as part of the option string will be stripped.
- *
- * NOTE: the only possible syntax errors for backslash options are unmatched
- * quotes, which are detected when we run out of input.  Therefore, on a
- * syntax error we just throw away the string and return NULL; there is no
- * need to worry about flushing remaining input.
- */
-function psql_scan_slash_option(scan_state, type, quote, semicolon) {
-  if (type !== OT_NORMAL && type !== OT_WHOLE_LINE) throw new Error(`scan type ${type} not implemented`);
-  if (quote !== NULL) throw new Error('cannot return quote type');
-
-  const quoteStack = [];
-  const resultRe = semicolon ? /^(.*);*$/ : /^(.*)$/;
-  let chr;
-
-  // trim leading whitespace
-  for (; ;) {
-    chr = scan_state[0][scan_state[1]];  // => str[index]
-    if (chr == NULL) return NULL;
-    if (!isWhitespace(chr)) break;
-    scan_state[1]++;
-  }
-
-  if (type === OT_WHOLE_LINE) {
-    return scan_state[0].slice(scan_state[1], scan_state[1] = scan_state[0].length);
-  }
-
-  // parse for next unquoted whitespace or end of string
-  let result = '';
-  for (; ;) {
-    chr = scan_state[0][scan_state[1]++];  // => str[index++]
-
-    if (chr == NULL) {
-      if (quoteStack.length > 0) return NULL;
-      return result.match(resultRe)[1];
-    }
-
-    if (isQuote(chr)) {
-      if (chr === quoteStack[quoteStack.length - 1]) quoteStack.pop();
-      else quoteStack.push(chr);
-      if (chr === '"') result += chr;  // ' is not passed through
-
-    } else {
-      if (quoteStack.length === 0 && isWhitespace(chr)) {
-        return result.match(resultRe)[1];
-      }
-      result += chr;
-    }
-  }
-}
 
 // The command name, after the backslash: up to whitespace or another backslash (as in psqlscanslash.l)
 function psql_scan_slash_command(scan_state) {

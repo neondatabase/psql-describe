@@ -25,6 +25,15 @@
 \d public.Film
 \d public."Film"
 \d public.'Film'
+\dt "o'x"
+\dt "o'x";
+\dt 'o''x'
+\dt 'o\'x'
+\dt 'o\047x'
+\dt 'o\x27x'
+\dt o'''x'
+\dt 'o"x'
+\dt ';'
 \d psqldescribe.public.film
 \d other.public.film
 \dS

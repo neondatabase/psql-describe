@@ -204,3 +204,6 @@ CREATE TABLE empty_partitioned (
 
 -- a view named for a keyword (since Postgres 17), which \sv quotes
 CREATE VIEW "json_table" AS SELECT 1 AS one;
+
+-- a table with a quote in its name, for quoting in arguments and patterns
+CREATE TABLE "o'x" (id int);

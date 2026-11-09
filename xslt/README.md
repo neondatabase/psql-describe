@@ -49,7 +49,7 @@ When a new Postgres version adds a describe command, its line in `\?` comes with
 
 ### Tests
 
-With the generated library bundled as `index.js`, the test matrix passes on Postgres 14–19, with help text (2,802 checks), as do the 13 API tests.
+With the generated library bundled as `index.js`, the test matrix passes on Postgres 14–19, with help text (2,922 checks), as do the 15 API tests.
 
 ## The XML
 
@@ -251,8 +251,12 @@ Since it makes no difference where a template is, the rules are arranged as a st
 
 Normalised by `compare.ts` and compared function by function, this translation now differs from `translate/`'s only where it should: catalog constants are expanded by pcpp (`relkind == 'r'`, not `relkind == RELKIND_RELATION`), `WHEREAND()` is expanded where it's used (not turned into an arrow function), and `ignore_slash_options` keeps its loop (see 4, above). It also has the struct copy functions as functions of their own.
 
-Three bugs in the hand-maintained port don't happen in the generated library, and each now has a test:
+Five bugs in the hand-maintained port don't happen in the generated library, and each now has a test:
 
 - `\du` and `\dg` fail with "ERROR: ngettext is not defined" whenever a role has a connection limit (the port calls `ngettext`, for "1 connection" or "3 connections", but never defines it). This is now in the test matrix, with roles limited to 1 and 3 connections.
 - On a Postgres 10 server, `\dfp` says "\df does not take a "p" option with server version 10.0005", not "10": the port lost an integer division (`Math.floor`) in `formatPGVersionNumber`. This is now in the API tests (with `sversion` 100005).
 - Identifiers named for keywords added in Postgres 17 (`json_exists`, `json_query`, `json_table`, `json_value` and `merge_action`) aren't quoted, e.g. `\sv "json_table"` gives `CREATE OR REPLACE VIEW public.json_table`, not `public."json_table"`: the port's keyword list was from Postgres 16. The generated library's list comes from `kwlist.h`. This is now in the test matrix, with a view named `json_table`.
+- Quotes in a command's arguments don't work as in psql, because the port's `psql_scan_slash_option` treats every `'` and `"` as opening or closing a quote. So `\dt "o'x"` (where `'` should be literal) has an unbalanced quote, and silently lists all tables, and `\dt 'o''x'` looks for `ox`, not `o'x`. The runtime's version now follows the rules in `psqlscanslash.l`: double-quoted text is kept as it is, quotes included, and in single-quoted text, `''` is a quote, and backslash sequences (`\n`, `\047`, `\x27`, `\'`, ...) work. A trailing semicolon is stripped only if it's unquoted, and an unterminated quote is an error.
+- Then, with a quote in a pattern, the SQL is wrong: the port's `appendStringLiteral` escapes a quote as `\'`, which is a syntax error with `standard_conforming_strings` on. psql doubles it, as the runtime now does (and doubles backslashes, with `standard_conforming_strings` off).
+
+  These two are in the test matrix, with a table named `o'x`, and in the API tests.
