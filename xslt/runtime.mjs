@@ -6,8 +6,8 @@ const ESCAPE_STRING_SYNTAX = 'E';
 const InvalidOid = 0;
 const PG_UTF8 = 6;
 
+/* depending where you're reading, what follows is either a placeholder comment that will be replaced by translated C code, or translated C code */
 /* CONSTANTS TRANSLATED FROM C */
-
 
 export function describeDataToString(item) {
   return typeof item === 'string' ? item : tableToString(item);
@@ -268,7 +268,7 @@ export function describe(
       return result === '' && lastQuote === 0 ? NULL : result;
     }
 
-
+    /* depending where you're reading, what follows is either a placeholder comment that will be replaced by translated C code, or translated C code */
     /* TRANSLATED FROM C */
 
     /*

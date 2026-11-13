@@ -14,9 +14,9 @@
     "transform": "xslt/transform.sh",
     "translate": "npm run parse && npm run transform",
     "build": "esbuild generated/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
-    "test": "npm run test:api && npm run test:matrix",
     "test:api": "npm run build && node test/test-api.mjs",
     "test:matrix": "npm run build && node test/test-matrix.mjs",
+    "test": "npm run test:api && npm run test:matrix",
     "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020",
     "end-to-end": "npm run check:xslt && npm run translate && npm run build && npm run test && npm run bundleDemo"
   },

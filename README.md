@@ -2,10 +2,10 @@
 
 psql's `\d` (describe) family of commands ported to JavaScript.
 
-* From Postgres `REL_19_RC2`, we translate psql's C to JS automatically: its backslash-command handling, and everything that the describe commands, `\sf`, `\sv`, `\lo_list`, `\z`, `\?` and `\h` need from `command.c`, `describe.c`, `help.c`, `print.c` and `string_utils.c`.
-* The translation is done by XSLT stylesheets, working on tree-sitter's parse of the C, as XML. They insert the translated C into a hand-written JS runtime, which provides the C library functions that psql uses, such as `strchr` and `PQexec`, and the table output.
+* From Postgres `REL_19_RC2`, we translate psql's C to JS automatically: its backslash-command handling and everything that the `\d` describe commands and `\sf`, `\sv`, `\lo_list`, `\z`, `\?` and `\h` need from `command.c`, `describe.c`, `help.c`, `print.c`, `string_utils.c` and `common.c`.
+* The translation is done by XSLT stylesheets, working on tree-sitter's parse of the C serialized to XML. These insert the translated C into a hand-written JS runtime that provides the C library functions that psql needs, such as `strchr` and `PQexec`, and the table output.
 * We generate the `\h` SQL help from the Postgres SGML doc files (rather like how `create_help.pl` generates `sql_help.c` for `psql`).
-* We test the output against psql's, on Postgres 14 to 19.
+* We test the output against psql's on Postgres 14 to 19.
 
 For details of how the translation works, see [xslt/README.md](xslt/README.md). If you find a bug, please file an issue.
 

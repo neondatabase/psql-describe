@@ -7,6 +7,7 @@ const ESCAPE_STRING_SYNTAX = 'E';
 const InvalidOid = 0;
 const PG_UTF8 = 6;
 
+/* depending where you're reading, what follows is either a placeholder comment that will be replaced by translated C code, or translated C code */
 const EditableFunction = 0;
 const EditableView = 1;
 const PG_DIAG_SEVERITY = 'S';
@@ -104,7 +105,6 @@ const helpText =
   "Large Objects\n" +
   "  \\lo_list[x+]           list large objects\n" +
   "\n";
-
 
 export function describeDataToString(item) {
   return typeof item === 'string' ? item : tableToString(item);
@@ -365,7 +365,7 @@ export function describe(
       return result === '' && lastQuote === 0 ? NULL : result;
     }
 
-
+    /* depending where you're reading, what follows is either a placeholder comment that will be replaced by translated C code, or translated C code */
     
 let restricted = false;
 
