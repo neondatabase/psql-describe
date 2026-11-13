@@ -45,8 +45,11 @@
        mean await (f().x). This wraps what the call would otherwise output (inside != NULL, if that applies too: see
        the priorities in c-to-js.xsl). (An async function's definition gets async: see syntax.xsl.) -->
   <template match="call_expression[*[@field = 'function'] = $async]" priority="9">
+    <variable name="needs-parentheses" select="
+      @field = 'function'
+      or @field = 'argument' and (parent::field_expression | parent::subscript_expression)"/>
     <choose>
-      <when test="@field = 'function' or @field = 'argument' and (parent::field_expression | parent::subscript_expression)">(await <next-match/>)</when>
+      <when test="$needs-parentheses">(await <next-match/>)</when>
       <otherwise>await <next-match/></otherwise>
     </choose>
   </template>
