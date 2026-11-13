@@ -1,6 +1,6 @@
 {
   "name": "psql-describe",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
   "files": [
     "index.js",
@@ -9,13 +9,14 @@
     "LICENSE"
   ],
   "scripts": {
+    "check:xslt": "tsc -p xslt",
+    "translate": "xslt/build.sh",
+    "build": "esbuild generated/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
     "test": "npm run test:api && npm run test:matrix",
     "test:api": "npm run build && node test/test-api.mjs",
     "test:matrix": "npm run build && node test/test-matrix.mjs",
-    "build": "esbuild generated/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
     "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020",
-    "translate": "xslt/build.sh",
-    "check:xslt": "tsc -p xslt"
+    "end-to-end": "npm run check:xslt && npm run translate && npm run build && npm run test && npm run bundleDemo"
   },
   "type": "module",
   "author": "George MacKerron",
