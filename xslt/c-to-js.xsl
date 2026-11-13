@@ -21,6 +21,7 @@
     structs.xsl    Copying structs, which contain their structs and arrays
     values.xsl     What a variable declared without a value starts with
     help.xsl       The \? text: the lines for the commands we have
+    noop.xsl       Commenting out no-op functions
 
   HOW XSLT PROCESSES IT
 
