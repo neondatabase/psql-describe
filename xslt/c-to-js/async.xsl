@@ -2,9 +2,9 @@
 <!--
   ASYNC FUNCTIONS
 
-  Some functions that the C calls are provided by the JS runtime, and return a Promise: those that run queries. A
-  function that calls one of these, or calls a function that does (and so on), is async, and each call to it needs an
-  await. Finding these works like following names from the entry points (see reach.xsl), but backwards: from callees
+  The SQL query functions that the C calls are provided by the JS runtime, and return a Promise. A function that
+  calls one of these, or calls a function that does (and so on), is async, and each call to it needs an await.
+  Finding these works like following names from the entry points (see reach.xsl), but backwards: from callees
   to callers.
 -->
 <stylesheet
@@ -15,13 +15,14 @@
   xmlns:c="urn:c-to-js"
   exclude-result-prefixes="#all">
 
-  <param name="async-seeds" select="'PSQLexec', 'PQexec'"/>
-
-  <!-- Names of async functions the runtime provides, e.g. PSQLexec in `const PSQLexec = async (sql) => ...` -->
-  <variable name="provided-async" select="$runtime-statements/(
-    self::function_declaration[token = 'async']/*[@field = 'name'],
-    (self::lexical_declaration | self::variable_declaration)/variable_declarator
-      [*[@field = 'value'][self::arrow_function | self::function_expression][token = 'async']]/*[@field = 'name'])"/>
+  <!-- Names of async functions the runtime provides, e.g. PSQLexec in `const PSQLexec = async (sql) => ...`, and
+       PQexec in `async function PQexec(conn, query) { ... }`. (Without a runtime, there are none, so no awaits.) -->
+  <variable name="provided-async" select="
+    $runtime-statements/(
+      self::function_declaration[token = 'async']/*[@field = 'name'],
+      (self::lexical_declaration | self::variable_declaration)/variable_declarator
+        [*[@field = 'value'][self::arrow_function | self::function_expression][token = 'async']]/*[@field = 'name']
+    )"/>
 
   <!-- An index of function calls by the name of the function called -->
   <key name="call" match="call_expression" use="*[@field = 'function']"/>
@@ -32,12 +33,15 @@
     <param name="found" as="xs:string*"/>
     <!-- The names of the functions containing calls to any of $found, except those we've already got, and those the
          runtime provides (which are async only if the runtime says so) -->
-    <variable name="new" select="key('call', $found, $sources)/ancestor::function_definition
-      ! c:function-name(.)[not(. = ($found, $provided))]"/>
-    <sequence select="if (exists($new)) then c:async(distinct-values(($found, $new))) else $found"/>
+    <variable name="new" select="
+      key('call', $found, $sources)/ancestor::function_definition ! c:function-name(.)[not(. = ($found, $provided))]"/>
+    <sequence select="
+      if (exists($new)) then c:async(distinct-values(($found, $new)))
+      else $found"/>
   </function>
 
-  <variable name="async" select="c:async(distinct-values(($async-seeds, $provided-async)))"/>
+  <!-- This list gets used by the template that matches function_definition in syntax.xsl -->
+  <variable name="async" select="c:async($provided-async)"/>
 
   <!-- A call to an async function, e.g. PSQLexec(buf.data): output await PSQLexec(buf.data). That's in parentheses
        if it's the function in another call, or what's accessed in f()->x or f()[i], since e.g. await f().x would

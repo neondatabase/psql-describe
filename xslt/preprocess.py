@@ -1,8 +1,8 @@
 # Does the little preprocessing that tree-sitter needs, using pcpp, a C preprocessor written in Python
 # (https://github.com/ned14/pcpp), but expanding only a few macros, and leaving everything else as it is. Writes each
-# file under out-dir, and prints the files written, for c-to-xml.ts.
+# file under out-dir, and prints the files written, for code-to-xml.ts.
 #
-# Usage: python xslt/preprocess.py out-dir path/to/postgres/src/include file.c ... | xargs node xslt/c-to-xml.ts c
+# Usage: python xslt/preprocess.py out-dir path/to/postgres/src/include file.c ... | xargs node xslt/code-to-xml.ts c
 #
 # Tree-sitter parses C without preprocessing it, which mostly works, but not always. For example, in
 # `"... != " CppAsString2(RELKIND_RELATION) " AND ..."`, it reads CppAsString2 as a macro that expands to a string

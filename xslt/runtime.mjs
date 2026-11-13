@@ -239,13 +239,13 @@ export function describe(
             result += str.slice(i, end + 1);
             i = end + 1;
 
-          } else if ((m = rest.match(/^:(?:[A-Za-z\u0080-￿_0-9]+|'[A-Za-z\u0080-￿_0-9]+'|"[A-Za-z\u0080-￿_0-9]+")/))) {
+          } else if ((m = rest.match(/^:(?:[A-Za-z\u0080-\uFFFF_0-9]+|'[A-Za-z\u0080-\uFFFF_0-9]+'|"[A-Za-z\u0080-\uFFFF_0-9]+")/))) {
             // a variable, which isn't set
             result += m[0];
             i += m[0].length;
             unquotedChars = 0;
 
-          } else if ((m = rest.match(/^:\{\?[A-Za-z\u0080-￿_0-9]+\}/))) {
+          } else if ((m = rest.match(/^:\{\?[A-Za-z\u0080-\uFFFF_0-9]+\}/))) {
             // a test for a variable, which isn't set
             result += 'FALSE';
             i += m[0].length;

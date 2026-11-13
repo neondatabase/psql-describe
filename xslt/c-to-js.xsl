@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Translates C to JS, given C as XML from c-to-xml.ts (see c-syntax.xsl), with types added by add-types.xsl.
+  Translates C to JS, given C as XML from code-to-xml.ts (see c-syntax.xsl), with types added by add-types.xsl.
 
   Usage: npx xslt3 -xsl:xslt/c-to-js.xsl -s:typed.xml -o:describe.mjs runtime=/path/to/runtime.xml version=19rc1
   (see xslt/build.sh). Without a runtime, it outputs just the translation, of what you name, e.g.
@@ -78,6 +78,7 @@
   <include href="c-to-js/structs.xsl"/>
   <include href="c-to-js/values.xsl"/>
   <include href="c-to-js/help.xsl"/>
+  <include href="c-to-js/noop.xsl"/>
 
   <output method="text"/>
   <mode on-no-match="text-only-copy"/>
@@ -93,12 +94,20 @@
       <message select="'Not translated or provided by the runtime: ' || string-join($externals, ', ')"/>
     </if>
     <if test="exists($number-hazards)">
-      <message select="'Beyond JS numbers: ' || string-join(distinct-values($number-hazards
-        ! (ancestor::function_definition ! c:function-name(.) || ': ' || normalize-space(.))), '; ')"/>
+      <message select="
+        'Beyond JS numbers: ' ||
+        string-join(
+          distinct-values($number-hazards ! (ancestor::function_definition ! c:function-name(.) || ': ' || normalize-space(.))),
+          '; '
+        )"/>
     </if>
     <variable name="translation"><call-template name="translation"/></variable>
-    <value-of select="if (exists($marker)) then string($runtime-doc)
-      => replace(string($constants-marker), $constants-js, 'q') => replace(string($marker), $translation, 'q')
+    <!-- note: the 'q' flag to replace() suppresses interpolations with $n -->
+    <value-of select="
+      if (exists($marker)) then 
+        string($runtime-doc)
+        => replace(string($constants-marker), $constants-js, 'q')
+        => replace(string($marker), $translation, 'q')
       else $translation"/>
   </template>
 

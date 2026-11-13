@@ -3,15 +3,18 @@
 A proof of concept for an alternative to `translate/`: turn the C parse tree into XML, add types, and translate it with XSLT 3 stylesheets (run by SaxonJS).
 
 ```bash
-python3 -m venv tmp/venv && tmp/venv/bin/pip install -r xslt/requirements.txt  # once
-npm run build:xslt -- ../postgres tmp/lib
+python3 -m venv .venv
+.venv/bin/pip install -r xslt/requirements.txt
+source .venv/bin/activate
+
+npm run build:xslt -- ../postgres xslt-build
 ```
 
 This builds the whole JS library from a Postgres source tree: `tmp/lib/describe.mjs`, which is `runtime.mjs` with the translated C in it, and `tmp/lib/sql-help.generated.mjs` (for `\h`). It takes about 45s. The steps, in `xslt/build.sh`, are:
 
-1. `preprocess.py` preprocesses the C files and headers (see below), and `c-to-xml.ts` parses them as XML (`tmp/build/sources.xml`).
+1. `preprocess.py` preprocesses the C files and headers (see below), and `code-to-xml.ts` parses them as XML (`tmp/build/sources.xml`).
 2. `add-types.xsl` adds types (`tmp/build/typed.xml`, which is there to look at).
-3. `c-to-xml.ts` parses `runtime.mjs` too, and `c-to-js.xsl` translates the C into it.
+3. `code-to-xml.ts` parses `runtime.mjs` too, and `c-to-js.xsl` translates the C into it.
 4. `generate/create-help.mjs` generates the SQL help from the docs.
 
 `node translate/compare.ts tmp/lib/describe.mjs xslt/out` compares the translated functions with the hand-maintained port, as for `translate/`, writing `xslt/out/residual.diff`.
@@ -53,7 +56,7 @@ With the generated library bundled as `index.js`, the test matrix passes on Post
 
 ## The XML
 
-`c-to-xml.ts` writes the tree-sitter parse trees of the C files as one XML document: a `<sources>` element containing a `<translation_unit file="…">` for each file. Within that, each named node becomes an element, and a node in a field gets a `field` attribute. Each unnamed token (punctuation, keywords, operators) becomes a `<token>` element, so the only text between elements is whitespace. Each `translation_unit`'s text content is exactly the C source (after preprocessing). That's all `c-to-xml.ts` does. (`c-syntax.xsl` describes the XML too, and has functions for reading it.)
+`code-to-xml.ts` writes the tree-sitter parse trees of code files as one XML document: a `<sources>` element containing a `<translation_unit file="…">` for each C file (or a `<program file="…">`, for JS, as for `runtime.mjs`). Within that, each named node becomes an element, and a node in a field gets a `field` attribute. Each unnamed token (punctuation, keywords, operators) becomes a `<token>` element, so the only text between elements is whitespace. Each file's element has exactly the file's source as its text content (after preprocessing, for C). That's all `code-to-xml.ts` does. (`c-syntax.xsl` describes the XML too, and has functions for reading it.)
 
 For example:
 

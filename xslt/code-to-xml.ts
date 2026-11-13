@@ -1,4 +1,4 @@
-// Usage: node xslt/c-to-xml.ts language path/to/file ... > sources.xml
+// Usage: node xslt/code-to-xml.ts language path/to/file ... > sources.xml
 //
 // Write tree-sitter parse trees of code files as one XML document with a <sources> element at the root.
 // * For C, that contains a <translation_unit file="..."> element for each file.
@@ -8,7 +8,8 @@
 // Each unnamed token (e.g. punctuation, keywords and operators) becomes a <token> element, so the only text
 // outside of elements is whitespace (including \ line continuations).
 //
-// The XML loses nothing: each translation_unit or program's text content is exactly the original source.
+// The XML loses nothing: each translation_unit or program's text content is exactly the original source (except for
+// any characters that XML can't contain, which are escaped: see escape, below).
 //
 // For example, with additional spacing and indentation for ease of reading, `f(&buf);` in C is:
 //
@@ -31,10 +32,13 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Parser, Language, type Node } from 'web-tree-sitter';
 
-const escape = (s: string, quot = false) =>
-  s.replace(quot ? /[&<>"]/g : /[&<>]/g, c => 
-    ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]!)
-  );
+// XML can't contain some characters at all, even as character references: e.g. U+FFFF, and control characters other
+// than tab and newlines. So those are written as JS escapes, e.g. \uFFFF (which means the same in a string or regex).
+const escape = (s: string, quot = false) => s
+  .replace(quot ? /[&<>"]/g : /[&<>]/g, c =>
+    ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]!))
+  .replace(/[^\t\n\r\x20-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu, c =>
+    '\\u' + c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0'));
 
 const toXML = (node: Node, src: string, attrs: Record<string, string | null> = {}) => {
   const attrsXML = Object.entries(attrs)

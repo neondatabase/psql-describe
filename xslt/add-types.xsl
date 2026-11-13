@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Adds C types to C as XML from c-to-xml.ts, for c-to-js.xsl. The output is the same XML, plus type attributes, so
+  Adds C types to C as XML from code-to-xml.ts, for c-to-js.xsl. The output is the same XML, plus type attributes, so
   its text is still exactly the (preprocessed) C source.
 
   Usage: npx xslt3 -xsl:xslt/add-types.xsl -s:sources.xml -o:typed.xml
 
-  (For the XML format, see c-to-xml.ts and c-syntax.xsl, which has the functions this shares with c-to-js.xsl.)
+  (For the XML format, see code-to-xml.ts and c-syntax.xsl, which has the functions this shares with c-to-js.xsl.)
 
   WHAT IT DOES
 

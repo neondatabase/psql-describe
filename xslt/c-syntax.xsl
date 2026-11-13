@@ -2,7 +2,7 @@
 <!--
   Reading C as XML: simple XSLT functions shared by add-types.xsl and c-to-js.xsl
 
-  * See c-to-xml.ts for an explanation of the XML input we're processing.
+  * See code-to-xml.ts for an explanation of the XML input we're processing.
   * The parts of a node are mostly its children in fields: e.g. `*[@field = 'function']` is a function being called.
   * Remember that XPath indexes count from 1, so `[1]` means the first match.
 -->

@@ -1,29 +1,29 @@
 #!/bin/sh
 # Builds the JS library from Postgres sources: the translated C (in xslt/runtime.mjs), and the SQL help.
 #
-# Usage: xslt/build.sh [path/to/postgres] [out-dir]   (defaults: ../postgres, tmp/lib)
-# Writes out-dir/describe.mjs and out-dir/sql-help.generated.mjs, with intermediate files in tmp/build.
-# Needs pcpp: python3 -m venv tmp/venv && tmp/venv/bin/pip install -r xslt/requirements.txt
+# Usage: xslt/build.sh [path/to/postgres] [out-dir]   (defaults: ../postgres, xslt-build)
+# Writes out-dir/describe.mjs and out-dir/sql-help.generated.mjs, with intermediate files in xslt-build/tmp.
+# Needs pcpp: python3 -m venv ./venv && ./venv/bin/pip install -r xslt/requirements.txt
 
 set -e
 PG=${1:-../postgres}/src
-OUT=${2:-tmp/lib}
-BUILD=tmp/build
+OUT=${2:-xslt-build}
+BUILD=xslt-build/tmp
 mkdir -p "$OUT" "$BUILD"
 
 echo "Preprocessing C and parsing to XML ..."
 rm -rf "$BUILD/pp"
-tmp/venv/bin/python xslt/preprocess.py "$BUILD/pp" "$PG/include" \
+python3 xslt/preprocess.py "$BUILD/pp" "$PG/include" \
   "$PG/bin/psql/command.c" "$PG/bin/psql/describe.c" "$PG/bin/psql/help.c" "$PG/fe_utils/string_utils.c" "$PG/fe_utils/print.c" xslt/libc.h xslt/keywords.c "$PG/common/keywords.c" "$PG/include/c.h" "$PG/include/postgres_ext.h" \
   "$PG"/include/catalog/*.h "$PG"/include/common/*.h "$PG"/include/fe_utils/*.h "$PG"/interfaces/libpq/*.h \
   "$PG"/bin/psql/*.h |
-  xargs node xslt/c-to-xml.ts c > "$BUILD/sources.xml"
+  xargs node xslt/code-to-xml.ts c > "$BUILD/sources.xml"
 
 echo "Typing C XML representation ..."
 npx xslt3 -xsl:xslt/add-types.xsl -s:"$BUILD/sources.xml" -o:"$BUILD/typed.xml"
 
 echo "Parsing JS runtime to XML ..."
-node xslt/c-to-xml.ts javascript xslt/runtime.mjs > "$BUILD/runtime.xml"
+node xslt/code-to-xml.ts javascript xslt/runtime.mjs > "$BUILD/runtime.xml"
 
 echo "Transforming C to JS ..."
 VERSION=$(sed -n 's/^AC_INIT(\[PostgreSQL\], \[\([^]]*\)\].*/\1/p' "$PG/../configure.ac")
