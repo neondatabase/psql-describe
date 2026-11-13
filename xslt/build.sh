@@ -14,7 +14,8 @@ mkdir -p "$OUT" "$BUILD"
 echo "Preprocessing C and parsing to XML ..."
 rm -rf "$BUILD/pp"
 python3 xslt/preprocess.py "$BUILD/pp" "$PG/include" \
-  "$PG/bin/psql/command.c" "$PG/bin/psql/describe.c" "$PG/bin/psql/help.c" "$PG/fe_utils/string_utils.c" "$PG/fe_utils/print.c" xslt/libc.h xslt/keywords.c "$PG/common/keywords.c" "$PG/include/c.h" "$PG/include/postgres_ext.h" \
+  "$PG/bin/psql/command.c" "$PG/bin/psql/describe.c" "$PG/bin/psql/help.c" "$PG/fe_utils/string_utils.c" "$PG/bin/psql/common.c" \
+  "$PG/fe_utils/print.c" xslt/libc.h xslt/keywords.c "$PG/common/keywords.c" "$PG/include/c.h" "$PG/include/postgres_ext.h" \
   "$PG"/include/catalog/*.h "$PG"/include/common/*.h "$PG"/include/fe_utils/*.h "$PG"/interfaces/libpq/*.h \
   "$PG"/bin/psql/*.h |
   xargs node xslt/code-to-xml.ts c > "$BUILD/sources.xml"

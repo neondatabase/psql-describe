@@ -33,7 +33,10 @@ MACROS = [
     'CppAsString(identifier)=#identifier',
     'CppAsString2(x)=CppAsString(x)',
 ]
-UNDEFINED = ['NOT_USED']  # never #defined, by Postgres convention
+UNDEFINED = [
+    'NOT_USED',  # never #defined, by Postgres convention
+    'ENABLE_NLS',  # NLS = native language support (here: don't try to translate query comments)
+]
 
 class Preprocessor(CmdPreprocessor):
     # Read only the catalog headers and the keyword list: for any other #include, say the file isn't there (so it's

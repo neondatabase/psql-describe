@@ -2,7 +2,7 @@
 
 psql's `\d` (describe) family of commands ported to JavaScript.
 
-* From Postgres `REL_19_RC1`, we translate psql's C to JS automatically: its backslash-command handling, and everything that the describe commands, `\sf`, `\sv`, `\lo_list`, `\z`, `\?` and `\h` need from `command.c`, `describe.c`, `help.c`, `print.c` and `string_utils.c`.
+* From Postgres `REL_19_RC2`, we translate psql's C to JS automatically: its backslash-command handling, and everything that the describe commands, `\sf`, `\sv`, `\lo_list`, `\z`, `\?` and `\h` need from `command.c`, `describe.c`, `help.c`, `print.c` and `string_utils.c`.
 * The translation is done by XSLT stylesheets, working on tree-sitter's parse of the C, as XML. They insert the translated C into a hand-written JS runtime, which provides the C library functions that psql uses, such as `strchr` and `PQexec`, and the table output.
 * We generate the `\h` SQL help from the Postgres SGML doc files (rather like how `create_help.pl` generates `sql_help.c` for `psql`).
 * We test the output against psql's, on Postgres 14 to 19.
@@ -111,7 +111,7 @@ MACOSX_DEPLOYMENT_TARGET="$(sw_vers -productVersion)" make
 
 The database-dependent tests compare this software's output against the PostgreSQL 19 `psql` client for the commands in `test/commands/tests-*.txt`. Output should be character-for-character identical, except for differences in trailing whitespace.
 
-The same client is tested against the latest official PostgreSQL 14, 15, 16, and 17 container images, `imresamu/postgis:18-3.6` for PostgreSQL 18, and the official PostgreSQL 19rc1 image. This exercises all server-version branches and adds coverage of PostGIS objects.
+The same client is tested against the latest official PostgreSQL 14, 15, 16, and 17 container images, `imresamu/postgis:18-3.6` for PostgreSQL 18, and the official PostgreSQL 19rc2 image. This exercises all server-version branches and adds coverage of PostGIS objects.
 
 In case of failure, the tests halt and a `psql.txt` and `local.txt` are written, which you can then `diff`.
 
