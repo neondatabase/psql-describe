@@ -1,6 +1,6 @@
 {
   "name": "psql-describe",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
   "files": [
     "index.js",
