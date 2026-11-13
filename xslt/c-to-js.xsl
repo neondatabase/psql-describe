@@ -3,7 +3,7 @@
   Translates C to JS, given C as XML from code-to-xml.ts (see c-syntax.xsl), with types added by add-types.xsl.
 
   Usage: npx xslt3 -xsl:xslt/c-to-js.xsl -s:typed.xml -o:describe.mjs runtime=/path/to/runtime.xml version=19rc1
-  (see xslt/build.sh). Without a runtime, it outputs just the translation, of what you name, e.g.
+  (see xslt/transform.sh). Without a runtime, it outputs just the translation, of what you name, e.g.
   entry-points=HandleSlashCmds.
 
   THE STORY

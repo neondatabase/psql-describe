@@ -2074,8 +2074,6 @@ le_path_col_name ]
 TABLE [ ONLY ] table_name [ * ]`]];var o=null,ht=100,Pt="E",Ft=0,yt=6,_n=0,An=1,Jn="S",Kn="M",wt="a",Ht="e",Mt="b",Gt="i",zn="n",Qn="s",r=0,y=1,ne=2,b=3,vt=3,
 ia=0,Wt=1,Ln=2,xt=7,Oe=0,Bt=1,ye=2,ue=5,Se=0,xe=4,$n=0,Yt=1,qt=2,kt="19rc2",Vt="19",Xt=`Help
   \\? [commands]          show help on backslash commands
-  \\? options             show help on psql command-line options
-  \\? variables           show help on special variables
   \\h [NAME]              help on syntax of SQL commands, * for all commands
 
 Informational

@@ -13,6 +13,9 @@
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
   xmlns:c="urn:c-to-js">
 
+  <!-- Suppressed (unsupported) lines -->
+  <variable name="suppressed-commands" select="'\\? options', '\\? variables'"/>
+
   <!-- The names the runtime declares unsupported -->
   <variable name="unsupported" select="$runtime-statements/(self::lexical_declaration | self::variable_declaration)/variable_declarator
     [*[@field = 'value']/self::call_expression/*[@field = 'function'] = 'unsupported']/*[@field = 'name']"/>
@@ -133,8 +136,10 @@
     <variable name="kept" as="element()*">
       <for-each-group select="$lines" group-starting-with="*[matches(c:literal-text(.), '^[^ \\]')]">
         <variable name="commands" select="current-group()[matches(c:literal-text(.), '^  \\\\')]"/>
-        <variable name="have" select="$commands[c:has-command($exec-command, $var,
-          replace(c:literal-text(.), '^  \\\\([^\s\[{]+).*', '$1', 's'))]"/>
+        <variable name="have" select="
+          $commands
+          [c:has-command($exec-command, $var, replace(c:literal-text(.), '^  \\\\([^\s\[{]+).*', '$1', 's'))]
+          [not(some $prefix in $suppressed-commands satisfies starts-with(normalize-space(c:literal-text(.)), $prefix))]"/>
         <sequence select="if (exists($have)) then current-group() except ($commands except $have) else ()"/>
       </for-each-group>
     </variable>

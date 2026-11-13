@@ -78,10 +78,10 @@ The repo has three build outputs, all committed:
   .venv/bin/pip install -r xslt/requirements.txt
   source .venv/bin/activate
 
-  npm run translate -- ../postgres   # the default path
+  npm run translate
   ```
 
-  The intermediate files go in the .gitignored `build` directory. See [xslt/README.md](xslt/README.md) for the details.
+  This runs two steps, which you can also run separately. `npm run parse` reads the Postgres source tree (`../postgres` by default, or e.g. `npm run parse -- path/to/postgres`), and writes the parsed and typed C to the .gitignored `build` directory, plus the SQL help. Then `npm run transform` translates the C into the runtime. When you're working on the runtime or the stylesheets, only the second step needs rerunning. See [xslt/README.md](xslt/README.md) for the details.
 
 * `index.js` is the published bundle of `generated/describe.mjs`, made with `npm run build` (which runs `esbuild`). The tests run this step themselves.
 

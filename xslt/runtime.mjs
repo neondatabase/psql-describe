@@ -100,7 +100,7 @@ export function describe(
     const slashUsage = pager => fputs(helpText, stdout);
 
     // What psql has, but we don't: each reports an error, and its line is left out of the \? text (again, see
-    // c-to-js.xsl). (\? options and \? variables, which are \? with an argument, still have lines.)
+    // c-to-js.xsl).
     const
       unsupported = command => () => { pg_log_error('\\%s is not supported', command); return false; },
       usage = unsupported('? options'),

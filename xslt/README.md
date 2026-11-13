@@ -2,14 +2,19 @@
 
 This is how [psql-describe](../README.md) is made: turn psql's C parse tree into XML, add types, and translate it with XSLT 3 stylesheets (run by SaxonJS).
 
-`npm run translate` (see [Building](../README.md#building)) builds the whole JS library from a Postgres source tree: `generated/describe.mjs`, which is `runtime.mjs` with the translated C in it, and `generated/sql-help.generated.mjs` (for `\h`). It takes about 45s. The steps, in `xslt/build.sh`, are:
+`npm run translate` (see [Building](../README.md#building)) builds the whole JS library from a Postgres source tree: `generated/describe.mjs`, which is `runtime.mjs` with the translated C in it, and `generated/sql-help.generated.mjs` (for `\h`). It takes about 45s, in two parts.
+
+`xslt/parse.sh` (`npm run parse`) reads Postgres:
 
 1. `preprocess.py` minimally preprocesses the C files and headers (see below).
 2. `code-to-xml.ts` parses the preprocessed C and serializes it `build/sources.xml`.
 3. `add-types.xsl` adds type information to the parse tree, saving to `build/typed.xml`.
-4. `code-to-xml.ts` parses and serializes `runtime.mjs` to `build/runtime.xml`.
-5. `c-to-js.xsl` translates the C-in-XML to JavaScript, inserting it into the hand-built JS runtime.
-6. `create-help.mjs` generates the SQL help text from the Postgres docs.
+4. `create-help.mjs` generates the SQL help text from the Postgres docs.
+
+`xslt/transform.sh` (`npm run transform`) then needs only `build/` and `xslt/`, so it's all you need to rerun when working on the runtime or the stylesheets:
+
+1. `code-to-xml.ts` parses and serializes `runtime.mjs` to `build/runtime.xml`.
+2. `c-to-js.xsl` translates the C-in-XML to JavaScript, inserting it into the hand-built JS runtime.
 
 ## The runtime
 
@@ -36,9 +41,9 @@ The runtime's functions follow the C API, so that calls to them translate unchan
 
 ### The version, and the `\?` text
 
-These are generated too, and go with the constants. `build.sh` reads the version from `configure.ac` (e.g. `19rc1`), as `PG_VERSION`, and `PG_MAJORVERSION` is its leading digits, as configure makes it. The default docs URL is then as psql makes it, in `/docs/devel/` or (here) `/docs/19/`.
+These are generated too, and go with the constants. `parse.sh` reads the version from `configure.ac` (e.g. `19rc1`), as `PG_VERSION`, and `PG_MAJORVERSION` is its leading digits, as configure makes it. The default docs URL is then as psql makes it, in `/docs/devel/` or (here) `/docs/19/`.
 
-The `\?` text is `slashUsage`'s lines (from `help.c`) for the commands we have. To decide if we have a command, the stylesheet follows its name as psql would: through `exec_command`'s `if`-`else` chain, evaluating conditions such as `strcmp(cmd, "sf") == 0`, `cmd[0] == 'd'` and `strncmp(cmd, "lo_", 3) == 0` for that name, and on into the function it calls, if that's passed the name, where `exec_command_lo` tests `strcmp(cmd + 3, "export") == 0`. We have the command if the functions called are all translated or provided, and none is `unsupported`. So `\lo_list` stays, but `\lo_export` goes (`do_lo_export` is unsupported), as does `\copyright` (`exec_command_copyright` is neither translated nor provided). A section stays if any of its commands does. `\? options` and `\? variables` stay, since they're `\?` with an argument (the runtime reports them unsupported).
+The `\?` text is `slashUsage`'s lines (from `help.c`) for the commands we have. To decide if we have a command, the stylesheet follows its name as psql would: through `exec_command`'s `if`-`else` chain, evaluating conditions such as `strcmp(cmd, "sf") == 0`, `cmd[0] == 'd'` and `strncmp(cmd, "lo_", 3) == 0` for that name, and on into the function it calls, if that's passed the name, where `exec_command_lo` tests `strcmp(cmd + 3, "export") == 0`. We have the command if the functions called are all translated or provided, and none is `unsupported`. So `\lo_list` stays, but `\lo_export` goes (`do_lo_export` is unsupported), as does `\copyright` (`exec_command_copyright` is neither translated nor provided). A section stays if any of its commands does. `\? options` and `\? variables` are explicitly suppressed.
 
 When a new Postgres version adds a describe command, its line in `\?` comes with it. The matrix checks that each line of the generated `\?` is one of the reference psql's, in order, and the API tests check which commands are there.
 
