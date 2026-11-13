@@ -12,11 +12,10 @@
     "test": "npm run test:api && npm run test:matrix",
     "test:api": "npm run build && node test/test-api.mjs",
     "test:matrix": "npm run build && node test/test-matrix.mjs",
-    "build": "esbuild src/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
+    "build": "esbuild generated/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
     "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020",
-    "check:translate": "tsc -p translate",
-    "check:xslt": "tsc -p xslt",
-    "build:xslt": "xslt/build.sh"
+    "translate": "xslt/build.sh",
+    "check:xslt": "tsc -p xslt"
   },
   "type": "module",
   "author": "George MacKerron",

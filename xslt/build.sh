@@ -1,14 +1,14 @@
-#!/bin/sh
+#!/bin/bash
 # Builds the JS library from Postgres sources: the translated C (in xslt/runtime.mjs), and the SQL help.
 #
-# Usage: xslt/build.sh [path/to/postgres] [out-dir]   (defaults: ../postgres, xslt-build)
-# Writes out-dir/describe.mjs and out-dir/sql-help.generated.mjs, with intermediate files in xslt-build/tmp.
-# Needs pcpp: python3 -m venv ./venv && ./venv/bin/pip install -r xslt/requirements.txt
+# Usage: xslt/build.sh [path/to/postgres] [out-dir]   (defaults: ../postgres, generated)
+# Writes out-dir/describe.mjs and out-dir/sql-help.generated.mjs, with intermediate files in build.
+# Needs pcpp: python3 -m venv .venv && .venv/bin/pip install -r xslt/requirements.txt && source .venv/bin/activate
 
-set -e
+set -eo pipefail
 PG=${1:-../postgres}/src
-OUT=${2:-xslt-build}
-BUILD=xslt-build/tmp
+OUT=${2:-generated}
+BUILD=build
 mkdir -p "$OUT" "$BUILD"
 
 echo "Preprocessing C and parsing to XML ..."
@@ -33,6 +33,6 @@ echo "Checking JS syntax ..."
 node --check "$OUT/describe.mjs"
 
 echo "Generating SQL help for \\h ..."
-node generate/create-help.mjs --docdir "${1:-../postgres}/doc/src/sgml/ref" --output "$OUT/sql-help.generated.mjs"
+node xslt/create-help.mjs --docdir "${1:-../postgres}/doc/src/sgml/ref" --output "$OUT/sql-help.generated.mjs"
 
 echo "Done."

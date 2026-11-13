@@ -2,7 +2,7 @@
 
 import fs from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
-import { helpIndex } from '../src/sql-help.generated.mjs';
+import { helpIndex } from '../generated/sql-help.generated.mjs';
 import { describe } from '../index.js';
 
 // images are pinned to multi-arch index digests, so their contents can't change

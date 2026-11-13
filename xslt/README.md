@@ -1,29 +1,21 @@
 # Translating psql from C to JS with XSLT
 
-A proof of concept for an alternative to `translate/`: turn the C parse tree into XML, add types, and translate it with XSLT 3 stylesheets (run by SaxonJS).
+This is how [psql-describe](../README.md) is made: turn psql's C parse tree into XML, add types, and translate it with XSLT 3 stylesheets (run by SaxonJS).
 
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -r xslt/requirements.txt
-source .venv/bin/activate
+`npm run translate` (see [Building](../README.md#building)) builds the whole JS library from a Postgres source tree: `generated/describe.mjs`, which is `runtime.mjs` with the translated C in it, and `generated/sql-help.generated.mjs` (for `\h`). It takes about 45s. The steps, in `xslt/build.sh`, are:
 
-npm run build:xslt -- ../postgres xslt-build
-```
-
-This builds the whole JS library from a Postgres source tree: `tmp/lib/describe.mjs`, which is `runtime.mjs` with the translated C in it, and `tmp/lib/sql-help.generated.mjs` (for `\h`). It takes about 45s. The steps, in `xslt/build.sh`, are:
-
-1. `preprocess.py` preprocesses the C files and headers (see below), and `code-to-xml.ts` parses them as XML (`tmp/build/sources.xml`).
-2. `add-types.xsl` adds types (`tmp/build/typed.xml`, which is there to look at).
-3. `code-to-xml.ts` parses `runtime.mjs` too, and `c-to-js.xsl` translates the C into it.
-4. `generate/create-help.mjs` generates the SQL help from the docs.
-
-`node translate/compare.ts tmp/lib/describe.mjs xslt/out` compares the translated functions with the hand-maintained port, as for `translate/`, writing `xslt/out/residual.diff`.
+1. `preprocess.py` minimally preprocesses the C files and headers (see below).
+2. `code-to-xml.ts` parses the preprocessed C and serializes it `build/sources.xml`.
+3. `add-types.xsl` adds type information to the parse tree, saving to `build/typed.xml`.
+4. `code-to-xml.ts` parses and serializes `runtime.mjs` to `build/runtime.xml`.
+5. `c-to-js.xsl` translates the C-in-XML to JavaScript, inserting it into the hand-built JS runtime.
+6. `create-help.mjs` generates the SQL help text from the Postgres docs.
 
 ## The runtime
 
-`runtime.mjs` is the hand-written part of the library: the hand-maintained port (`src/describe.mjs`) without the functions that are now translated. It has the exported `describe()` function, which hands the command to the translated `HandleSlashCmds`, and `PSQLexec`, `pset`, output and cancellation; the C library functions the translation calls (`PQExpBuffer`, `PQgetvalue`, `sprintf`, …), and the table-printing functions, `printTableInit`, `printTable` and so on (`printQuery` and `column_type_alignment` are translated from `print.c`); and its own versions of the four C functions it can't translate, because they write characters through a `char *`: `fmtId`, `appendStringLiteral`, `appendStringLiteralConn` (into a `PQExpBuffer`'s data) and `parsePGArray` (into a block of memory holding an array of pointers and their strings).
+`runtime.mjs` is the hand-written part of the library. It has the exported `describe()` function, which hands the command to the translated `HandleSlashCmds`, and `PSQLexec`, `pset`, output and cancellation. It has the C library functions the translation calls (`PQExpBuffer`, `PQgetvalue`, `sprintf`, …), and the table-printing functions, `printTableInit`, `printTable` and so on (`printQuery` and `column_type_alignment` are translated from `print.c`). And it has its own versions of the four C functions we can't easily translate, because they write characters through a `char *`: `fmtId`, `appendStringLiteral`, `appendStringLiteralConn` (into a `PQExpBuffer`'s data) and `parsePGArray` (into a block of memory holding an array of pointers and their strings).
 
-The keyword list that `fmtId` uses to decide what to quote is generated, though. In psql, `common/keywords.c` makes the keyword categories, `ScanKeywordCategories`, by `#include`-ing `parser/kwlist.h` (a list of `PG_KEYWORD("abort", ABORT_P, UNRESERVED_KEYWORD, BARE_LABEL)` and so on) in an array, having `#define`d `PG_KEYWORD` to give just the category. The names are in a hash table made at build time, so `xslt/keywords.c` does the same as `keywords.c` for those, as `ScanKeywordNames`. Both arrays are translated as globals (the runtime's `fmtId` uses them). (The port's hand-written list was from Postgres 16, missing `json_exists`, `json_query`, `json_table`, `json_value` and `merge_action`, which psql 17 and later quote.)
+The keyword list that `fmtId` uses to decide what to quote is generated, though. In psql, `common/keywords.c` makes the keyword categories, `ScanKeywordCategories`, by `#include`-ing `parser/kwlist.h` (a list of `PG_KEYWORD("abort", ABORT_P, UNRESERVED_KEYWORD, BARE_LABEL)` and so on) in an array, having `#define`d `PG_KEYWORD` to give just the category. The names are in a hash table made at build time, so `xslt/keywords.c` does the same as `keywords.c` for those, as `ScanKeywordNames`. Both arrays are translated as globals (the runtime's `fmtId` uses them).
 
 For C library functions, it does just enough. For example, `PQexec` runs a query and gives a result with a status (`PGRES_TUPLES_OK` or, if the query fails, `PGRES_FATAL_ERROR`, with error fields for `PQresultErrorField`), and C's stdio is an object with a `write` method, where `stdout` writes text, and there's no pager. Text written to `stdout`, or logged as an error or warning, is collected, and goes to the `outputFn` callback as one item before the next table, or at the end. (So the line-by-line output of `\sf+`, or a warning for each extra argument, is one item, as it would be lines together in psql.) So `\sf` and `\sv` (`exec_command_sf_sv` and the functions it calls), which use these, are translated like everything else. So are `\?` and `\h` (`exec_command_slash_command_help` and `exec_command_help`), for which the runtime provides `slashUsage` (which prints the generated `\?` text: see below) and `helpSQL` (which searches the generated SQL help).
 
@@ -40,7 +32,7 @@ The translation goes in place of the comment `/* TRANSLATED FROM C */`, in `desc
 
 A function the runtime provides is `async` if the runtime declares it so (like `PSQLexec`). Constants used by the translation or the runtime are translated as `const`s, in place of `/* CONSTANTS TRANSLATED FROM C */` at the top level: enum constants (e.g. `PSQL_CMD_UNKNOWN`, `PGRES_TUPLES_OK`), and constants `#define`d in headers, where the value is a single literal (e.g. `PG_DIAG_SEVERITY`, `'S'`, and `INT8OID`, `20`). (Tree-sitter doesn't parse a `#define`'s value, which could be any text, such as `((Oid) 0)`.) Any other name the translation uses but no one provides is reported as an external, so that a new Postgres version can't silently produce a library that fails at run time.
 
-A few runtime functions changed to match the C API, which the port had adapted at each call site instead: `strstr` returns the rest of the string (or `NULL`), as in C, not an index; a table's last footer is a `printTableFooter`, `{ data }`; and `parsePGArray` sets its result through a pointer, `itemarray`, rather than filling in an array it's given. And the runtime defines `ngettext` and `pg_log_error_internal`, which the port used but never defined.
+The runtime's functions follow the C API, so that calls to them translate unchanged: e.g. `strstr` returns the rest of the string (or `NULL`), as in C, not an index; a table's last footer is a `printTableFooter`, `{ data }`; and `parsePGArray` sets its result through a pointer, `itemarray`.
 
 ### The version, and the `\?` text
 
@@ -52,7 +44,7 @@ When a new Postgres version adds a describe command, its line in `\?` comes with
 
 ### Tests
 
-With the generated library bundled as `index.js`, the test matrix passes on Postgres 14–19, with help text (2,922 checks), as do the 15 API tests.
+The test matrix (see the [main README](../README.md#tests)) passes on Postgres 14–19, with help text (2,922 checks), as do the 15 API tests.
 
 ## The XML
 
@@ -120,7 +112,7 @@ Since it makes no difference where a template is, the rules are arranged as a st
    <sequence select="if (exists($new)) then c:reached($found | $new) else $found"/>
    ```
 
-   Because `|` and `except` treat nodes as sets in document order, the result comes out in source order, ready to group by file. From `exec_command_d`, `exec_command_list` and `exec_command_sf_sv`, this reaches the same 77 functions, in the same order, as `translate/`.
+   Because `|` and `except` treat nodes as sets in document order, the result comes out in source order, ready to group by file.
 
    Names in C that isn't translated aren't followed, and don't count as externals: `c:is-dropped` says which C that is, in one place, for both. It's dropped branches (below), statements that only free memory (e.g. `printTableCleanup(&cont);`), array allocations, and array sizes in declarators.
 
@@ -142,7 +134,7 @@ Since it makes no difference where a template is, the rules are arranged as a st
    <sequence select="if (exists($new)) then c:async(distinct-values(($found, $new))) else $found"/>
    ```
 
-   A function in the result gets `async`, and a call to it gets `await` (in parentheses where it's the function in another call, or what's accessed in `f()->x` or `f()[i]`). As in `translate/`, that's 57 `async` functions and 141 `await`s, exactly the same ones.
+   A function in the result gets `async`, and a call to it gets `await` (in parentheses where it's the function in another call, or what's accessed in `f()->x` or `f()[i]`).
 
 4. **`syntax.xsl`, what's the same apart from syntax:** a declaration's types are replaced by `let`, and a function keeps only its name and its parameters' names. The name in a declarator (`*x`, `**x`, `x[10]`, `(*x)(void)`, …) is simply its first identifier, `c:name`. Tree-sitter queries can't express this, because they can't recurse. `a->b` is `a.b`, an initialiser list `{a, b}` is an array, `[a, b]`, a cast `(type) x` is just `x`, and `snprintf(buf, size, format, ...)`, as a statement, is `buf = sprintf(format, ...)`:
 
@@ -154,7 +146,7 @@ Since it makes no difference where a template is, the rules are arranged as a st
 
    This file also has functions about expressions in general, for the files that follow: e.g. which assignment last set a variable before some point (`c:last-set`).
 
-5. **`memory.xsl`, what goes:** a statement that only frees memory goes, along with the whitespace before it. So does a block, an `if` or a loop whose body only frees memory, as long as its condition makes no calls: e.g. `for (p = list; *p; p++) free(*p);`. Where a statement can't just go, because it's the body of an `if` or loop that stays, it becomes `{}`. (So `while ((arg = next_option(...)) != NULL) free(arg);` keeps its loop: `translate/` deletes it, which would skip the calls.) The recursion is in a `function`, `c:is-freeing`, which a template's match pattern can call. `pg_malloc_array(type, n)` is `[]`.
+5. **`memory.xsl`, what goes:** a statement that only frees memory goes, along with the whitespace before it. So does a block, an `if` or a loop whose body only frees memory, as long as its condition makes no calls: e.g. `for (p = list; *p; p++) free(*p);`. Where a statement can't just go, because it's the body of an `if` or loop that stays, it becomes `{}`. (So `while ((arg = next_option(...)) != NULL) free(arg);` keeps its loop, since deleting it would skip the calls.) The recursion is in a `function`, `c:is-freeing`, which a template's match pattern can call. `pg_malloc_array(type, n)` is `[]`.
 
    And if a label is followed only by frees and a `return`, then `goto label` is that `return`, which needs the sibling axes:
 
@@ -198,7 +190,7 @@ Since it makes no difference where a template is, the rules are arranged as a st
    </template>
    ```
 
-   (`next-match` is how one rule wraps another: here, e.g., an `await`.) This adds 91 `NULL` tests, on identifiers, struct fields, calls (e.g. `strchr(cmd, 'x')`) and dereferences, and they are exactly the same as `translate/`'s. The one exception is in a loop that only frees memory, which `translate/` deletes.
+   (`next-match` is how one rule wraps another: here, e.g., an `await`.) This adds `NULL` tests on identifiers, struct fields, calls (e.g. `strchr(cmd, 'x')`) and dereferences.
 
    Types are written as JS sees them, which keeps the rules that use them simple. Every integer type is `int`, whether it's made of C's integer type words (e.g. `unsigned short int`) or is one of the C library's (e.g. `size_t` or `int16_t`), except those with 64 bits (`long`, `long long`, `int64_t` and `uint64_t`), which are `int64`. Every floating-point type is `double`. A `char` (signed or unsigned) stays `char`, since it's part of a string, and `bool` stays `bool`. And `const` goes, except on `char`, where it says that a string can't be written to: `const char *s` is `const char*`, but `const printTableOpt *opt` is `struct printTableOpt*`. This works because `c.h` is among the inputs, so Postgres's own typedefs are resolved (e.g. `int64` to `int64_t`, and `float4` to `float`).
 
@@ -212,8 +204,6 @@ Since it makes no difference where a template is, the rules are arranged as a st
    <variable name="boxed" select="distinct-values($sources//pointer_expression[c:operator(.) = '&amp;']
      /identifier[@field = 'argument'][not(c:is-object(.))][key('local-declaration', @declared)]/@declared)"/>
    ```
-
-   The boxes and `.value`s are exactly the same as `translate/`'s.
 
    And a pointer (other than a string) that only ever points into one array is an index into it. In `patternToSQLRegex`, `curbuf` and `maxbuf` point into `PQExpBufferData buf[3]`: `curbuf = &buf[0]` is `curbuf = 0`, `curbuf++`, `curbuf < maxbuf` and `curbuf >= buf` (`curbuf >= 0`) are as they are, and `appendPQExpBufferStr(curbuf, ...)` is `appendPQExpBufferStr(buf[curbuf], ...)`. That's only if the pointer is used in no other way. The array can be any expression that always gives the same array (with no side effects, and neither it nor its variables set in the function): in `printQuery`, `for (footer = opt->footers; *footer; footer++)` is `for (footer = 0; opt.footers[footer] != NULL; footer++)`.
 
@@ -232,8 +222,6 @@ Since it makes no difference where a template is, the rules are arranged as a st
    <sequence select="empty($call) or (exists($function) and not($parameter/@type = ('char*', 'char[]')))"/>
    ```
 
-   The slices, `[0]`s, `undefined`s and refusals (other than the exceptions) are exactly the same as `translate/`'s.
-
 9. **`structs.xsl`, struct copies:** assigning a C struct copies it, but assigning a JS object doesn't, so `printQueryOpt myopt = pset.popt;` is `myopt = { ...pset.popt }`. A C struct also contains its structs and arrays, so a struct type with some gets a copy function, output after everything else:
 
    ```js
@@ -242,24 +230,22 @@ Since it makes no difference where a template is, the rules are arranged as a st
    }
    ```
 
-   To make this possible, `add-types.xsl` gives each struct definition its type, and each field declarator the type it declares. The copies and copy functions are exactly the same as `translate/`'s.
+   To make this possible, `add-types.xsl` gives each struct definition its type, and each field declarator the type it declares.
 
-10. **`values.xsl`, initial values:** a C variable declared without a value is still something, so in JS it starts with a value that's the same. A struct starts with its nested structs and arrays (`printTableOpt opt;` is `opt = { fieldSep: {}, recordSep: {} }`), an array of structs with its structs (`PQExpBufferData buf[3]` is `buf = [{}, {}, {}]`), a box with `{}`, and a global variable with zero, as in C (`static bool restricted;` is `let restricted = false;`, and a pointer would be `NULL`). The initial values are exactly the same as `translate/`'s.
+10. **`values.xsl`, initial values:** a C variable declared without a value is still something, so in JS it starts with a value that's the same. A struct starts with its nested structs and arrays (`printTableOpt opt;` is `opt = { fieldSep: {}, recordSep: {} }`), an array of structs with its structs (`PQExpBufferData buf[3]` is `buf = [{}, {}, {}]`), a box with `{}`, and a global variable with zero, as in C (`static bool restricted;` is `let restricted = false;`, and a pointer would be `NULL`).
 
 11. **`help.xsl`, the `\?` text:** the lines for the commands we have (see above).
 
-## Results
+## History
 
-`node translate/compare.ts translated.js xslt/out` compares the translation with the hand-maintained port. Of the 70 translated functions that are in the port, 64 are now valid JS (3 identical to the port), as for `translate/`. Of the other 6, 5 have C marked for porting by hand (writing through a `char *`, pointer comparisons, or passing a slice to a function that might write to it), as in `translate/`, and 1 has `sizeof(char *)`.
-
-Normalised by `compare.ts` and compared function by function, this translation now differs from `translate/`'s only where it should: catalog constants are expanded by pcpp (`relkind == 'r'`, not `relkind == RELKIND_RELATION`), `WHEREAND()` is expanded where it's used (not turned into an arrow function), and `ignore_slash_options` keeps its loop (see 4, above). It also has the struct copy functions as functions of their own.
+psql-describe began as a port made by RegExp search-and-replace on the C, followed by fixes by hand, and then maintained by hand. A TypeScript translator prototype followed, and then this one. (The port was `src/describe.mjs`, and the TypeScript translator `translate/`: both are in the git history.) Function by function, this translation was checked against both of them, and differed only where it should: e.g. catalog constants are expanded by pcpp (`relkind == 'r'`, not `relkind == RELKIND_RELATION`), and `ignore_slash_options` keeps its loop (see 5, above).
 
 Five bugs in the hand-maintained port don't happen in the generated library, and each now has a test:
 
-- `\du` and `\dg` fail with "ERROR: ngettext is not defined" whenever a role has a connection limit (the port calls `ngettext`, for "1 connection" or "3 connections", but never defines it). This is now in the test matrix, with roles limited to 1 and 3 connections.
-- On a Postgres 10 server, `\dfp` says "\df does not take a "p" option with server version 10.0005", not "10": the port lost an integer division (`Math.floor`) in `formatPGVersionNumber`. This is now in the API tests (with `sversion` 100005).
+- `\du` and `\dg` failed with "ERROR: ngettext is not defined" whenever a role has a connection limit (the port calls `ngettext`, for "1 connection" or "3 connections", but never defines it). This is now in the test matrix, with roles limited to 1 and 3 connections.
+- On a Postgres 10 server, `\dfp` says "\df does not take a "p" option with server version 10.0005", not "10": the port lost an integer division (`Math.trunc`) in `formatPGVersionNumber`. This is now in the API tests (with `sversion` 100005).
 - Identifiers named for keywords added in Postgres 17 (`json_exists`, `json_query`, `json_table`, `json_value` and `merge_action`) aren't quoted, e.g. `\sv "json_table"` gives `CREATE OR REPLACE VIEW public.json_table`, not `public."json_table"`: the port's keyword list was from Postgres 16. The generated library's list comes from `kwlist.h`. This is now in the test matrix, with a view named `json_table`.
-- Quotes in a command's arguments don't work as in psql, because the port's `psql_scan_slash_option` treats every `'` and `"` as opening or closing a quote. So `\dt "o'x"` (where `'` should be literal) has an unbalanced quote, and silently lists all tables, and `\dt 'o''x'` looks for `ox`, not `o'x`. The runtime's version now follows the rules in `psqlscanslash.l`: double-quoted text is kept as it is, quotes included, and in single-quoted text, `''` is a quote, and backslash sequences (`\n`, `\047`, `\x27`, `\'`, ...) work. A trailing semicolon is stripped only if it's unquoted, and an unterminated quote is an error.
-- Then, with a quote in a pattern, the SQL is wrong: the port's `appendStringLiteral` escapes a quote as `\'`, which is a syntax error with `standard_conforming_strings` on. psql doubles it, as the runtime now does (and doubles backslashes, with `standard_conforming_strings` off).
+- Quotes in a command's arguments don't work as in psql, because the port's `psql_scan_slash_option` treated every `'` and `"` as opening or closing a quote. So `\dt "o'x"` (where `'` should be literal) has an unbalanced quote, and silently listed all tables, and `\dt 'o''x'` looked for `ox`, not `o'x`. The runtime's version now follows the rules in `psqlscanslash.l`: double-quoted text is kept as it is, quotes included, and in single-quoted text, `''` is a quote, and backslash sequences (`\n`, `\047`, `\x27`, `\'`, ...) work. A trailing semicolon is stripped only if it's unquoted, and an unterminated quote is an error.
+- Then, with a quote in a pattern, the SQL was wrong: the port's `appendStringLiteral` escapes a quote as `\'`, which is a syntax error with `standard_conforming_strings` on. psql doubles it, as the runtime now does (and doubles backslashes, with `standard_conforming_strings` off).
 
   These two are in the test matrix, with a table named `o'x`, and in the API tests.
