@@ -7,13 +7,10 @@
   the same: e.g. `PQExpBufferData buf;` is `let buf = {};`, and `static bool restricted;` is
   `let restricted = false;`. A box (see pointers.xsl) starts as {}.
 -->
-<stylesheet
-  version="3.0"
-  expand-text="yes"
+<stylesheet version="3.0" expand-text="yes"
   xmlns="http://www.w3.org/1999/XSL/Transform"
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
-  xmlns:c="urn:c-to-js"
-  exclude-result-prefixes="#all">
+  xmlns:c="urn:c-to-js">
 
   <!-- The value that a variable declared without one starts with, if any: {} for a box; an array of n empty values for
        an array of n structs, e.g. [{}, {}, {}] for `PQExpBufferData buf[3]`; otherwise, the empty value of its type,

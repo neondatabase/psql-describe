@@ -6,14 +6,11 @@
   &buf is buf, and *p is p. Other pointers are to variables, which are boxed, or into arrays, which are indexes.
   (Pointers to strings are another matter: see strings.xsl.)
 -->
-<stylesheet
-  version="3.0"
-  expand-text="yes"
+<stylesheet version="3.0" expand-text="yes"
   xmlns="http://www.w3.org/1999/XSL/Transform"
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
   xmlns:map="http://www.w3.org/2005/xpath-functions/map"
-  xmlns:c="urn:c-to-js"
-  exclude-result-prefixes="#all">
+  xmlns:c="urn:c-to-js">
 
   <!--
     * BOXES

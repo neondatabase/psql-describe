@@ -14,13 +14,10 @@
   There are exceptions, though, below: ending a string where a pointer into it points, *p = '\0', and reading and
   moving on, *s++.
 -->
-<stylesheet
-  version="3.0"
-  expand-text="yes"
+<stylesheet version="3.0" expand-text="yes"
   xmlns="http://www.w3.org/1999/XSL/Transform"
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
-  xmlns:c="urn:c-to-js"
-  exclude-result-prefixes="#all">
+  xmlns:c="urn:c-to-js">
 
   <!-- C's null character, '\0', which ends a string -->
   <variable name="nul" select="&quot;'\0'&quot;"/>

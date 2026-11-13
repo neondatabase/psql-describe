@@ -5,13 +5,10 @@
   Much of C is JS already, given that the default outputs C as it is (see c-to-js.xsl). Here's what's the same apart
   from its syntax: functions, declarations, a->b, and so on.
 -->
-<stylesheet
-  version="3.0"
-  expand-text="yes"
+<stylesheet version="3.0" expand-text="yes"
   xmlns="http://www.w3.org/1999/XSL/Transform"
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
-  xmlns:c="urn:c-to-js"
-  exclude-result-prefixes="#all">
+  xmlns:c="urn:c-to-js">
 
   <!--
     * FUNCTIONS AND DECLARATIONS

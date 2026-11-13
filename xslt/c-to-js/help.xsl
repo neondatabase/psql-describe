@@ -8,13 +8,10 @@
   one we have if every function its branch calls is translated or provided by the runtime, and isn't one the runtime
   declares unsupported, e.g. `do_lo_export = unsupported('lo_export')`.
 -->
-<stylesheet
-  version="3.0"
-  expand-text="yes"
+<stylesheet version="3.0" expand-text="yes"
   xmlns="http://www.w3.org/1999/XSL/Transform"
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
-  xmlns:c="urn:c-to-js"
-  exclude-result-prefixes="#all">
+  xmlns:c="urn:c-to-js">
 
   <!-- The names the runtime declares unsupported -->
   <variable name="unsupported" select="$runtime-statements/(self::lexical_declaration | self::variable_declaration)/variable_declarator

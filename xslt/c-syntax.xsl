@@ -6,14 +6,10 @@
   * The parts of a node are mostly its children in fields: e.g. `*[@field = 'function']` is a function being called.
   * Remember that XPath indexes count from 1, so `[1]` means the first match.
 -->
-
-<stylesheet
-  version="3.0"
-  expand-text="yes"
+<stylesheet version="3.0" expand-text="yes"
   xmlns="http://www.w3.org/1999/XSL/Transform"
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
-  xmlns:c="urn:c-to-js"
-  exclude-result-prefixes="#all">
+  xmlns:c="urn:c-to-js">
 
   <!-- The element in a declarator that has its name: e.g. the identifier in `char **items`, or (in a typedef) the
        type_identifier in `typedef PQExpBufferData *PQExpBuffer`, or (in a struct) the field_identifier in

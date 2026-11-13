@@ -9,13 +9,10 @@
   `else if (cmd[0] == 'd') status = exec_command_d(...);`. We want only some commands, and the branches for others go
   (with everything only they would reach).
 -->
-<stylesheet
-  version="3.0"
-  expand-text="yes"
+<stylesheet version="3.0" expand-text="yes"
   xmlns="http://www.w3.org/1999/XSL/Transform"
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
-  xmlns:c="urn:c-to-js"
-  exclude-result-prefixes="#all">
+  xmlns:c="urn:c-to-js">
 
   <param name="entry-points" select="distinct-values($runtime-doc//identifier)[not(. = $provided)]"/>
   <param name="commands" select="

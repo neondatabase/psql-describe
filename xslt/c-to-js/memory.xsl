@@ -5,13 +5,10 @@
   JS manages memory itself, so C that frees memory goes, and so do the gotos that lead to it, which become returns.
   Allocating an array is just [].
 -->
-<stylesheet
-  version="3.0"
-  expand-text="yes"
+<stylesheet version="3.0" expand-text="yes"
   xmlns="http://www.w3.org/1999/XSL/Transform"
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
-  xmlns:c="urn:c-to-js"
-  exclude-result-prefixes="#all">
+  xmlns:c="urn:c-to-js">
 
   <!--
     * FREEING MEMORY

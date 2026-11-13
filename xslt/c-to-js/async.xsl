@@ -7,13 +7,10 @@
   Finding these works like following names from the entry points (see reach.xsl), but backwards: from callees
   to callers.
 -->
-<stylesheet
-  version="3.0"
-  expand-text="yes"
+<stylesheet version="3.0" expand-text="yes"
   xmlns="http://www.w3.org/1999/XSL/Transform"
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
-  xmlns:c="urn:c-to-js"
-  exclude-result-prefixes="#all">
+  xmlns:c="urn:c-to-js">
 
   <!-- Names of async functions the runtime provides, e.g. PSQLexec in `const PSQLexec = async (sql) => ...`, and
        PQexec in `async function PQexec(conn, query) { ... }`. (Without a runtime, there are none, so no awaits.) -->
