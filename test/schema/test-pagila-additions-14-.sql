@@ -104,6 +104,10 @@ CREATE CAST (dimensions AS text)
 -- a user-defined collation with \dO
 CREATE COLLATION traditional FROM "C";
 
+-- roles with connection limits (singular and plural) with \du
+CREATE ROLE one_connection_role LOGIN CONNECTION LIMIT 1;
+CREATE ROLE three_connections_role LOGIN CONNECTION LIMIT 3;
+
 -- RLS policies and trigger/rule firing states with \d+ and \dp
 CREATE ROLE app_reader;
 CREATE TABLE secured_table (
@@ -197,3 +201,9 @@ CREATE TABLE empty_partitioned (
   recorded_on date NOT NULL
 ) PARTITION BY RANGE (recorded_on);
 
+
+-- a view named for a keyword (since Postgres 17), which \sv quotes
+CREATE VIEW "json_table" AS SELECT 1 AS one;
+
+-- a table with a quote in its name, for quoting in arguments and patterns
+CREATE TABLE "o'x" (id int);

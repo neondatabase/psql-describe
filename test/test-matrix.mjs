@@ -2,7 +2,8 @@
 
 import fs from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
-import { helpIndex } from '../src/sql-help.generated.mjs';
+import { helpIndex } from '../generated/sql-help.generated.mjs';
+import { describe } from '../index.js';
 
 // images are pinned to multi-arch index digests, so their contents can't change
 // without a commit here
@@ -15,7 +16,7 @@ const POSTGRES_VERSIONS = [
   // official postgis/postgis image: unlike the official one (amd64 only), it's
   // multi-arch, so it runs natively on arm64 (e.g. Apple silicon)
   { major: '18', tag: '18', image: 'docker.io/imresamu/postgis:18-3.6@sha256:b5766ee720aca09c61b9a868abefbf273348a4b90ad4cf146b4f8c9ac85d48e4' },
-  { major: '19', tag: '19rc1', digest: 'sha256:de2cbeff2b8177e65bd64d077b46c90a1898aa8aea974a9e35a8cf60b5e90581' },
+  { major: '19', tag: '19rc2', digest: 'sha256:20f6db1846912960a7de4f7a9b2eed05c356b7d2d3e479eed2f77233f1ecf2bf' },
 ];
 
 // fixed revision, compatible with all Postgres versions
@@ -31,7 +32,7 @@ function usage() {
   return `Usage: node test/test-matrix.mjs [options]
 
 Run database-dependent tests against PostgreSQL container images.
-PostgreSQL 19rc1 psql is used as the reference client for every server.
+PostgreSQL 19rc2 psql is used as the reference client for every server.
 
 Options:
   --runtime podman|docker  Container runtime (auto-detected by default)
@@ -310,6 +311,26 @@ async function setupDatabase(server, version, pagilaSchema, pagilaData) {
   }
 }
 
+// Our \? lists only some of psql's commands, so rather than compare outputs, check
+// that each of our lines is one of psql's, in the same order
+async function testSlashHelp(server) {
+  console.log('\nBackslash command help');
+  const psqlLines = (await run(
+    runtime,
+    ['exec', server.container, 'psql', '-X', '-U', 'postgres', '-d', POSTGRES_DB, '-c', '\\?'],
+    { capture: true },
+  )).split('\n');
+  const outputs = [];
+  await describe('\\?', POSTGRES_DB, () => { throw new Error('no queries for \\?'); }, x => outputs.push(x)).promise;
+  const lines = outputs.join('\n').split('\n');
+
+  let i = 0;
+  const missing = lines.find(line => (i = psqlLines.indexOf(line, i) + 1) === 0);
+  console.log(missing === undefined ? 'Pass' + ' '.repeat(6 - String(lines.length).length) : '*** FAIL ***',
+    lines.length, ' \\?' + (missing === undefined ? '' : `: not in psql's, in order: ${JSON.stringify(missing)}`));
+  if (missing !== undefined) throw new Error('\\? lines differ from psql\'s');
+}
+
 async function runTests(server, referenceContainer, label, tests) {
   console.log(`\n${label}`);
   await run(
@@ -350,7 +371,10 @@ try {
   const referenceVersion = POSTGRES_VERSIONS.at(-1);
   const referenceServer = await startServer(referenceVersion);
 
-  if (help) await runTests(referenceServer, referenceServer.container, 'SQL help', helpTests);
+  if (help) {
+    await runTests(referenceServer, referenceServer.container, 'SQL help', helpTests);
+    await testSlashHelp(referenceServer);
+  }
 
   for (const version of versions) {
     const server = version.major === referenceVersion.major

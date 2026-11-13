@@ -2,3 +2,5 @@ node_modules
 local.txt
 psql.txt
 test/cache/
+build/
+.venv/

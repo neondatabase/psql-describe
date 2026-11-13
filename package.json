@@ -1,6 +1,6 @@
 {
   "name": "psql-describe",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
   "files": [
     "index.js",
@@ -9,24 +9,38 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run test:api && npm run test:matrix",
+    "check:xslt": "tsc -p xslt",
+    "parse": "xslt/parse.sh",
+    "transform": "xslt/transform.sh",
+    "translate": "npm run parse && npm run transform",
+    "build": "esbuild generated/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
     "test:api": "npm run build && node test/test-api.mjs",
     "test:matrix": "npm run build && node test/test-matrix.mjs",
-    "build": "esbuild src/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
-    "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020"
+    "test": "npm run test:api && npm run test:matrix",
+    "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020",
+    "end-to-end": "npm run check:xslt && npm run translate && npm run build && npm run test && npm run bundleDemo"
   },
   "type": "module",
   "author": "George MacKerron",
   "license": "postgresql",
   "devDependencies": {
+    "@types/node": "^26.6.5",
     "esbuild": "^0.28.2",
-    "pg": "^8.23.0"
+    "pg": "^8.23.0",
+    "prettier": "^3.9.10",
+    "tree-sitter-c": "^0.24.1",
+    "tree-sitter-javascript": "^0.25.0",
+    "typescript": "^7.0.2",
+    "web-tree-sitter": "^0.27.1",
+    "xslt3": "^2.7.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/neondatabase/psql-describe"
   },
   "allowScripts": {
-    "esbuild@0.28.2": true
+    "esbuild@0.28.2": true,
+    "tree-sitter-c": false,
+    "tree-sitter-javascript": false
   }
 }

@@ -25,6 +25,15 @@
 \d public.Film
 \d public."Film"
 \d public.'Film'
+\dt "o'x"
+\dt "o'x";
+\dt 'o''x'
+\dt 'o\'x'
+\dt 'o\047x'
+\dt 'o\x27x'
+\dt o'''x'
+\dt 'o"x'
+\dt ';'
 \d psqldescribe.public.film
 \d other.public.film
 \dS
@@ -192,6 +201,7 @@
 \duS
 \duS+
 \du p?stgres
+\du *connection*_role
 \dx
 \dx+
 \dx+ ??text
@@ -210,3 +220,4 @@
 \d+ payment_p2022_01
 \d+ payment_pkey
 \d+ empty_partitioned
+\sv "json_table"

@@ -1,4 +1,4 @@
-import { describe, describeDataToString, describeDataToHtml, htmlEscape } from '../src/describe.mjs';
+import { describe, describeDataToString, describeDataToHtml, htmlEscape } from '../generated/describe.mjs';
 
 function parse(url, parseQueryString) {
   const { protocol } = new URL(url);

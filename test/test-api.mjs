@@ -157,6 +157,14 @@ test('an explicit sversion changes the generated SQL', async () => {
   assert.ok(!sql14.includes('datlocale'));
 });
 
+test('messages about an old server give its major version, as psql does', async () => {
+  // \df's "p" (procedures) option needs Postgres 11+, so a 10.5 server is refused before any query is run
+  const outputs = [];
+  await describe('\\dfp', 'testdb', async () => emptyResult, (...x) => outputs.push(describeDataToString(...x)),
+    false, 100005).promise;
+  assert.equal(outputs.join('\n'), '\\df does not take a "p" option with server version 10');
+});
+
 // 6. std_strings ------------------------------------------------------------
 
 test('std_strings controls backslash escaping in generated SQL', async () => {
@@ -173,4 +181,50 @@ test('std_strings controls backslash escaping in generated SQL', async () => {
   assert.ok(!sqlStd.includes('foo\\\\$bar'));
   // standard_conforming_strings off: the backslash is doubled
   assert.ok(sqlNonStd.includes('foo\\\\$bar'));
+});
+
+// 7. Backslash command help ---------------------------------------------------
+
+// Run a command that shouldn't query (given the server version), returning its output
+async function outputOf(cmd) {
+  const outputs = [];
+  await describe(cmd, 'testdb', () => { throw new Error(`runQuery should not be called for ${cmd}`); },
+    x => outputs.push(x), false, 190000).promise;
+  return outputs.join('\n');
+}
+
+test('\\? lists the commands we have, and only those', async () => {
+  const lines = (await outputOf('\\?')).split('\n');
+  const commands = lines.map(line => line.match(/^  \\(\S+)/)?.[1]).filter(Boolean);
+  for (const command of ['?', 'h', 'd[Sx+]', 'dt[Sx+]', 'l[x+]', 'lo_list[x+]', 'sf[+]', 'z[Sx]']) {
+    assert.ok(commands.includes(command), command);
+  }
+  for (const command of ['copyright', 'q', 'x', 'lo_export', 'lo_import', 'lo_unlink']) {
+    assert.ok(!commands.some(c => c.startsWith(command)), command);
+  }
+  // sections with none of our commands are left out
+  assert.deepEqual(lines.filter(line => /^\S/.test(line)), ['Help', 'Informational', 'Large Objects']);
+});
+
+test('commands we don\'t have say so', async () => {
+  assert.equal(await outputOf('\\lo_export 1 file'), '\\lo_export is not supported');
+  assert.equal(await outputOf('\\? options'), '\\? options is not supported');
+});
+
+test('the default docs URL is for the major version psql was built from', async () => {
+  assert.match(await outputOf('\\h SELECT'), /URL: https:\/\/www\.postgresql\.org\/docs\/19\/sql-select\.html/);
+});
+
+// 8. Quoting in arguments ---------------------------------------------------
+
+test('quoted arguments follow psql\'s rules, and a quote in a pattern is doubled in SQL', async () => {
+  for (const cmd of [String.raw`\dt "o'x"`, String.raw`\dt 'o''x'`, String.raw`\dt 'o\'x'`, String.raw`\dt o'''x'`]) {
+    assert.match(await firstQuery(cmd, { sversion: 190000 }), /'\^\(o''x\)\$'/, cmd);
+  }
+});
+
+test('an unterminated quote in an argument is an error', async () => {
+  const outputs = [];
+  await describe(String.raw`\dt "o'x`, 'testdb', () => { throw new Error('stop'); }, x => outputs.push(x), false, 190000).promise;
+  assert.match(outputs[0], /^unterminated quoted string$/m);
 });

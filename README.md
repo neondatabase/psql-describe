@@ -2,15 +2,15 @@
 
 psql's `\d` (describe) family of commands ported to JavaScript.
 
-* From Postgres `REL_19_RC1` we take all of `describe.c`, plus `exec_command_sf_sv`, `print_with_linenumbers`, `lookup_object_oid`, `get_create_object_cmd`, `exec_command_d` and `exec_command_list` from `command.c`, in `src/bin/psql`.
-* We use plenty of RegExp search-and-replace to turn this C code into valid JS syntax.
-* We implement some C library functions, such as `strlen` and `strchr`, and some Postgres support functions, such as `printTable` and `printQuery`.
-* We generate `src/sql-help.generated.mjs` from the Postgres SGML doc files (rather like how `create_help.pl` generates `sql_help.c` for `psql`).
-* We write tests to catch problems, mostly related to pointer arithmetic, pointer dereferencing, and pointer output parameters. Then we fix them.
+* From Postgres `REL_19_RC2`, we translate psql's C to JS automatically: its backslash-command handling and everything that the `\d` describe commands and `\sf`, `\sv`, `\lo_list`, `\z`, `\?` and `\h` need from `command.c`, `describe.c`, `help.c`, `print.c`, `string_utils.c` and `common.c`.
+* The translation is done by XSLT stylesheets, working on tree-sitter's parse of the C serialized to XML. These insert the translated C into a hand-written JS runtime that provides the C library functions that psql needs, such as `strchr` and `PQexec`, and the table output.
+* We generate the `\h` SQL help from the Postgres SGML doc files (rather like how `create_help.pl` generates `sql_help.c` for `psql`).
+* We test the output against psql's on Postgres 14 to 19.
 
-This approach means that some of the code in `describe.mjs` has never been looked at. If you find a bug, please file an issue.
+For details of how the translation works, see [xslt/README.md](xslt/README.md). If you find a bug, please file an issue.
 
 This library is [on npm](https://www.npmjs.com/package/psql-describe) and [powers backslash commands in the Neon SQL Editor](https://neon.tech/blog/bringing-psqls-d-to-your-web-browser).
+
 
 ## Usage
 
@@ -59,17 +59,59 @@ To format these outputs for display, three additional functions are exported:
   
   Returns its argument HTML-escaped. If `convertWhitespace` is truthy, spaces are replaced with `&nbsp;` and newlines with `<br />`.
 
+
 ## Limitations
 
 Text table formatting matches psql default formatting options: `format aligned`, `border 1`, `tuples_only off`, and so on. Other styles are not supported.
 
-The `x` expanded output option (added to most commands in Postgres 18, formerly unsupported) now _is_ supported.
+The `x` expanded output option (added to most commands in Postgres 18, formerly unsupported) _is_ now supported.
+
+
+## Building
+
+The repo has three build outputs, all committed:
+
+* `generated/` holds the translation: `describe.mjs`, which is the runtime with the translated C filled in, and `sql-help.generated.mjs`. You make these from a Postgres source tree, with `npm run translate`. That needs Python, for the C preprocessor [pcpp](https://github.com/ned14/pcpp):
+
+  ```bash
+  python3 -m venv .venv
+  .venv/bin/pip install -r xslt/requirements.txt
+  source .venv/bin/activate
+
+  npm run translate
+  ```
+
+  This runs two steps, which you can also run separately. `npm run parse` reads the Postgres source tree (`../postgres` by default, or e.g. `npm run parse -- path/to/postgres`), and writes the parsed and typed C to the .gitignored `build` directory, plus the SQL help. Then `npm run transform` translates the C into the runtime. When you're working on the runtime or the stylesheets, only the second step needs rerunning. See [xslt/README.md](xslt/README.md) for the details.
+
+* `index.js` is the published bundle of `generated/describe.mjs`, made with `npm run build` (which runs `esbuild`). The tests run this step themselves.
+
+* `demo/demo.js` is the demo's bundle, made with `npm run bundleDemo`.
+
+
+### Building psql on a Mac
+
+The tests use Docker or Podman to run Postgres and psql. But to compare against a local psql built from the same Postgres source tree as this library, on a Mac:
+
+```bash
+cd ../postgres
+brew install icu4c pkgconfig
+
+PATH="/opt/homebrew/opt/icu4c/bin:/opt/homebrew/opt/icu4c/sbin:$PATH" \
+LDFLAGS="-L/opt/homebrew/opt/icu4c/lib" \
+CPPFLAGS="-I/opt/homebrew/opt/icu4c/include" \
+PKG_CONFIG_PATH="/opt/homebrew/opt/icu4c/lib/pkgconfig" \
+./configure
+
+cd src/bin/psql
+MACOSX_DEPLOYMENT_TARGET="$(sw_vers -productVersion)" make
+```
+
 
 ## Tests
 
 The database-dependent tests compare this software's output against the PostgreSQL 19 `psql` client for the commands in `test/commands/tests-*.txt`. Output should be character-for-character identical, except for differences in trailing whitespace.
 
-The same client is tested against the latest official PostgreSQL 14, 15, 16, and 17 container images, `imresamu/postgis:18-3.6` for PostgreSQL 18, and the official PostgreSQL 19rc1 image. This exercises all server-version branches and adds coverage of PostGIS objects.
+The same client is tested against the latest official PostgreSQL 14, 15, 16, and 17 container images, `imresamu/postgis:18-3.6` for PostgreSQL 18, and the official PostgreSQL 19rc2 image. This exercises all server-version branches and adds coverage of PostGIS objects.
 
 In case of failure, the tests halt and a `psql.txt` and `local.txt` are written, which you can then `diff`.
 
