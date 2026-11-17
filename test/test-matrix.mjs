@@ -16,7 +16,7 @@ const POSTGRES_VERSIONS = [
   // official postgis/postgis image: unlike the official one (amd64 only), it's
   // multi-arch, so it runs natively on arm64 (e.g. Apple silicon)
   { major: '18', tag: '18', image: 'docker.io/imresamu/postgis:18-3.6@sha256:b5766ee720aca09c61b9a868abefbf273348a4b90ad4cf146b4f8c9ac85d48e4' },
-  { major: '19', tag: '19rc2', digest: 'sha256:20f6db1846912960a7de4f7a9b2eed05c356b7d2d3e479eed2f77233f1ecf2bf' },
+  { major: '19', tag: '19rc2', digest: 'sha256:15924313d5606f326836976643a5f681a64fb30f591e79fcb15e160979323802' },
 ];
 
 // fixed revision, compatible with all Postgres versions

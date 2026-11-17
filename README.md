@@ -71,7 +71,7 @@ The `x` expanded output option (added to most commands in Postgres 18, formerly 
 
 The repo has three build outputs, all committed:
 
-* `generated/` holds the translation: `describe.mjs`, which is the runtime with the translated C filled in, and `sql-help.generated.mjs`. You make these from a Postgres source tree, with `npm run translate`. That needs Python, for the C preprocessor [pcpp](https://github.com/ned14/pcpp):
+* `generated/` holds the translation: `describe.mjs`, which is the runtime with the translated C filled in, and `sql-help.generated.mjs`. You make these with `npm run translate`. That needs Git and Perl, and Python for the C preprocessor [pcpp](https://github.com/ned14/pcpp):
 
   ```bash
   python3 -m venv .venv
@@ -81,11 +81,11 @@ The repo has three build outputs, all committed:
   npm run translate
   ```
 
-  This runs two steps, which you can also run separately. `npm run parse` reads the Postgres source tree (`../postgres` by default, or e.g. `npm run parse -- path/to/postgres`), and writes the parsed and typed C to the .gitignored `build` directory, plus the SQL help. Then `npm run transform` translates the C into the runtime. When you're working on the runtime or the stylesheets, only the second step needs rerunning. See [xslt/README.md](xslt/README.md) for the details.
+  This runs two steps, which you can also run separately. `npm run parse` reads the Postgres source, and writes the parsed and typed C and the parsed runtime to the .gitignored `build` directory, plus the SQL help. By default, the source is the version pinned in `xslt/fetch-postgres.sh`, which it fetches into `build/postgres` (once, as a sparse clone of about 8 MB), but you can give it another tree, e.g. `npm run parse -- ../postgres`. Then `npm run transform` translates the C into the runtime. When you're working on the `c-to-js` stylesheets, only the second step needs rerunning. See [xslt/README.md](xslt/README.md) for the details.
 
 * `index.js` is the published bundle of `generated/describe.mjs`, made with `npm run build` (which runs `esbuild`). The tests run this step themselves.
 
-* `demo/demo.js` is the demo's bundle, made with `npm run bundleDemo`.
+* `demo/demo.js` is the demo's bundle, made with `npm run bundle-demo`.
 
 
 ### Building psql on a Mac

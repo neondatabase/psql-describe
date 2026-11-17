@@ -45,6 +45,16 @@ jobs:
           jf npmc --repo-resolve=db-npm
           jf npm clean-install
 
-      # goal
-      - name: Run all tests
-        run: npm run test
+      # pcpp, the C preprocessor that xslt/preprocess.py uses, in a venv whose python3 comes first on the PATH for
+      # later steps (the translation also needs git and perl, which the runner has)
+      - name: Install Python dependencies
+        run: |
+          python3 -m venv .venv
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          source .venv/bin/activate
+          jf pipc --repo-resolve=db-pypi
+          jf pip install -r xslt/requirements.txt
+
+      # goal: fetch Postgres, translate, check the committed output is what that gives, and test
+      - name: Translate and run all tests
+        run: npm run end-to-end

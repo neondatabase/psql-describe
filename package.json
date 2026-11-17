@@ -9,16 +9,18 @@
     "LICENSE"
   ],
   "scripts": {
+    "fetch-postgres": "xslt/fetch-postgres.sh",
     "check:xslt": "tsc -p xslt",
     "parse": "xslt/parse.sh",
     "transform": "xslt/transform.sh",
     "translate": "npm run parse && npm run transform",
     "build": "esbuild generated/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
+    "check:generated": "git diff --exit-code -- generated index.js",
     "test:api": "npm run build && node test/test-api.mjs",
     "test:matrix": "npm run build && node test/test-matrix.mjs",
     "test": "npm run test:api && npm run test:matrix",
-    "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020",
-    "end-to-end": "npm run check:xslt && npm run translate && npm run build && npm run test && npm run bundleDemo"
+    "end-to-end": "npm run fetch-postgres && npm run check:xslt && npm run translate && npm run build && npm run check:generated && npm run test",
+    "bundle-demo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020"
   },
   "type": "module",
   "author": "George MacKerron",

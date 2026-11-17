@@ -2,19 +2,19 @@
 
 This is how [psql-describe](../README.md) is made: turn psql's C parse tree into XML, add types, and translate it with XSLT 3 stylesheets (run by SaxonJS).
 
-`npm run translate` (see [Building](../README.md#building)) builds the whole JS library from a Postgres source tree: `generated/describe.mjs`, which is `runtime.mjs` with the translated C in it, and `generated/sql-help.generated.mjs` (for `\h`). It takes about 45s, in two parts.
+`npm run translate` (see [Building](../README.md#building)) builds the whole JS library from the Postgres source: `generated/describe.mjs`, which is `runtime.mjs` with the translated C in it, and `generated/sql-help.generated.mjs` (for `\h`). It takes about 45s, in two parts.
 
 `xslt/parse.sh` (`npm run parse`) reads Postgres:
 
-1. `preprocess.py` minimally preprocesses the C files and headers (see below).
-2. `code-to-xml.ts` parses the preprocessed C and serializes it `build/sources.xml`.
-3. `add-types.xsl` adds type information to the parse tree, saving to `build/typed.xml`.
-4. `create-help.mjs` generates the SQL help text from the Postgres docs.
+1. `fetch-postgres.sh` fetches the pinned version of the Postgres source into `build/postgres`, if it's not there already: just the directories we read, as a shallow, blob-less, sparse clone (unless you give `parse.sh` a path to another tree).
+2. `genbki.pl` (Postgres's own script) generates the catalog headers that a Postgres build would, such as `catalog/pg_class_d.h`, with `RELKIND_RELATION` and so on. A clone doesn't have them, and in a built tree they may be out of date.
+3. `preprocess.py` minimally preprocesses the C files and headers (see below).
+4. `code-to-xml.ts` parses the preprocessed C and serializes it to `build/sources.xml`.
+5. `add-types.xsl` adds type information to the parse tree, saving to `build/typed.xml`.
+6. `code-to-xml.ts` parses and serializes `runtime.mjs` to `build/runtime.xml`.
+7. `create-help.mjs` generates the SQL help text from the Postgres docs.
 
-`xslt/transform.sh` (`npm run transform`) then needs only `build/` and `xslt/`, so it's all you need to rerun when working on the runtime or the stylesheets:
-
-1. `code-to-xml.ts` parses and serializes `runtime.mjs` to `build/runtime.xml`.
-2. `c-to-js.xsl` translates the C-in-XML to JavaScript, inserting it into the hand-built JS runtime.
+`xslt/transform.sh` (`npm run transform`) then needs only `build/` and the `c-to-js` stylesheets, so it's all you need to rerun when working on those: `c-to-js.xsl` translates the C-in-XML to JavaScript, inserting it into the hand-built JS runtime.
 
 ## The runtime
 

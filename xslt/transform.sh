@@ -1,6 +1,7 @@
 #!/bin/bash
+
 # The second half of the translation: translates the C (build/typed.xml, from xslt/parse.sh) into the JS runtime
-# (xslt/runtime.mjs), writing generated/describe.mjs. Rerun this when the runtime or the c-to-js stylesheets change.
+# (xslt/runtime.mjs), writing generated/describe.mjs. Rerun this when the c-to-js stylesheets change.
 #
 # Usage: xslt/transform.sh
 
