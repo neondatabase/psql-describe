@@ -16,13 +16,18 @@ if [ -z "$1" ]; then xslt/fetch-postgres.sh; fi
 PG=${1:-$BUILD/postgres}/src
 
 echo "Reading Postgres version ..."
-sed -n 's/^AC_INIT(\[PostgreSQL\], \[\([^]]*\)\].*/\1/p' "$PG/../configure.ac" > "$BUILD/version"
+VERSION=$(sed -n 's/^AC_INIT(\[PostgreSQL\], \[\([^]]*\)\].*/\1/p' "$PG/../configure.ac")
+if [[ ! "$VERSION" =~ ^[0-9]+ ]]; then
+  echo "Can't read the version from ${PG%/src}/configure.ac: expected e.g. AC_INIT([PostgreSQL], [19rc2], ...)" >&2
+  exit 1
+fi
+echo "$VERSION" > "$BUILD/version"
 
 # Some catalog headers that describe.c includes, e.g. catalog/pg_class_d.h (with RELKIND_RELATION and so on), are
 # generated when Postgres is built, so we generate them as the Makefile does (with the headers it lists), whichever the
 # tree: a clone doesn't have them, and in a built tree, they may be out of date
 echo "Generating catalog headers ..."
-MAJOR_VERSION=$(sed 's/^\([0-9]*\).*/\1/' "$BUILD/version")
+MAJOR_VERSION=${VERSION%%[!0-9]*}
 (cd "$PG/include/catalog" && sed -n '/^CATALOG_HEADERS := /,/^$/p' Makefile | tr -d '\\' | sed 's/CATALOG_HEADERS :=//' |
   xargs perl ../../backend/catalog/genbki.pl --include-path=../ --set-version="$MAJOR_VERSION")
 

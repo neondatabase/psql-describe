@@ -143,6 +143,16 @@
         <sequence select="if (exists($have)) then current-group() except ($commands except $have) else ()"/>
       </for-each-group>
     </variable>
+    <!-- Report kept lines that psql may not print as they are: those with format arguments (HELPN), e.g. "(currently
+         %s)", which we don't fill in, and those in an if or #ifdef, which we keep whatever the condition -->
+    <variable name="formatted" select="$kept[ancestor::call_expression[2]/*[@field = 'function'] != 'appendPQExpBufferStr']"/>
+    <if test="exists($formatted)">
+      <message select="'\? lines with format arguments, not filled in: ' || string-join($formatted ! normalize-space(c:literal-text(.)), '; ')"/>
+    </if>
+    <variable name="conditional" select="$kept[ancestor::*[self::if_statement | self::preproc_ifdef | self::preproc_if][ancestor::function_definition]]"/>
+    <if test="exists($conditional)">
+      <message select="'\? lines kept whatever their condition: ' || string-join($conditional ! normalize-space(c:literal-text(.)), '; ')"/>
+    </if>
     <sequence select="string-join($kept/descendant-or-self::string_literal ! ('&quot;' || c:literal-text(.) || '&quot;'), ' +&#10;  ')"/>
   </function>
 
