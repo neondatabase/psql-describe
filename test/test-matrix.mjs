@@ -125,7 +125,12 @@ function run(command, args, { input, env, capture = false } = {}) {
       child.stdout.on('data', chunk => output += chunk);
       child.stderr.on('data', chunk => output += chunk);
     }
-    if (input !== undefined) child.stdin.end(input);
+    if (input !== undefined) {
+      // The child may exit before reading all its input (e.g. psql with ON_ERROR_STOP, at an error): then its exit
+      // status and output, on close, say why
+      child.stdin.on('error', error => { if (error.code !== 'EPIPE') reject(error); });
+      child.stdin.end(input);
+    }
 
     child.on('error', reject);
     child.on('close', code => {
