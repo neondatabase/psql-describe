@@ -228,3 +228,41 @@ test('an unterminated quote in an argument is an error', async () => {
   await describe(String.raw`\dt "o'x`, 'testdb', () => { throw new Error('stop'); }, x => outputs.push(x), false, 190000).promise;
   assert.match(outputs[0], /^unterminated quoted string$/m);
 });
+
+// 9. Multiple commands ------------------------------------------------------
+
+// Run a command line, recording the SQL it runs (each query returning no rows) and its output
+async function run(cmd, { sversion = 190000, multipleCommands } = {}) {
+  const queries = [], outputs = [];
+  const version = { rowCount: 1, fields: [{ name: 'server_version_num' }], rows: [['190000']] };
+  const result = await describe(cmd, 'testdb',
+    sql => { queries.push(sql); return sql === 'SHOW server_version_num' ? version : emptyResult; },
+    x => outputs.push(x), false, sversion, true, undefined, multipleCommands).promise;
+  return { queries, outputs, result };
+}
+
+test('each backslash command on a line runs in turn, unless multipleCommands is false', async () => {
+  for (const cmd of [String.raw`\dt film \dv`, String.raw`\dt film \\ \dv`, String.raw`\dt film\dv`]) {
+    const { queries } = await run(cmd);
+    assert.equal(queries.length, 2, cmd);
+    assert.match(queries[0], /'\^\(film\)\$'/, cmd);
+    assert.doesNotMatch(queries[1], /film/, cmd);
+  }
+  assert.equal((await run(String.raw`\dt film \dv`, { multipleCommands: false })).queries.length, 1);
+});
+
+test('an error ends the line, and SQL after a command is unsupported', async () => {
+  const invalid = await run(String.raw`\dz \dt`);
+  assert.deepEqual(invalid.queries, []);
+  assert.deepEqual(invalid.outputs, [String.raw`invalid command \dz`]);
+
+  const sql = await run(String.raw`\dt \\ select 1`);
+  assert.equal(sql.queries.length, 1);
+  assert.equal(sql.outputs.at(-1), 'unsupported command: select 1');
+});
+
+test('the server version is queried before the first command that needs it', async () => {
+  const { queries } = await run(String.raw`\? \dt`, { sversion: null });
+  assert.equal(queries.length, 2);
+  assert.equal(queries[0], 'SHOW server_version_num');
+});

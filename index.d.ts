@@ -8,6 +8,7 @@ export function describe(
   sversion?: number | null,
   std_strings?: boolean,
   docsURLTemplate?: (id: string) => string,
+  multipleCommands?: boolean,
 ): {
   promise: Promise<boolean | null>;
   cancel: () => void;

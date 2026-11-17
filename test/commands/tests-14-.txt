@@ -34,6 +34,9 @@
 \dt o'''x'
 \dt 'o"x'
 \dt ';'
+\dt film \dv
+\dt film \\ \dv actor_info
+\dz \dv
 \d psqldescribe.public.film
 \d other.public.film
 \dS

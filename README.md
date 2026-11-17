@@ -26,6 +26,7 @@ describe(
   sversion = null,
   std_strings = true, 
   docsURLTemplate = (id) => `https://www.postgresql.org/docs/19/${id}.html`,
+  multipleCommands = true,
 ): { promise, cancel };
 ```
 
@@ -37,6 +38,7 @@ describe(
 * `sversion` (number) should be the same value as `SHOW server_version_num` executed on the server. It is used to determine what features the database supports. If it is not provided, the server is queried for it.
 * `std_strings` (boolean) indicates the value of `standard_conforming_strings` in the database.
 * `docsURLTemplate` (function) specifies how a docs page ID is transformed into a URL, for use with `\h`. 
+* `multipleCommands` (boolean) says whether to run every backslash command in `cmd`, as psql does with a line it reads (interactively, or from a file): e.g. `\dt film \dv` runs `\dt film` and then `\dv` (and so does `\dt film \\ \dv`). If it's `false`, only the first command runs, as with `psql -c`. An error in one command ends the line, as in psql. SQL is not supported.
 
 The function returns an object with two keys: `{ promise, cancel }`: 
 

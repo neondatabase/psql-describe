@@ -123,6 +123,7 @@ export function describe(
   sversion = null,
   std_strings = 1,
   docsURLTemplate = (id) => `https://www.postgresql.org/docs/${strstr(PG_VERSION, "devel") ? "devel" : PG_MAJORVERSION}/${id}.html`,
+  multipleCommands = true,
 ) {
   let cancel_pressed = false;
 
@@ -458,7 +459,7 @@ async function HandleSlashCmds(scan_state, cstack, query_buf, previous_buf)
 	}
 
 	/* if there is a trailing \\, swallow it */
-	/* psql_scan_slash_command_end */(scan_state);
+	psql_scan_slash_command_end(scan_state);
 
 	/* some commands write to queryFout, so make sure output is sent */
 	/* fflush */(pset.queryFout);
@@ -10432,16 +10433,9 @@ function copy_printTableOpt(s) {
       return id_return.data;
     }
 
-    // Run the command (after everything is declared, including the translated globals)
+    // Run the commands (after everything is declared, including the translated globals)
     let pset;
     try {
-      // get server version, if not supplied (and needed: not for help)
-      const isHelp = ['?', 'h', 'help'].includes(psql_scan_slash_command([...scan_state]));
-      if (!sversion && !isHelp) {  // covers null, undefined and (importantly) 0
-        const vres = await PSQLexec('SHOW server_version_num', true);
-        sversion = parseInt(vres.rows[0][0], 10);
-      }
-
       pset = {
         sversion,
         cur_cmd_interactive: false,
@@ -10464,8 +10458,31 @@ function copy_printTableOpt(s) {
         }
       };
 
-      await HandleSlashCmds(scan_state, {}, createPQExpBuffer(), createPQExpBuffer());
-      if (isHelp) return false;  // as before: help is informational
+      // As psql's MainLoop does with a line, run each backslash command in turn, from where the one before stopped (an
+      // error stops at the end of the line). Or, if not multipleCommands, run just the first, as psql -c does.
+      const [str] = scan_state;
+      let onlyHelp = true;
+      for (; ;) {
+        // get the server version, if not supplied, and needed (not for help)
+        const isHelp = ['?', 'h', 'help'].includes(psql_scan_slash_command([...scan_state]));
+        onlyHelp &&= isHelp;
+        if (!pset.sversion && !isHelp) {  // covers null, undefined and (importantly) 0
+          const vres = await PSQLexec('SHOW server_version_num', true);
+          pset.sversion = pset.db.sversion = parseInt(vres.rows[0][0], 10);
+        }
+
+        await HandleSlashCmds(scan_state, {}, createPQExpBuffer(), createPQExpBuffer());
+
+        if (!multipleCommands) break;
+        while (/\s/.test(str[scan_state[1]] ?? '')) scan_state[1]++;
+        if (scan_state[1] === str.length) break;
+        if (str[scan_state[1]] !== '\\') {  // SQL, which psql would send
+          output(`unsupported command: ${str.slice(scan_state[1])}`);
+          break;
+        }
+        scan_state[1]++;
+      }
+      if (onlyHelp) return false;  // as before: help is informational
 
     } catch (err) {
       // throw err;
@@ -10951,7 +10968,10 @@ function psql_scan_slash_command(scan_state) {
   return name;
 }
 
-const psql_scan_slash_command_end = noop;
+// After a command and its arguments: skip a \\, which separates commands (as in psqlscanslash.l)
+function psql_scan_slash_command_end(scan_state) {
+  if (scan_state[0].startsWith('\\\\', scan_state[1])) scan_state[1] += 2;
+}
 
 function noop(x) {
   return x;
