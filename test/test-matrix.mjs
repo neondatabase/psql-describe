@@ -248,18 +248,17 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 }
 
 async function waitUntilReady(container) {
-  let consecutiveReadyChecks = 0;
-
   for (let attempt = 0; attempt < 120; attempt++) {
+    // On first start, the image's entrypoint runs initdb and its init scripts
+    // (e.g. postgis's) on a temporary server, then stops it and starts the
+    // real one. The temporary server only listens on the Unix socket, so
+    // checking over TCP waits for the real one.
     const status = spawnSync(
       runtime,
-      ['exec', container, 'pg_isready', '-U', 'postgres', '-d', POSTGRES_DB],
+      ['exec', container, 'pg_isready', '-h', '127.0.0.1', '-U', 'postgres', '-d', POSTGRES_DB],
       { stdio: 'ignore' },
     ).status;
-    consecutiveReadyChecks = status === 0 ? consecutiveReadyChecks + 1 : 0;
-    // initdb briefly starts and then stops a temporary server. Waiting for
-    // several successful checks avoids racing that shutdown.
-    if (consecutiveReadyChecks === 4) return;
+    if (status === 0) return;
     await new Promise(resolve => setTimeout(resolve, 250));
   }
 
