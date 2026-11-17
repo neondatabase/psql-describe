@@ -32,7 +32,7 @@
        printTableOpt. Otherwise, none. -->
   <function name="c:empty-value" as="xs:string?">
     <param name="type" as="xs:string?"/>
-    <variable name="fields" select="c:fields($type) ! (c:empty-value(@type) ! (c:name(..) || ': ' || .))"/>
+    <variable name="fields" select="c:fields($type)[c:empty-value(@type)] ! (c:name(.) || ': ' || c:empty-value(@type))"/>
     <sequence select="if (c:is-string-type($type) and c:is-array-type($type)) then &quot;''&quot;
       else if (c:is-array-type($type)) then '[]'
       else if (c:is-struct-type($type)) then (if (exists($fields)) then '{ ' || string-join($fields, ', ') || ' }' else '{}')
