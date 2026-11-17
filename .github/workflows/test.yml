@@ -51,7 +51,7 @@ jobs:
         run: |
           python3 -m venv .venv
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
-          source .venv/bin/activate
+          export PATH="$PWD/.venv/bin:$PATH"
           jf pipc --repo-resolve=db-pypi
           jf pip install -r xslt/requirements.txt
 
