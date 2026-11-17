@@ -139,7 +139,7 @@ Since it makes no difference where a template is, the rules are arranged as a st
    <sequence select="if (exists($new)) then c:async(distinct-values(($found, $new))) else $found"/>
    ```
 
-   A function in the result gets `async`, and a call to it gets `await` (in parentheses where it's the function in another call, or what's accessed in `f()->x` or `f()[i]`).
+   A function in the result gets `async`, and a call to it gets `await`, always in parentheses, since something may apply to the result, e.g. `(await f())[0]` (esbuild removes those that are redundant).
 
 4. **`syntax.xsl`, what's the same apart from syntax:** a declaration's types are replaced by `let`, and a function keeps only its name and its parameters' names. The name in a declarator (`*x`, `**x`, `x[10]`, `(*x)(void)`, …) is simply its first identifier, `c:name`. Tree-sitter queries can't express this, because they can't recurse. `a->b` is `a.b`, an initialiser list `{a, b}` is an array, `[a, b]`, a cast `(type) x` is just `x`, and `snprintf(buf, size, format, ...)`, as a statement, is `buf = sprintf(format, ...)`:
 

@@ -40,18 +40,11 @@
   <!-- This list gets used by the template that matches function_definition in syntax.xsl -->
   <variable name="async" select="c:async($provided-async)"/>
 
-  <!-- A call to an async function, e.g. PSQLexec(buf.data): output await PSQLexec(buf.data). That's in parentheses
-       if it's the function in another call, or what's accessed in f()->x or f()[i], since e.g. await f().x would
-       mean await (f().x). This wraps what the call would otherwise output (inside != NULL, if that applies too: see
-       the priorities in c-to-js.xsl). (An async function's definition gets async: see syntax.xsl.) -->
-  <template match="call_expression[*[@field = 'function'] = $async]" priority="9">
-    <variable name="needs-parentheses" select="
-      @field = 'function'
-      or @field = 'argument' and (parent::field_expression | parent::subscript_expression)"/>
-    <choose>
-      <when test="$needs-parentheses">(await <next-match/>)</when>
-      <otherwise>await <next-match/></otherwise>
-    </choose>
-  </template>
+  <!-- A call to an async function, e.g. PSQLexec(buf.data): output (await PSQLexec(buf.data)). The parentheses are
+       needed wherever something applies to the result, e.g. (await f()).x, (await f())[0] or (await f())(x), since
+       await f().x would mean await (f().x). Elsewhere they're redundant, and esbuild removes them. This wraps what the
+       call would otherwise output (inside != NULL, if that applies too: see the priorities in c-to-js.xsl). (An async
+       function's definition gets async: see syntax.xsl.) -->
+  <template match="call_expression[*[@field = 'function'] = $async]" priority="9">(await <next-match/>)</template>
 
 </stylesheet>

@@ -421,7 +421,7 @@ async function HandleSlashCmds(scan_state, cstack, query_buf, previous_buf)
 		status = PSQL_CMD_ERROR;
 	}
 	else
-		status = await exec_command(cmd, scan_state, cstack, query_buf, previous_buf);
+		status = (await exec_command(cmd, scan_state, cstack, query_buf, previous_buf));
 
 	if (status == PSQL_CMD_UNKNOWN)
 	{
@@ -493,7 +493,7 @@ async function exec_command(cmd, scan_state, cstack, query_buf, previous_buf)
 	}
 
 	if (cmd[0] == 'd')
-		status = await exec_command_d(scan_state, active_branch, cmd);
+		status = (await exec_command_d(scan_state, active_branch, cmd));
 	else if (strcmp(cmd, "h") == 0 || strcmp(cmd, "help") == 0)
 		status = exec_command_help(scan_state, active_branch);
 	else if (strcmp(cmd, "l") == 0 || strcmp(cmd, "list") == 0 ||
@@ -501,17 +501,17 @@ async function exec_command(cmd, scan_state, cstack, query_buf, previous_buf)
 			 strcmp(cmd, "l+") == 0 || strcmp(cmd, "list+") == 0 ||
 			 strcmp(cmd, "lx+") == 0 || strcmp(cmd, "listx+") == 0 ||
 			 strcmp(cmd, "l+x") == 0 || strcmp(cmd, "list+x") == 0)
-		status = await exec_command_list(scan_state, active_branch, cmd);
+		status = (await exec_command_list(scan_state, active_branch, cmd));
 	else if (strncmp(cmd, "lo_", 3) == 0)
-		status = await exec_command_lo(scan_state, active_branch, cmd);
+		status = (await exec_command_lo(scan_state, active_branch, cmd));
 	else if (strcmp(cmd, "sf") == 0 || strcmp(cmd, "sf+") == 0)
-		status = await exec_command_sf_sv(scan_state, active_branch, cmd, true);
+		status = (await exec_command_sf_sv(scan_state, active_branch, cmd, true));
 	else if (strcmp(cmd, "sv") == 0 || strcmp(cmd, "sv+") == 0)
-		status = await exec_command_sf_sv(scan_state, active_branch, cmd, false);
+		status = (await exec_command_sf_sv(scan_state, active_branch, cmd, false));
 	else if (strcmp(cmd, "z") == 0 ||
 			 strcmp(cmd, "zS") == 0 || strcmp(cmd, "zx") == 0 ||
 			 strcmp(cmd, "zSx") == 0 || strcmp(cmd, "zxS") == 0)
-		status = await exec_command_z(scan_state, active_branch, cmd);
+		status = (await exec_command_z(scan_state, active_branch, cmd));
 	else if (strcmp(cmd, "?") == 0)
 		status = exec_command_slash_command_help(scan_state, active_branch);
 	else
@@ -566,10 +566,10 @@ async function exec_command_d(scan_state, active_branch, cmd)
 			case '+':
 			case 'S':
 				if (pattern != NULL)
-					success = await describeTableDetails(pattern, show_verbose, show_system);
+					success = (await describeTableDetails(pattern, show_verbose, show_system));
 				else
 					/* standard listing of interesting things */
-					success = await listTables("tvmsE", NULL, show_verbose, show_system);
+					success = (await listTables("tvmsE", NULL, show_verbose, show_system));
 				break;
 			case 'A':
 				{
@@ -583,19 +583,19 @@ async function exec_command_d(scan_state, active_branch, cmd)
 						case undefined:
 						case '+':
 						case 'x':
-							success = await describeAccessMethods(pattern, show_verbose);
+							success = (await describeAccessMethods(pattern, show_verbose));
 							break;
 						case 'c':
-							success = await listOperatorClasses(pattern, pattern2, show_verbose);
+							success = (await listOperatorClasses(pattern, pattern2, show_verbose));
 							break;
 						case 'f':
-							success = await listOperatorFamilies(pattern, pattern2, show_verbose);
+							success = (await listOperatorFamilies(pattern, pattern2, show_verbose));
 							break;
 						case 'o':
-							success = await listOpFamilyOperators(pattern, pattern2, show_verbose);
+							success = (await listOpFamilyOperators(pattern, pattern2, show_verbose));
 							break;
 						case 'p':
-							success = await listOpFamilyFunctions(pattern, pattern2, show_verbose);
+							success = (await listOpFamilyFunctions(pattern, pattern2, show_verbose));
 							break;
 						default:
 							status = PSQL_CMD_UNKNOWN;
@@ -604,32 +604,32 @@ async function exec_command_d(scan_state, active_branch, cmd)
 				}
 				break;
 			case 'a':
-				success = await describeAggregates(pattern, show_verbose, show_system);
+				success = (await describeAggregates(pattern, show_verbose, show_system));
 				break;
 			case 'b':
-				success = await describeTablespaces(pattern, show_verbose);
+				success = (await describeTablespaces(pattern, show_verbose));
 				break;
 			case 'c':
 				if (strncmp(cmd, "dconfig", 7) == 0)
-					success = await describeConfigurationParameters(pattern,
+					success = (await describeConfigurationParameters(pattern,
 															  show_verbose,
-															  show_system);
+															  show_system));
 				else
-					success = await listConversions(pattern,
+					success = (await listConversions(pattern,
 											  show_verbose,
-											  show_system);
+											  show_system));
 				break;
 			case 'C':
-				success = await listCasts(pattern, show_verbose);
+				success = (await listCasts(pattern, show_verbose));
 				break;
 			case 'd':
 				if (strncmp(cmd, "ddp", 3) == 0)
-					success = await listDefaultACLs(pattern);
+					success = (await listDefaultACLs(pattern));
 				else
-					success = await objectDescription(pattern, show_system);
+					success = (await objectDescription(pattern, show_system));
 				break;
 			case 'D':
-				success = await listDomains(pattern, show_verbose, show_system);
+				success = (await listDomains(pattern, show_verbose, show_system));
 				break;
 			case 'f':			/* function subsystem */
 				switch (cmd[2])
@@ -643,8 +643,8 @@ async function exec_command_d(scan_state, active_branch, cmd)
 					case 't':
 					case 'w':
 					case 'x':
-						success = await exec_command_dfo(scan_state, cmd, pattern,
-												   show_verbose, show_system);
+						success = (await exec_command_dfo(scan_state, cmd, pattern,
+												   show_verbose, show_system));
 						break;
 					default:
 						status = PSQL_CMD_UNKNOWN;
@@ -653,26 +653,26 @@ async function exec_command_d(scan_state, active_branch, cmd)
 				break;
 			case 'g':
 				/* no longer distinct from \du */
-				success = await describeRoles(pattern, show_verbose, show_system);
+				success = (await describeRoles(pattern, show_verbose, show_system));
 				break;
 			case 'l':
-				success = await listLargeObjects(show_verbose);
+				success = (await listLargeObjects(show_verbose));
 				break;
 			case 'L':
-				success = await listLanguages(pattern, show_verbose, show_system);
+				success = (await listLanguages(pattern, show_verbose, show_system));
 				break;
 			case 'n':
-				success = await listSchemas(pattern, show_verbose, show_system);
+				success = (await listSchemas(pattern, show_verbose, show_system));
 				break;
 			case 'o':
-				success = await exec_command_dfo(scan_state, cmd, pattern,
-										   show_verbose, show_system);
+				success = (await exec_command_dfo(scan_state, cmd, pattern,
+										   show_verbose, show_system));
 				break;
 			case 'O':
-				success = await listCollations(pattern, show_verbose, show_system);
+				success = (await listCollations(pattern, show_verbose, show_system));
 				break;
 			case 'p':
-				success = await permissionsList(pattern, show_system);
+				success = (await permissionsList(pattern, show_system));
 				break;
 			case 'P':
 				{
@@ -684,7 +684,7 @@ async function exec_command_d(scan_state, active_branch, cmd)
 						case 'i':
 						case 'n':
 						case 'x':
-							success = await listPartitionedTables(cmd.slice(2), pattern, show_verbose);
+							success = (await listPartitionedTables(cmd.slice(2), pattern, show_verbose));
 							break;
 						default:
 							status = PSQL_CMD_UNKNOWN;
@@ -693,7 +693,7 @@ async function exec_command_d(scan_state, active_branch, cmd)
 				}
 				break;
 			case 'T':
-				success = await describeTypes(pattern, show_verbose, show_system);
+				success = (await describeTypes(pattern, show_verbose, show_system));
 				break;
 			case 't':
 			case 'v':
@@ -701,7 +701,7 @@ async function exec_command_d(scan_state, active_branch, cmd)
 			case 'i':
 			case 's':
 			case 'E':
-				success = await listTables(cmd.slice(1), pattern, show_verbose, show_system);
+				success = (await listTables(cmd.slice(1), pattern, show_verbose, show_system));
 				break;
 			case 'r':
 				if (cmd[2] == 'd' && cmd[3] == 's')
@@ -711,10 +711,10 @@ async function exec_command_d(scan_state, active_branch, cmd)
 					if (pattern != NULL)
 						pattern2 = psql_scan_slash_option(scan_state,
 														  OT_NORMAL, NULL, true);
-					success = await listDbRoleSettings(pattern, pattern2);
+					success = (await listDbRoleSettings(pattern, pattern2));
 				}
 				else if (cmd[2] == 'g')
-					success = await describeRoleGrants(pattern, show_system);
+					success = (await describeRoleGrants(pattern, show_system));
 				else
 					status = PSQL_CMD_UNKNOWN;
 				break;
@@ -723,19 +723,19 @@ async function exec_command_d(scan_state, active_branch, cmd)
 				{
 					case 'p':
 						if (show_verbose)
-							success = await describePublications(pattern);
+							success = (await describePublications(pattern));
 						else
-							success = await listPublications(pattern);
+							success = (await listPublications(pattern));
 						break;
 					case 's':
-						success = await describeSubscriptions(pattern, show_verbose);
+						success = (await describeSubscriptions(pattern, show_verbose));
 						break;
 					default:
 						status = PSQL_CMD_UNKNOWN;
 				}
 				break;
 			case 'u':
-				success = await describeRoles(pattern, show_verbose, show_system);
+				success = (await describeRoles(pattern, show_verbose, show_system));
 				break;
 			case 'F':			/* text search subsystem */
 				switch (cmd[2])
@@ -743,16 +743,16 @@ async function exec_command_d(scan_state, active_branch, cmd)
 					case undefined:
 					case '+':
 					case 'x':
-						success = await listTSConfigs(pattern, show_verbose);
+						success = (await listTSConfigs(pattern, show_verbose));
 						break;
 					case 'p':
-						success = await listTSParsers(pattern, show_verbose);
+						success = (await listTSParsers(pattern, show_verbose));
 						break;
 					case 'd':
-						success = await listTSDictionaries(pattern, show_verbose);
+						success = (await listTSDictionaries(pattern, show_verbose));
 						break;
 					case 't':
-						success = await listTSTemplates(pattern, show_verbose);
+						success = (await listTSTemplates(pattern, show_verbose));
 						break;
 					default:
 						status = PSQL_CMD_UNKNOWN;
@@ -763,16 +763,16 @@ async function exec_command_d(scan_state, active_branch, cmd)
 				switch (cmd[2])
 				{
 					case 's':
-						success = await listForeignServers(pattern, show_verbose);
+						success = (await listForeignServers(pattern, show_verbose));
 						break;
 					case 'u':
-						success = await listUserMappings(pattern, show_verbose);
+						success = (await listUserMappings(pattern, show_verbose));
 						break;
 					case 'w':
-						success = await listForeignDataWrappers(pattern, show_verbose);
+						success = (await listForeignDataWrappers(pattern, show_verbose));
 						break;
 					case 't':
-						success = await listForeignTables(pattern, show_verbose);
+						success = (await listForeignTables(pattern, show_verbose));
 						break;
 					default:
 						status = PSQL_CMD_UNKNOWN;
@@ -781,15 +781,15 @@ async function exec_command_d(scan_state, active_branch, cmd)
 				break;
 			case 'x':			/* Extensions */
 				if (show_verbose)
-					success = await listExtensionContents(pattern);
+					success = (await listExtensionContents(pattern));
 				else
-					success = await listExtensions(pattern);
+					success = (await listExtensions(pattern));
 				break;
 			case 'X':			/* Extended Statistics */
-				success = await listExtendedStats(pattern, show_verbose);
+				success = (await listExtendedStats(pattern, show_verbose));
 				break;
 			case 'y':			/* Event Triggers */
-				success = await listEventTriggers(pattern, show_verbose);
+				success = (await listEventTriggers(pattern, show_verbose));
 				break;
 			default:
 				status = PSQL_CMD_UNKNOWN;
@@ -829,13 +829,13 @@ async function exec_command_dfo(scan_state, cmd, pattern, show_verbose, show_sys
 	}
 
 	if (cmd[1] == 'f')
-		success = await describeFunctions(cmd.slice(2), pattern,
+		success = (await describeFunctions(cmd.slice(2), pattern,
 									arg_patterns, num_arg_patterns,
-									show_verbose, show_system);
+									show_verbose, show_system));
 	else
-		success = await describeOperators(pattern,
+		success = (await describeOperators(pattern,
 									arg_patterns, num_arg_patterns,
-									show_verbose, show_system);
+									show_verbose, show_system));
 
 	return success;
 }
@@ -881,7 +881,7 @@ async function exec_command_list(scan_state, active_branch, cmd)
 		if (strchr(cmd, 'x') != NULL)
 			pset.popt.topt.expanded = 1;
 
-		success = await listAllDbs(pattern, show_verbose);
+		success = (await listAllDbs(pattern, show_verbose));
 
 		/* restore original expanded mode */
 		pset.popt.topt.expanded = save_expanded;
@@ -950,7 +950,7 @@ async function exec_command_lo(scan_state, active_branch, cmd)
 			if (strchr(cmd, 'x') != NULL)
 				pset.popt.topt.expanded = 1;
 
-			success = await listLargeObjects(show_verbose);
+			success = (await listLargeObjects(show_verbose));
 
 			/* restore original expanded mode */
 			pset.popt.topt.expanded = save_expanded;
@@ -1005,12 +1005,12 @@ async function exec_command_sf_sv(scan_state, active_branch, cmd, is_func)
 				pg_log_error("view name is required");
 			status = PSQL_CMD_ERROR;
 		}
-		else if (!await lookup_object_oid(eot, obj_desc, obj_oid))
+		else if (!(await lookup_object_oid(eot, obj_desc, obj_oid)))
 		{
 			/* error already reported */
 			status = PSQL_CMD_ERROR;
 		}
-		else if (!await get_create_object_cmd(eot, obj_oid.value, buf))
+		else if (!(await get_create_object_cmd(eot, obj_oid.value, buf)))
 		{
 			/* error already reported */
 			status = PSQL_CMD_ERROR;
@@ -1080,7 +1080,7 @@ async function exec_command_z(scan_state, active_branch, cmd)
 		if (strchr(cmd, 'x') != NULL)
 			pset.popt.topt.expanded = 1;
 
-		success = await permissionsList(pattern, show_system);
+		success = (await permissionsList(pattern, show_system));
 
 		/* restore original expanded mode */
 		pset.popt.topt.expanded = save_expanded;
@@ -1256,7 +1256,7 @@ async function lookup_object_oid(obj_type, desc, obj_oid)
 	{
 		return false;
 	}
-	res = await PQexec(pset.db, query.data);
+	res = (await PQexec(pset.db, query.data));
 	if (PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1)
 		obj_oid.value = atooid(PQgetvalue(res, 0, 0));
 	else
@@ -1334,7 +1334,7 @@ async function get_create_object_cmd(obj_type, oid, buf)
 	{
 		return false;
 	}
-	res = await PQexec(pset.db, query.data);
+	res = (await PQexec(pset.db, query.data));
 	if (PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1)
 	{
 		resetPQExpBuffer(buf);
@@ -1570,7 +1570,7 @@ async function describeAggregates(pattern, verbose, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2, 4;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -1638,7 +1638,7 @@ async function describeAccessMethods(pattern, verbose)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -1698,7 +1698,7 @@ async function describeTablespaces(pattern, verbose)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -2029,7 +2029,7 @@ async function describeFunctions(functypes, func_pattern, arg_patterns, num_arg_
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2, 4;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -2135,7 +2135,7 @@ async function describeTypes(pattern, verbose, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -2325,7 +2325,7 @@ async function describeOperators(oper_pattern, arg_patterns, num_arg_patterns, v
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2, 3, 4;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -2431,7 +2431,7 @@ async function listAllDbs(pattern, verbose)
 	}
 
 	appendPQExpBufferStr(buf, "ORDER BY 1;");
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -2583,7 +2583,7 @@ async function permissionsList(pattern, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -2650,7 +2650,7 @@ async function listDefaultACLs(pattern)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2, 3;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -2839,7 +2839,7 @@ async function objectDescription(pattern, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2, 3;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -2890,7 +2890,7 @@ async function describeTableDetails(pattern, verbose, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 2, 3;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -2917,7 +2917,7 @@ async function describeTableDetails(pattern, verbose, showSystem)
 		nspname = PQgetvalue(res, i, 1);
 		relname = PQgetvalue(res, i, 2);
 
-		if (!await describeOneTableDetails(nspname, relname, oid, verbose))
+		if (!(await describeOneTableDetails(nspname, relname, oid, verbose)))
 		{
 			return false;
 		}
@@ -3065,7 +3065,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 						  oid);
 	}
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return retval;
 
@@ -3158,7 +3158,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 			appendPQExpBuffer(buf, ".%s;", fmtId(relationname));
 		}
 
-		res = await PSQLexec(buf.data);
+		res = (await PSQLexec(buf.data));
 		if (!res)
 			return retval;
 
@@ -3180,7 +3180,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 						  "\n AND d.deptype IN ('a', 'i')",
 						  oid);
 
-		result = await PSQLexec(buf.data);
+		result = (await PSQLexec(buf.data));
 
 		/*
 		 * If we get no rows back, don't show anything (obviously). We should
@@ -3214,7 +3214,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 							  "\nORDER BY 1",
 							  oid);
 
-			result = await PSQLexec(buf.data);
+			result = (await PSQLexec(buf.data));
 			if (result)
 			{
 				let nrows = PQntuples(result);
@@ -3372,7 +3372,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 	appendPQExpBuffer(buf, "\nWHERE a.attrelid = '%s' AND a.attnum > 0 AND NOT a.attisdropped", oid);
 	appendPQExpBufferStr(buf, "\nORDER BY a.attnum;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return retval;
 	numrows = PQntuples(res);
@@ -3593,7 +3593,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 						  " JOIN pg_catalog.pg_inherits i" +
 						  " ON c.oid = inhrelid" +
 						  "\nWHERE c.oid = '%s';", oid);
-		result = await PSQLexec(buf.data);
+		result = (await PSQLexec(buf.data));
 		if (!result)
 			return retval;
 
@@ -3634,7 +3634,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 		appendPQExpBuffer(buf,
 						  "SELECT pg_catalog.pg_get_partkeydef('%s'::pg_catalog.oid);",
 						  oid);
-		result = await PSQLexec(buf.data);
+		result = (await PSQLexec(buf.data));
 		if (!result)
 			return retval;
 
@@ -3659,7 +3659,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 						  " JOIN pg_catalog.pg_namespace n" +
 						  " ON n.oid = c.relnamespace\n" +
 						  "WHERE reltoastrelid = '%s';", oid);
-		result = await PSQLexec(buf.data);
+		result = (await PSQLexec(buf.data));
 		if (!result)
 			return retval;
 
@@ -3718,7 +3718,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 						  "AND i.indrelid = c2.oid;",
 						  oid);
 
-		result = await PSQLexec(buf.data);
+		result = (await PSQLexec(buf.data));
 		if (!result)
 			return retval;
 		else if (PQntuples(result) != 1)
@@ -3780,8 +3780,8 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 			 * If it's a partitioned index, we'll print the tablespace below
 			 */
 			if (tableinfo.relkind == 'i')
-				await add_tablespace_footer(cont, tableinfo.relkind,
-									  tableinfo.tablespace, true);
+				(await add_tablespace_footer(cont, tableinfo.relkind,
+									  tableinfo.tablespace, true));
 		}
 	}
 	/* If you add relkinds here, see also "Finish printing..." stanza below */
@@ -3824,7 +3824,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 							  "WHERE c.oid = '%s' AND c.oid = i.indrelid AND i.indexrelid = c2.oid\n" +
 							  "ORDER BY i.indisprimary DESC, c2.relname;",
 							  oid);
-			result = await PSQLexec(buf.data);
+			result = (await PSQLexec(buf.data));
 			if (!result)
 				return retval;
 			else
@@ -3893,9 +3893,9 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 					printTableAddFooter(cont, buf.data);
 
 					/* Print tablespace of the index on the same line */
-					await add_tablespace_footer(cont, 'i',
+					(await add_tablespace_footer(cont, 'i',
 										  atooid(PQgetvalue(result, i, 11)),
-										  false);
+										  false));
 				}
 			}
 		}
@@ -3912,7 +3912,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 							  "AND r.contype = " + "'c'" + "\n" +
 							  "ORDER BY 1;",
 							  oid);
-			result = await PSQLexec(buf.data);
+			result = (await PSQLexec(buf.data));
 			if (!result)
 				return retval;
 			else
@@ -3968,7 +3968,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 			appendPQExpBufferStr(buf, "ORDER BY conname");
 		}
 
-		result = await PSQLexec(buf.data);
+		result = (await PSQLexec(buf.data));
 		if (!result)
 			return retval;
 		else
@@ -4028,7 +4028,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 							  oid);
 		}
 
-		result = await PSQLexec(buf.data);
+		result = (await PSQLexec(buf.data));
 		if (!result)
 			return retval;
 		else
@@ -4077,7 +4077,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 							  "WHERE pol.polrelid = '%s' ORDER BY 1;",
 							  oid);
 
-			result = await PSQLexec(buf.data);
+			result = (await PSQLexec(buf.data));
 			if (!result)
 				return retval;
 			else
@@ -4153,7 +4153,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 							  "ORDER BY nsp, stxname;",
 							  oid);
 
-			result = await PSQLexec(buf.data);
+			result = (await PSQLexec(buf.data));
 			if (!result)
 				return retval;
 			else
@@ -4258,7 +4258,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 							  "ORDER BY 1;",
 							  oid);
 
-			result = await PSQLexec(buf.data);
+			result = (await PSQLexec(buf.data));
 			if (!result)
 				return retval;
 			else
@@ -4321,7 +4321,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 							  "FROM pg_catalog.pg_rewrite r\n" +
 							  "WHERE r.ev_class = '%s' ORDER BY 1;",
 							  oid);
-			result = await PSQLexec(buf.data);
+			result = (await PSQLexec(buf.data));
 			if (!result)
 				return retval;
 			else
@@ -4477,7 +4477,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 								  oid, oid);
 			}
 
-			result = await PSQLexec(buf.data);
+			result = (await PSQLexec(buf.data));
 			if (!result)
 				return retval;
 			else
@@ -4518,7 +4518,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 							  "AND pr.prexcept\n" +
 							  "ORDER BY 1;", oid, oid);
 
-			result = await PSQLexec(buf.data);
+			result = (await PSQLexec(buf.data));
 			if (!result)
 				return retval;
 			else
@@ -4554,7 +4554,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 							  "ORDER BY a.attnum",
 							  oid);
 
-			result = await PSQLexec(buf.data);
+			result = (await PSQLexec(buf.data));
 			if (!result)
 				return retval;
 			else
@@ -4594,7 +4594,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 		appendPQExpBuffer(buf,
 						  "SELECT pg_catalog.pg_get_viewdef('%s'::pg_catalog.oid, true);",
 						  oid);
-		result = await PSQLexec(buf.data);
+		result = (await PSQLexec(buf.data));
 		if (!result)
 			return retval;
 
@@ -4619,7 +4619,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 							  "FROM pg_catalog.pg_rewrite r\n" +
 							  "WHERE r.ev_class = '%s' AND r.rulename != '_RETURN' ORDER BY 1;",
 							  oid);
-			result = await PSQLexec(buf.data);
+			result = (await PSQLexec(buf.data));
 			if (!result)
 				return retval;
 
@@ -4704,7 +4704,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 			appendPQExpBufferStr(buf, "(NOT t.tgisinternal OR (t.tgisinternal AND t.tgenabled = 'D'))");
 		appendPQExpBufferStr(buf, "\nORDER BY 1;");
 
-		result = await PSQLexec(buf.data);
+		result = (await PSQLexec(buf.data));
 		if (!result)
 			return retval;
 		else
@@ -4844,7 +4844,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 							  "     pg_catalog.pg_foreign_server s\n" +
 							  "WHERE f.ftrelid = '%s' AND s.oid = f.ftserver;",
 							  oid);
-			result = await PSQLexec(buf.data);
+			result = (await PSQLexec(buf.data));
 			if (!result)
 				return retval;
 			else if (PQntuples(result) != 1)
@@ -4877,7 +4877,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 						  "\nORDER BY inhseqno;",
 						  oid);
 
-		result = await PSQLexec(buf.data);
+		result = (await PSQLexec(buf.data));
 		if (!result)
 			return retval;
 		else
@@ -4930,7 +4930,7 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 							  "ORDER BY c.oid::pg_catalog.regclass::pg_catalog.text;",
 							  oid);
 
-		result = await PSQLexec(buf.data);
+		result = (await PSQLexec(buf.data));
 		if (!result)
 			return retval;
 		tuples = PQntuples(result);
@@ -5025,8 +5025,8 @@ async function describeOneTableDetails(schemaname, relationname, oid, verbose)
 			printTableAddFooter(cont, /* _ */("Has OIDs: yes"));
 
 		/* Tablespace info */
-		await add_tablespace_footer(cont, tableinfo.relkind, tableinfo.tablespace,
-							  true);
+		(await add_tablespace_footer(cont, tableinfo.relkind, tableinfo.tablespace,
+							  true));
 
 		/* Access method info */
 		if (verbose && tableinfo.relam != NULL && !pset.hide_tableam)
@@ -5082,7 +5082,7 @@ async function add_tablespace_footer(cont, relkind, tablespace, newline)
 			appendPQExpBuffer(buf,
 							  "SELECT spcname FROM pg_catalog.pg_tablespace\n" +
 							  "WHERE oid = '%u';", tablespace);
-			result = await PSQLexec(buf.data);
+			result = (await PSQLexec(buf.data));
 			if (!result)
 			{
 				return;
@@ -5168,7 +5168,7 @@ async function describeRoles(pattern, verbose, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -5284,7 +5284,7 @@ async function listDbRoleSettings(pattern, pattern2)
 		return false;
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -5368,7 +5368,7 @@ async function describeRoleGrants(pattern, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2, 4;\n");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -5551,7 +5551,7 @@ async function listTables(tabtypes, pattern, verbose, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1,2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -5827,7 +5827,7 @@ async function listPartitionedTables(reltypes, pattern, verbose)
 					  mixed_output ? "\"Type\" DESC, " : "",
 					  showNested || pattern != NULL ? "\"Parent name\" NULLS FIRST, " : "");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -5903,7 +5903,7 @@ async function listLanguages(pattern, verbose, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -5982,7 +5982,7 @@ async function listDomains(pattern, verbose, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -6056,7 +6056,7 @@ async function listConversions(pattern, verbose, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -6120,7 +6120,7 @@ async function describeConfigurationParameters(pattern, verbose, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -6197,7 +6197,7 @@ async function listEventTriggers(pattern, verbose)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -6297,7 +6297,7 @@ async function listExtendedStats(pattern, verbose)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -6412,7 +6412,7 @@ async function listCasts(pattern, verbose)
 
 	appendPQExpBufferStr(buf, ") )\nORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -6531,7 +6531,7 @@ async function listCollations(pattern, verbose, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -6591,7 +6591,7 @@ async function listSchemas(pattern, verbose, showSystem)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -6612,7 +6612,7 @@ async function listSchemas(pattern, verbose, showSystem)
 						  "WHERE n.nspname = '%s'\n" +
 						  "ORDER BY 1",
 						  pattern);
-		result = await PSQLexec(buf.data);
+		result = (await PSQLexec(buf.data));
 		if (!result)
 			return false;
 		else
@@ -6660,7 +6660,7 @@ async function listTSParsers(pattern, verbose)
 	let myopt = copy_printQueryOpt(pset.popt);
 
 	if (verbose)
-		return await listTSParsersVerbose(pattern);
+		return (await listTSParsersVerbose(pattern));
 
 	initPQExpBuffer(buf);
 
@@ -6687,7 +6687,7 @@ async function listTSParsers(pattern, verbose)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -6728,7 +6728,7 @@ async function listTSParsersVerbose(pattern)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -6756,7 +6756,7 @@ async function listTSParsersVerbose(pattern)
 			nspname = PQgetvalue(res, i, 1);
 		prsname = PQgetvalue(res, i, 2);
 
-		if (!await describeOneTSParser(oid, nspname, prsname))
+		if (!(await describeOneTSParser(oid, nspname, prsname)))
 		{
 			return false;
 		}
@@ -6825,7 +6825,7 @@ async function describeOneTSParser(oid, nspname, prsname)
 					  /* gettext_noop */("Get token types"),
 					  oid);
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -6856,7 +6856,7 @@ async function describeOneTSParser(oid, nspname, prsname)
 					  /* gettext_noop */("Description"),
 					  oid);
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 	{
 		return false;
@@ -6927,7 +6927,7 @@ async function listTSDictionaries(pattern, verbose)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -6987,7 +6987,7 @@ async function listTSTemplates(pattern, verbose)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -7009,7 +7009,7 @@ async function listTSConfigs(pattern, verbose)
 	let myopt = copy_printQueryOpt(pset.popt);
 
 	if (verbose)
-		return await listTSConfigsVerbose(pattern);
+		return (await listTSConfigsVerbose(pattern));
 
 	initPQExpBuffer(buf);
 
@@ -7036,7 +7036,7 @@ async function listTSConfigs(pattern, verbose)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -7079,7 +7079,7 @@ async function listTSConfigsVerbose(pattern)
 
 	appendPQExpBufferStr(buf, "ORDER BY 3, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -7112,7 +7112,7 @@ async function listTSConfigsVerbose(pattern)
 		if (!PQgetisnull(res, i, 4))
 			pnspname = PQgetvalue(res, i, 4);
 
-		if (!await describeOneTSConfig(oid, nspname, cfgname, pnspname, prsname))
+		if (!(await describeOneTSConfig(oid, nspname, cfgname, pnspname, prsname)))
 		{
 			return false;
 		}
@@ -7156,7 +7156,7 @@ async function describeOneTSConfig(oid, nspname, cfgname, pnspname, prsname)
 					  /* gettext_noop */("Dictionaries"),
 					  oid);
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -7242,7 +7242,7 @@ async function listForeignDataWrappers(pattern, verbose)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -7315,7 +7315,7 @@ async function listForeignServers(pattern, verbose)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -7367,7 +7367,7 @@ async function listUserMappings(pattern, verbose)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -7436,7 +7436,7 @@ async function listForeignTables(pattern, verbose)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -7487,7 +7487,7 @@ async function listExtensions(pattern)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -7527,7 +7527,7 @@ async function listExtensionContents(pattern)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -7552,7 +7552,7 @@ async function listExtensionContents(pattern)
 		extname = PQgetvalue(res, i, 0);
 		oid = PQgetvalue(res, i, 1);
 
-		if (!await listOneExtensionContents(extname, oid))
+		if (!(await listOneExtensionContents(extname, oid)))
 		{
 			return false;
 		}
@@ -7583,7 +7583,7 @@ async function listOneExtensionContents(extname, oid)
 					  /* gettext_noop */("Object description"),
 					  oid);
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -7720,7 +7720,7 @@ async function listPublications(pattern)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -7743,7 +7743,7 @@ async function addFooterToPublicationDesc(buf, footermsg, as_schema, cont)
 	let count = 0;
 	let i = 0;
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 	else
@@ -7870,7 +7870,7 @@ async function describePublications(pattern)
 
 	appendPQExpBufferStr(buf, "ORDER BY 2;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 	{
 		return false;
@@ -7974,7 +7974,7 @@ async function describePublications(pattern)
 				appendPQExpBufferStr(buf, "  AND NOT pr.prexcept\n");
 
 			appendPQExpBufferStr(buf, "ORDER BY 1,2");
-			if (!await addFooterToPublicationDesc(buf, /* _ */("Tables:"), false, cont))
+			if (!(await addFooterToPublicationDesc(buf, /* _ */("Tables:"), false, cont)))
 				return false;
 
 			if (pset.sversion >= 150000)
@@ -7987,8 +7987,8 @@ async function describePublications(pattern)
 								  "     JOIN pg_catalog.pg_publication_namespace pn ON n.oid = pn.pnnspid\n" +
 								  "WHERE pn.pnpubid = '%s'\n" +
 								  "ORDER BY 1", pubid);
-				if (!await addFooterToPublicationDesc(buf, /* _ */("Tables from schemas:"),
-												true, cont))
+				if (!(await addFooterToPublicationDesc(buf, /* _ */("Tables from schemas:"),
+												true, cont)))
 					return false;
 			}
 		}
@@ -8005,8 +8005,8 @@ async function describePublications(pattern)
 								  "     JOIN pg_catalog.pg_publication_rel pr ON c.oid = pr.prrelid\n" +
 								  "WHERE pr.prpubid = '%s' AND pr.prexcept\n" +
 								  "ORDER BY 1", pubid);
-				if (!await addFooterToPublicationDesc(buf, /* _ */("Except tables:"),
-												true, cont))
+				if (!(await addFooterToPublicationDesc(buf, /* _ */("Except tables:"),
+												true, cont)))
 					return false;
 			}
 		}
@@ -8157,7 +8157,7 @@ async function describeSubscriptions(pattern, verbose)
 
 	appendPQExpBufferStr(buf, "ORDER BY 1;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -8271,7 +8271,7 @@ async function listOperatorClasses(access_method_pattern, type_pattern, verbose)
 	}
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2, 4;");
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -8351,7 +8351,7 @@ async function listOperatorFamilies(access_method_pattern, type_pattern, verbose
 	}
 
 	appendPQExpBufferStr(buf, "ORDER BY 1, 2;");
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -8450,7 +8450,7 @@ async function listOpFamilyOperators(access_method_pattern, family_pattern, verb
 						 "  pg_catalog.format_type(o.amoprighttype, NULL),\n" +
 						 "  o.amopstrategy;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -8534,7 +8534,7 @@ async function listOpFamilyFunctions(access_method_pattern, family_pattern, verb
 						 "  ap.amproclefttype = ap.amprocrighttype DESC,\n" +
 						 "  3, 4, 5;");
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
@@ -8578,7 +8578,7 @@ async function listLargeObjects(verbose)
 					  "ORDER BY oid",
 					  /* gettext_noop */("Description"));
 
-	res = await PSQLexec(buf.data);
+	res = (await PSQLexec(buf.data));
 	if (!res)
 		return false;
 
