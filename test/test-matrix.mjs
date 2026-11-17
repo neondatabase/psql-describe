@@ -268,7 +268,6 @@ async function waitUntilReady(container) {
 
 async function startServer(version) {
   const container = containerName(version);
-  const alias = `pg${version.major}`;
 
   await run(runtime, [
     'run',
@@ -276,7 +275,6 @@ async function startServer(version) {
     '--rm',
     '--name', container,
     '--network', network,
-    '--network-alias', alias,
     '--env', `POSTGRES_PASSWORD=${POSTGRES_PASSWORD}`,
     '--env', `POSTGRES_DB=${POSTGRES_DB}`,
     '--publish', '127.0.0.1::5432',
@@ -289,11 +287,19 @@ async function startServer(version) {
   const port = portOutput.trim().match(/:(\d+)$/)?.[1];
   if (!port) throw new Error(`could not determine host port from: ${portOutput}`);
 
+  // The reference psql, in another container on the network, connects by IP address rather than by name, since
+  // container DNS (e.g. Podman's aardvark-dns) can fail to resolve a container started just after another was removed
+  const ipOutput = await run(runtime, ['inspect', '--format',
+    `{{(index .NetworkSettings.Networks "${network}").IPAddress}}`, container], { capture: true });
+  const ip = ipOutput.trim();
+  if (!/^[0-9.]+$/.test(ip)) throw new Error(`could not determine ${container}'s address from: ${ipOutput}`);
+
   return {
-    alias,
     container,
+    // for psql-describe, which runs on the host
     hostUrl: `postgres://postgres:${POSTGRES_PASSWORD}@127.0.0.1:${port}/${POSTGRES_DB}`,
-    networkUrl: `postgres://postgres:${POSTGRES_PASSWORD}@${alias}:5432/${POSTGRES_DB}`,
+    // for the reference psql, which runs in the reference container
+    networkUrl: `postgres://postgres:${POSTGRES_PASSWORD}@${ip}:5432/${POSTGRES_DB}`,
   };
 }
 
