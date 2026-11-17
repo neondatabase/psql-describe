@@ -34,6 +34,7 @@ jobs:
           node-version: lts/*
 
       - name: Setup JFrog CLI with OIDC
+        id: jfrog
         uses: jfrog/setup-jfrog-cli@279b1f629f43dd5bc658d8361ac4802a7ef8d2d5 # v4.9.1
         env:
           JF_URL: https://databricks.jfrog.io
@@ -46,14 +47,15 @@ jobs:
           jf npm clean-install
 
       # pcpp, the C preprocessor that xslt/preprocess.py uses, in a venv whose python3 comes first on the PATH for
-      # later steps (the translation also needs git and perl, which the runner has)
+      # later steps (the translation also needs git and perl, which the runner has). pip goes through JFrog's db-pypi,
+      # as in databricks/cli's setup-jfrog action, with the token from the step above.
       - name: Install Python dependencies
+        env:
+          PIP_INDEX_URL: https://${{ steps.jfrog.outputs.oidc-user }}:${{ steps.jfrog.outputs.oidc-token }}@databricks.jfrog.io/artifactory/api/pypi/db-pypi/simple
         run: |
           python3 -m venv .venv
+          .venv/bin/pip install -r xslt/requirements.txt
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
-          export PATH="$PWD/.venv/bin:$PATH"
-          jf pipc --repo-resolve=db-pypi
-          jf pip install -r xslt/requirements.txt
 
       # goal: fetch Postgres, translate, check the committed output is what that gives, and test
       - name: Translate and run all tests
