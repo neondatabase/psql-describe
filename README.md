@@ -22,11 +22,13 @@ describe(
   dbName,
   runQuery,
   outputFn,
-  echoHidden = false,
-  sversion = null,
-  std_strings = true, 
-  docsURLTemplate = (id) => `https://www.postgresql.org/docs/19/${id}.html`,
-  multipleCommands = false,
+  {
+    echoHidden = false,
+    serverVersion = null,
+    standardConformingStrings = true,
+    docsURLTemplate = (id) => `https://www.postgresql.org/docs/19/${id}.html`,
+    multipleCommands = false,
+  } = {},
 ): { promise, cancel };
 ```
 
@@ -34,9 +36,12 @@ describe(
 * `dbName` (string) is the name of the connected database.
 * `runQuery` is an async function that takes a SQL query (string) and must return *unparsed* query results in the same format used by node-postgres when specifying `rowMode: 'array'`.
 * `outputFn` is a function that receives output for display: either a string or a table object (see below).
+
+The last argument, which is optional, is an object of options, any of which may be left out:
+
 * `echoHidden` (boolean) has the same effect as the `-E` argument to psql: if `true`, all SQL queries are output to `outputFn`, in addition to the final results.
-* `sversion` (number) should be the same value as `SHOW server_version_num` executed on the server. It is used to determine what features the database supports. If it is not provided, the server is queried for it.
-* `std_strings` (boolean) indicates the value of `standard_conforming_strings` in the database.
+* `serverVersion` (number) should be the same value as `SHOW server_version_num` executed on the server. It is used to determine what features the database supports. If it is not provided, the server is queried for it.
+* `standardConformingStrings` (boolean) indicates the value of `standard_conforming_strings` in the database.
 * `docsURLTemplate` (function) specifies how a docs page ID is transformed into a URL, for use with `\h`. 
 * `multipleCommands` (boolean) says whether to run every backslash command at the start of `cmd`, as psql does with a line it reads (interactively, or from a file): e.g. `\dt film \dv` runs `\dt film` and then `\dv` (and so does `\dt film \\ \dv`). If it's `false`, the default, only the first command runs, as with `psql -c`. Either way, anything left over is returned as `remainder` (see below).
 
@@ -70,6 +75,8 @@ To format these outputs for display, three additional functions are exported:
 Text table formatting matches psql default formatting options: `format aligned`, `border 1`, `tuples_only off`, and so on. Other styles are not supported.
 
 The `x` expanded output option (added to most commands in Postgres 18, formerly unsupported) _is_ now supported.
+
+In a single-quoted argument, octal and hex escapes are bytes, as in psql, not characters, as in JS. A run of them is read as UTF-8: so `\dt 'caf\303\251'` and `\dt 'caf\xc3\xa9'` both look for `café`, but `\dt 'caf\351'` doesn't (`\351` alone isn't valid UTF-8, and becomes U+FFFD, where psql would send the byte, and get an error back). And `\0` ends the argument, as it ends a C string: `\dt 'a\0b'` looks for `a`.
 
 
 ## Building

@@ -81,7 +81,7 @@ async function go() {
         firstOutput = false;
       };
 
-    const { promise, cancel } = describe(cmd, dbName, queryFn, outputFn, echoHidden);
+    const { promise, cancel } = describe(cmd, dbName, queryFn, outputFn, { echoHidden });
     cancelFn = cancel;
     const status = await promise;
 

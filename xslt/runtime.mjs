@@ -22,11 +22,13 @@ export function describe(
   dbName,
   runQuery,
   outputFn,
-  echoHidden = false,
-  sversion = null,
-  std_strings = 1,
-  docsURLTemplate = (id) => `https://www.postgresql.org/docs/${strstr(PG_VERSION, "devel") ? "devel" : PG_MAJORVERSION}/${id}.html`,
-  multipleCommands = false,
+  {
+    echoHidden = false,
+    serverVersion = null,
+    standardConformingStrings = true,
+    docsURLTemplate = (id) => `https://www.postgresql.org/docs/${strstr(PG_VERSION, "devel") ? "devel" : PG_MAJORVERSION}/${id}.html`,
+    multipleCommands = false,
+  } = {},
 ) {
   let cancel_pressed = false;
 
@@ -134,7 +136,7 @@ export function describe(
     const
       PQresultStatus = res => res.status,
       PQresultErrorField = (res, field) => res.errorFields?.[field] ?? NULL,
-      standard_strings = () => std_strings;
+      standard_strings = () => standardConformingStrings;
 
     // Just enough of C's stdio: a stream is an object with write(), and stdout writes text (see write, above). There's
     // no pager.
@@ -215,20 +217,27 @@ export function describe(
           if (rest === '' || space.test(rest[0]) || rest[0] === '\\') break;
 
           if (rest[0] === "'") {
-            // single-quoted text: as it is, except for '' and backslash sequences
+            // single-quoted text: as it is, except for '' and backslash sequences. An octal or hex escape is a byte, as in
+            // psql (where the argument is bytes in the client encoding), so a run of them is decoded as UTF-8: e.g.
+            // \303\251 is é
             lastQuote = "'";
             unquotedChars = 0;
             i++;
+            let bytes = [];
+            const add = text => {
+              if (bytes.length > 0) result += new TextDecoder().decode(new Uint8Array(bytes)), bytes = [];
+              result += text;
+            };
             for (; ;) {
               const rest = str.slice(i);
               if (rest === '') return unterminated();
-              if (rest.startsWith("''")) result += "'", i += 2;
-              else if (rest[0] === "'") { i++; break; }
-              else if ((m = rest.match(/^\\[ntbrf]/))) result += { n: '\n', t: '\t', b: '\b', r: '\r', f: '\f' }[m[0][1]], i += 2;
-              else if ((m = rest.match(/^\\([0-7]{1,3})/))) result += String.fromCharCode(parseInt(m[1], 8)), i += m[0].length;
-              else if ((m = rest.match(/^\\x([0-9A-Fa-f]{1,2})/))) result += String.fromCharCode(parseInt(m[1], 16)), i += m[0].length;
-              else if ((m = rest.match(/^\\(.)/))) result += m[1], i += 2;
-              else result += rest[0], i++;
+              if (rest.startsWith("''")) add("'"), i += 2;
+              else if (rest[0] === "'") { add(''); i++; break; }
+              else if ((m = rest.match(/^\\[ntbrf]/))) add({ n: '\n', t: '\t', b: '\b', r: '\r', f: '\f' }[m[0][1]]), i += 2;
+              else if ((m = rest.match(/^\\([0-7]{1,3})/))) bytes.push(parseInt(m[1], 8) & 0xFF), i += m[0].length;  // (char)
+              else if ((m = rest.match(/^\\x([0-9A-Fa-f]{1,2})/))) bytes.push(parseInt(m[1], 16)), i += m[0].length;
+              else if ((m = rest.match(/^\\(.)/))) add(m[1]), i += 2;
+              else add(rest[0]), i++;
             }
 
           } else if (rest[0] === '"') {
@@ -261,6 +270,9 @@ export function describe(
         // strip any unquoted trailing semicolons, if requested
         if (semicolon) while (unquotedChars-- > 0 && result.endsWith(';')) result = result.slice(0, -1);
       }
+
+      // the argument is a C string, so a NUL (e.g. from \0) ends it
+      result = result.split('\0')[0];
 
       scan_state[1] = i;
       if (quote != NULL) quote.value = lastQuote;
@@ -449,15 +461,15 @@ export function describe(
     let success = true, commands = 0;
     try {
       pset = {
-        sversion,
+        sversion: serverVersion,
         cur_cmd_interactive: false,
         queryFout: stdout,
         logfile: NULL,
         echo_hidden: echoHidden ? PSQL_ECHO_HIDDEN_ON : PSQL_ECHO_HIDDEN_OFF,
         db: {  // PGconn struct
           dbName,
-          sversion,
-          std_strings,
+          sversion: serverVersion,
+          std_strings: standardConformingStrings,
           status: CONNECTION_OK,
           encoding: PG_UTF8
         },

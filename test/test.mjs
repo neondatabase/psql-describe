@@ -202,11 +202,11 @@ try {
         test,
         db.pathname.slice(1),
         queryFn, (...x) => localOutputArr.push(x),
-        true,
-        null,
-        true,
-        id => `https://www.postgresql.org/docs/current/${id}.html`,
-        true,  // multipleCommands, as psql reading stdin
+        {
+          echoHidden: true,
+          docsURLTemplate: id => `https://www.postgresql.org/docs/current/${id}.html`,
+          multipleCommands: true,  // as psql reading stdin
+        },
       ).promise,
     ]);
     const localOutput = localOutputArr.map(x => describeDataToString(...x)).join('\n\n');

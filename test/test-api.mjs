@@ -18,16 +18,14 @@ const emptyResult = { rowCount: 0, fields: [], rows: [] };
 
 // Run a command with a runQuery that records the first SQL it is asked to run
 // and then aborts, so we can inspect the generated SQL without a database.
-async function firstQuery(cmd, { sversion, std_strings = true } = {}) {
+async function firstQuery(cmd, options) {
   let captured;
   await describe(
     cmd,
     'testdb',
     sql => { captured = sql; throw new Error('stop'); },
     () => {},
-    false,
-    sversion,
-    std_strings,
+    options,
   ).promise;
   return captured;
 }
@@ -84,7 +82,7 @@ test('cancel() aborts a command in flight and suppresses further output', async 
   const outputs = [];
 
   const { promise, cancel } = describe(
-    '\\l', 'testdb', runQuery, x => outputs.push(x), false, 190000,
+    '\\l', 'testdb', runQuery, x => outputs.push(x), { serverVersion: 190000 },
   );
 
   await tick();  // let describe reach its first runQuery call
@@ -106,7 +104,7 @@ test('a rejected runQuery surfaces as an error, not a hang', async () => {
     '\\l', 'testdb',
     () => Promise.reject(new Error('boom-async')),
     x => outputs.push(x),
-    false, 190000,
+    { serverVersion: 190000 },
   ).promise;
 
   assert.equal(resolved.success, false);
@@ -119,7 +117,7 @@ test('a synchronously throwing runQuery surfaces as an error', async () => {
     '\\l', 'testdb',
     () => { throw new Error('boom-sync'); },
     x => outputs.push(x),
-    false, 190000,
+    { serverVersion: 190000 },
   ).promise;
 
   assert.equal(resolved.success, false);
@@ -134,8 +132,7 @@ test('\\h uses a custom docsURLTemplate for the help URL', async () => {
     '\\h SELECT', 'testdb',
     () => { throw new Error('runQuery should not be called for \\h'); },
     x => outputs.push(x),
-    false, 190000, true,
-    id => `https://docs.example.test/${id}`,
+    { serverVersion: 190000, docsURLTemplate: id => `https://docs.example.test/${id}` },
   ).promise;
 
   const text = outputs.join('\n');
@@ -145,11 +142,11 @@ test('\\h uses a custom docsURLTemplate for the help URL', async () => {
   assert.ok(!text.includes('postgresql.org'));  // the default template is unused
 });
 
-// 5. Pinned sversion -------------------------------------------------------
+// 5. Pinned serverVersion --------------------------------------------------
 
-test('an explicit sversion changes the generated SQL', async () => {
-  const sql14 = await firstQuery('\\l', { sversion: 140000 });
-  const sql19 = await firstQuery('\\l', { sversion: 190000 });
+test('an explicit serverVersion changes the generated SQL', async () => {
+  const sql14 = await firstQuery('\\l', { serverVersion: 140000 });
+  const sql19 = await firstQuery('\\l', { serverVersion: 190000 });
 
   assert.notEqual(sql14, sql19);
   // PostgreSQL 17+ selects d.datlocale; earlier versions do not
@@ -161,19 +158,19 @@ test('messages about an old server give its major version, as psql does', async 
   // \df's "p" (procedures) option needs Postgres 11+, so a 10.5 server is refused before any query is run
   const outputs = [];
   await describe('\\dfp', 'testdb', async () => emptyResult, (...x) => outputs.push(describeDataToString(...x)),
-    false, 100005).promise;
+    { serverVersion: 100005 }).promise;
   assert.equal(outputs.join('\n'), '\\df does not take a "p" option with server version 10');
 });
 
-// 6. std_strings ------------------------------------------------------------
+// 6. standardConformingStrings ----------------------------------------------
 
-test('std_strings controls backslash escaping in generated SQL', async () => {
+test('standardConformingStrings controls backslash escaping in generated SQL', async () => {
   // A "$" in a pattern is always emitted as "\$" in the regex literal, so the
-  // literal contains a backslash whose escaping depends on std_strings. We use
-  // sversion 190000 so the pre-v19 E'...' kluge does not apply and std_strings
+  // literal contains a backslash whose escaping depends on standardConformingStrings. We use
+  // serverVersion 190000 so the pre-v19 E'...' kluge does not apply and standardConformingStrings
   // alone governs the result.
-  const sqlStd = await firstQuery('\\dt foo$bar', { sversion: 190000, std_strings: true });
-  const sqlNonStd = await firstQuery('\\dt foo$bar', { sversion: 190000, std_strings: false });
+  const sqlStd = await firstQuery('\\dt foo$bar', { serverVersion: 190000, standardConformingStrings: true });
+  const sqlNonStd = await firstQuery('\\dt foo$bar', { serverVersion: 190000, standardConformingStrings: false });
 
   assert.notEqual(sqlStd, sqlNonStd);
   // standard_conforming_strings on: the backslash is left as-is
@@ -189,7 +186,7 @@ test('std_strings controls backslash escaping in generated SQL', async () => {
 async function outputOf(cmd) {
   const outputs = [];
   await describe(cmd, 'testdb', () => { throw new Error(`runQuery should not be called for ${cmd}`); },
-    x => outputs.push(x), false, 190000).promise;
+    x => outputs.push(x), { serverVersion: 190000 }).promise;
   return outputs.join('\n');
 }
 
@@ -219,25 +216,25 @@ test('the default docs URL is for the major version psql was built from', async 
 
 test('quoted arguments follow psql\'s rules, and a quote in a pattern is doubled in SQL', async () => {
   for (const cmd of [String.raw`\dt "o'x"`, String.raw`\dt 'o''x'`, String.raw`\dt 'o\'x'`, String.raw`\dt o'''x'`]) {
-    assert.match(await firstQuery(cmd, { sversion: 190000 }), /'\^\(o''x\)\$'/, cmd);
+    assert.match(await firstQuery(cmd, { serverVersion: 190000 }), /'\^\(o''x\)\$'/, cmd);
   }
 });
 
 test('an unterminated quote in an argument is an error', async () => {
   const outputs = [];
-  await describe(String.raw`\dt "o'x`, 'testdb', () => { throw new Error('stop'); }, x => outputs.push(x), false, 190000).promise;
+  await describe(String.raw`\dt "o'x`, 'testdb', () => { throw new Error('stop'); }, x => outputs.push(x), { serverVersion: 190000 }).promise;
   assert.match(outputs[0], /^unterminated quoted string$/m);
 });
 
 // 9. Multiple commands, and what the promise resolves to ---------------------
 
 // Run a command line, recording the SQL it runs (each query returning no rows) and its output
-async function run(cmd, { sversion = 190000, multipleCommands } = {}) {
+async function run(cmd, { serverVersion = 190000, multipleCommands } = {}) {
   const queries = [], outputs = [];
   const version = { rowCount: 1, fields: [{ name: 'server_version_num' }], rows: [['190000']] };
   const result = await describe(cmd, 'testdb',
     sql => { queries.push(sql); return sql === 'SHOW server_version_num' ? version : emptyResult; },
-    x => outputs.push(x), false, sversion, true, undefined, multipleCommands).promise;
+    x => outputs.push(x), { serverVersion, multipleCommands }).promise;
   return { queries, outputs, result };
 }
 
@@ -280,7 +277,7 @@ test('help succeeds', async () => {
 });
 
 test('the server version is queried before the first command that needs it', async () => {
-  const { queries } = await run(String.raw`\? \dt`, { sversion: null, multipleCommands: true });
+  const { queries } = await run(String.raw`\? \dt`, { serverVersion: null, multipleCommands: true });
   assert.equal(queries.length, 2);
   assert.equal(queries[0], 'SHOW server_version_num');
 });

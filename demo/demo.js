@@ -232,7 +232,13 @@ function describeDataToString(item) {
 function describeDataToHtml(item) {
   return typeof item === "string" ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item);
 }
-function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sversion = null, std_strings = 1, docsURLTemplate = (id) => `https://www.postgresql.org/docs/${strstr(PG_VERSION, "devel") ? "devel" : PG_MAJORVERSION}/${id}.html`) {
+function describe(cmd, dbName, runQuery, outputFn, {
+  echoHidden = false,
+  serverVersion = null,
+  standardConformingStrings = true,
+  docsURLTemplate = (id) => `https://www.postgresql.org/docs/${strstr(PG_VERSION, "devel") ? "devel" : PG_MAJORVERSION}/${id}.html`,
+  multipleCommands = false
+} = {}) {
   let cancel_pressed = false;
   function cancel() {
     cancel_pressed = true;
@@ -254,11 +260,9 @@ function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sversion 
     text = (text ?? "") + str;
   }
   async function main() {
-    if (cmd[0] !== "\\") {
-      output(`unsupported command: ${cmd}`);
-      return false;
-    }
-    const scan_state = [cmd.slice(1), 0];
+    const remainder = cmd.trimStart();
+    if (remainder[0] !== "\\") return { success: true, remainder, commands: 0 };
+    const scan_state = [remainder.slice(1), 0];
     function helpSQL(topic, pager) {
       const helpSearch = (topic ?? "").trim().toUpperCase().replace(/\s+/g, " ");
       if (helpSearch === "") {
@@ -315,7 +319,7 @@ ${sql}
         throwIfCancelled();
       }
     }
-    const PQresultStatus = (res) => res.status, PQresultErrorField = (res, field) => res.errorFields?.[field] ?? NULL, standard_strings = () => std_strings;
+    const PQresultStatus = (res) => res.status, PQresultErrorField = (res, field) => res.errorFields?.[field] ?? NULL, standard_strings = () => standardConformingStrings;
     const stdout = { write }, fputs = (str, stream) => stream.write(str), fprintf = (stream, template, ...args) => stream.write(sprintf(template, ...args)), printf = (template, ...args) => fprintf(stdout, template, ...args), fflush = noop, ClosePager = noop, PageOutput = (lines, topt) => stdout;
     const pg_log_error = (template, ...args) => write(sprintf(template, ...args) + "\n"), pg_log_error_internal = pg_log_error, pg_log_error_hint = pg_log_error, pg_log_warning = pg_log_error;
     const conditional_active = (cstack) => true, conditional_stack_push = noop, conditional_stack_pop = noop;
@@ -346,18 +350,24 @@ ${sql}
             lastQuote = "'";
             unquotedChars = 0;
             i++;
+            let bytes = [];
+            const add = (text2) => {
+              if (bytes.length > 0) result += new TextDecoder().decode(new Uint8Array(bytes)), bytes = [];
+              result += text2;
+            };
             for (; ; ) {
               const rest2 = str.slice(i);
               if (rest2 === "") return unterminated();
-              if (rest2.startsWith("''")) result += "'", i += 2;
+              if (rest2.startsWith("''")) add("'"), i += 2;
               else if (rest2[0] === "'") {
+                add("");
                 i++;
                 break;
-              } else if (m = rest2.match(/^\\[ntbrf]/)) result += { n: "\n", t: "	", b: "\b", r: "\r", f: "\f" }[m[0][1]], i += 2;
-              else if (m = rest2.match(/^\\([0-7]{1,3})/)) result += String.fromCharCode(parseInt(m[1], 8)), i += m[0].length;
-              else if (m = rest2.match(/^\\x([0-9A-Fa-f]{1,2})/)) result += String.fromCharCode(parseInt(m[1], 16)), i += m[0].length;
-              else if (m = rest2.match(/^\\(.)/)) result += m[1], i += 2;
-              else result += rest2[0], i++;
+              } else if (m = rest2.match(/^\\[ntbrf]/)) add({ n: "\n", t: "	", b: "\b", r: "\r", f: "\f" }[m[0][1]]), i += 2;
+              else if (m = rest2.match(/^\\([0-7]{1,3})/)) bytes.push(parseInt(m[1], 8) & 255), i += m[0].length;
+              else if (m = rest2.match(/^\\x([0-9A-Fa-f]{1,2})/)) bytes.push(parseInt(m[1], 16)), i += m[0].length;
+              else if (m = rest2.match(/^\\(.)/)) add(m[1]), i += 2;
+              else add(rest2[0]), i++;
             }
           } else if (rest[0] === '"') {
             const end2 = str.indexOf('"', i + 1);
@@ -381,6 +391,7 @@ ${sql}
         }
         if (semicolon) while (unquotedChars-- > 0 && result.endsWith(";")) result = result.slice(0, -1);
       }
+      result = result.split("\0")[0];
       scan_state2[1] = i;
       if (quote != NULL) quote.value = lastQuote;
       return result === "" && lastQuote === 0 ? NULL : result;
@@ -428,7 +439,7 @@ ${sql}
         )) != NULL) {
         }
       }
-      scan_state2;
+      psql_scan_slash_command_end(scan_state2);
       pset.queryFout;
       return status;
     }
@@ -465,7 +476,7 @@ ${sql}
     }
     async function exec_command_d(scan_state2, active_branch, cmd2) {
       let status = PSQL_CMD_SKIP_LINE;
-      let success = true;
+      let success2 = true;
       if (active_branch) {
         let pattern;
         let show_verbose, show_system;
@@ -486,9 +497,9 @@ ${sql}
           case "+":
           case "S":
             if (pattern != NULL)
-              success = await describeTableDetails(pattern, show_verbose, show_system);
+              success2 = await describeTableDetails(pattern, show_verbose, show_system);
             else
-              success = await listTables("tvmsE", NULL, show_verbose, show_system);
+              success2 = await listTables("tvmsE", NULL, show_verbose, show_system);
             break;
           case "A":
             {
@@ -499,19 +510,19 @@ ${sql}
                 case void 0:
                 case "+":
                 case "x":
-                  success = await describeAccessMethods(pattern, show_verbose);
+                  success2 = await describeAccessMethods(pattern, show_verbose);
                   break;
                 case "c":
-                  success = await listOperatorClasses(pattern, pattern2, show_verbose);
+                  success2 = await listOperatorClasses(pattern, pattern2, show_verbose);
                   break;
                 case "f":
-                  success = await listOperatorFamilies(pattern, pattern2, show_verbose);
+                  success2 = await listOperatorFamilies(pattern, pattern2, show_verbose);
                   break;
                 case "o":
-                  success = await listOpFamilyOperators(pattern, pattern2, show_verbose);
+                  success2 = await listOpFamilyOperators(pattern, pattern2, show_verbose);
                   break;
                 case "p":
-                  success = await listOpFamilyFunctions(pattern, pattern2, show_verbose);
+                  success2 = await listOpFamilyFunctions(pattern, pattern2, show_verbose);
                   break;
                 default:
                   status = PSQL_CMD_UNKNOWN;
@@ -520,36 +531,36 @@ ${sql}
             }
             break;
           case "a":
-            success = await describeAggregates(pattern, show_verbose, show_system);
+            success2 = await describeAggregates(pattern, show_verbose, show_system);
             break;
           case "b":
-            success = await describeTablespaces(pattern, show_verbose);
+            success2 = await describeTablespaces(pattern, show_verbose);
             break;
           case "c":
             if (strncmp(cmd2, "dconfig", 7) == 0)
-              success = await describeConfigurationParameters(
+              success2 = await describeConfigurationParameters(
                 pattern,
                 show_verbose,
                 show_system
               );
             else
-              success = await listConversions(
+              success2 = await listConversions(
                 pattern,
                 show_verbose,
                 show_system
               );
             break;
           case "C":
-            success = await listCasts(pattern, show_verbose);
+            success2 = await listCasts(pattern, show_verbose);
             break;
           case "d":
             if (strncmp(cmd2, "ddp", 3) == 0)
-              success = await listDefaultACLs(pattern);
+              success2 = await listDefaultACLs(pattern);
             else
-              success = await objectDescription(pattern, show_system);
+              success2 = await objectDescription(pattern, show_system);
             break;
           case "D":
-            success = await listDomains(pattern, show_verbose, show_system);
+            success2 = await listDomains(pattern, show_verbose, show_system);
             break;
           case "f":
             switch (cmd2[2]) {
@@ -562,7 +573,7 @@ ${sql}
               case "t":
               case "w":
               case "x":
-                success = await exec_command_dfo(
+                success2 = await exec_command_dfo(
                   scan_state2,
                   cmd2,
                   pattern,
@@ -576,19 +587,19 @@ ${sql}
             }
             break;
           case "g":
-            success = await describeRoles(pattern, show_verbose, show_system);
+            success2 = await describeRoles(pattern, show_verbose, show_system);
             break;
           case "l":
-            success = await listLargeObjects(show_verbose);
+            success2 = await listLargeObjects(show_verbose);
             break;
           case "L":
-            success = await listLanguages(pattern, show_verbose, show_system);
+            success2 = await listLanguages(pattern, show_verbose, show_system);
             break;
           case "n":
-            success = await listSchemas(pattern, show_verbose, show_system);
+            success2 = await listSchemas(pattern, show_verbose, show_system);
             break;
           case "o":
-            success = await exec_command_dfo(
+            success2 = await exec_command_dfo(
               scan_state2,
               cmd2,
               pattern,
@@ -597,10 +608,10 @@ ${sql}
             );
             break;
           case "O":
-            success = await listCollations(pattern, show_verbose, show_system);
+            success2 = await listCollations(pattern, show_verbose, show_system);
             break;
           case "p":
-            success = await permissionsList(pattern, show_system);
+            success2 = await permissionsList(pattern, show_system);
             break;
           case "P":
             {
@@ -611,7 +622,7 @@ ${sql}
                 case "i":
                 case "n":
                 case "x":
-                  success = await listPartitionedTables(cmd2.slice(2), pattern, show_verbose);
+                  success2 = await listPartitionedTables(cmd2.slice(2), pattern, show_verbose);
                   break;
                 default:
                   status = PSQL_CMD_UNKNOWN;
@@ -620,7 +631,7 @@ ${sql}
             }
             break;
           case "T":
-            success = await describeTypes(pattern, show_verbose, show_system);
+            success2 = await describeTypes(pattern, show_verbose, show_system);
             break;
           case "t":
           case "v":
@@ -628,7 +639,7 @@ ${sql}
           case "i":
           case "s":
           case "E":
-            success = await listTables(cmd2.slice(1), pattern, show_verbose, show_system);
+            success2 = await listTables(cmd2.slice(1), pattern, show_verbose, show_system);
             break;
           case "r":
             if (cmd2[2] == "d" && cmd2[3] == "s") {
@@ -640,9 +651,9 @@ ${sql}
                   NULL,
                   true
                 );
-              success = await listDbRoleSettings(pattern, pattern2);
+              success2 = await listDbRoleSettings(pattern, pattern2);
             } else if (cmd2[2] == "g")
-              success = await describeRoleGrants(pattern, show_system);
+              success2 = await describeRoleGrants(pattern, show_system);
             else
               status = PSQL_CMD_UNKNOWN;
             break;
@@ -650,35 +661,35 @@ ${sql}
             switch (cmd2[2]) {
               case "p":
                 if (show_verbose)
-                  success = await describePublications(pattern);
+                  success2 = await describePublications(pattern);
                 else
-                  success = await listPublications(pattern);
+                  success2 = await listPublications(pattern);
                 break;
               case "s":
-                success = await describeSubscriptions(pattern, show_verbose);
+                success2 = await describeSubscriptions(pattern, show_verbose);
                 break;
               default:
                 status = PSQL_CMD_UNKNOWN;
             }
             break;
           case "u":
-            success = await describeRoles(pattern, show_verbose, show_system);
+            success2 = await describeRoles(pattern, show_verbose, show_system);
             break;
           case "F":
             switch (cmd2[2]) {
               case void 0:
               case "+":
               case "x":
-                success = await listTSConfigs(pattern, show_verbose);
+                success2 = await listTSConfigs(pattern, show_verbose);
                 break;
               case "p":
-                success = await listTSParsers(pattern, show_verbose);
+                success2 = await listTSParsers(pattern, show_verbose);
                 break;
               case "d":
-                success = await listTSDictionaries(pattern, show_verbose);
+                success2 = await listTSDictionaries(pattern, show_verbose);
                 break;
               case "t":
-                success = await listTSTemplates(pattern, show_verbose);
+                success2 = await listTSTemplates(pattern, show_verbose);
                 break;
               default:
                 status = PSQL_CMD_UNKNOWN;
@@ -688,16 +699,16 @@ ${sql}
           case "e":
             switch (cmd2[2]) {
               case "s":
-                success = await listForeignServers(pattern, show_verbose);
+                success2 = await listForeignServers(pattern, show_verbose);
                 break;
               case "u":
-                success = await listUserMappings(pattern, show_verbose);
+                success2 = await listUserMappings(pattern, show_verbose);
                 break;
               case "w":
-                success = await listForeignDataWrappers(pattern, show_verbose);
+                success2 = await listForeignDataWrappers(pattern, show_verbose);
                 break;
               case "t":
-                success = await listForeignTables(pattern, show_verbose);
+                success2 = await listForeignTables(pattern, show_verbose);
                 break;
               default:
                 status = PSQL_CMD_UNKNOWN;
@@ -706,15 +717,15 @@ ${sql}
             break;
           case "x":
             if (show_verbose)
-              success = await listExtensionContents(pattern);
+              success2 = await listExtensionContents(pattern);
             else
-              success = await listExtensions(pattern);
+              success2 = await listExtensions(pattern);
             break;
           case "X":
-            success = await listExtendedStats(pattern, show_verbose);
+            success2 = await listExtendedStats(pattern, show_verbose);
             break;
           case "y":
-            success = await listEventTriggers(pattern, show_verbose);
+            success2 = await listEventTriggers(pattern, show_verbose);
             break;
           default:
             status = PSQL_CMD_UNKNOWN;
@@ -722,12 +733,12 @@ ${sql}
         pset.popt.topt.expanded = save_expanded;
       } else
         ignore_slash_options(scan_state2);
-      if (!success)
+      if (!success2)
         status = PSQL_CMD_ERROR;
       return status;
     }
     async function exec_command_dfo(scan_state2, cmd2, pattern, show_verbose, show_system) {
-      let success;
+      let success2;
       let arg_patterns = [];
       let num_arg_patterns = 0;
       if (pattern != NULL) {
@@ -744,7 +755,7 @@ ${sql}
         }
       }
       if (cmd2[1] == "f")
-        success = await describeFunctions(
+        success2 = await describeFunctions(
           cmd2.slice(2),
           pattern,
           arg_patterns,
@@ -753,14 +764,14 @@ ${sql}
           show_system
         );
       else
-        success = await describeOperators(
+        success2 = await describeOperators(
           pattern,
           arg_patterns,
           num_arg_patterns,
           show_verbose,
           show_system
         );
-      return success;
+      return success2;
     }
     function exec_command_help(scan_state2, active_branch) {
       if (active_branch) {
@@ -776,7 +787,7 @@ ${sql}
       return PSQL_CMD_SKIP_LINE;
     }
     async function exec_command_list(scan_state2, active_branch, cmd2) {
-      let success = true;
+      let success2 = true;
       if (active_branch) {
         let pattern;
         let show_verbose;
@@ -791,15 +802,15 @@ ${sql}
         save_expanded = pset.popt.topt.expanded;
         if (strchr(cmd2, "x") != NULL)
           pset.popt.topt.expanded = 1;
-        success = await listAllDbs(pattern, show_verbose);
+        success2 = await listAllDbs(pattern, show_verbose);
         pset.popt.topt.expanded = save_expanded;
       } else
         ignore_slash_options(scan_state2);
-      return success ? PSQL_CMD_SKIP_LINE : PSQL_CMD_ERROR;
+      return success2 ? PSQL_CMD_SKIP_LINE : PSQL_CMD_ERROR;
     }
     async function exec_command_lo(scan_state2, active_branch, cmd2) {
       let status = PSQL_CMD_SKIP_LINE;
-      let success = true;
+      let success2 = true;
       if (active_branch) {
         let opt1 = {}, opt2 = {};
         opt1.value = psql_scan_slash_option(
@@ -817,18 +828,18 @@ ${sql}
         if (strcmp(cmd2.slice(3), "export") == 0) {
           if (opt1.value == NULL || opt2.value == NULL) {
             pg_log_error("\\%s: missing required argument", cmd2);
-            success = false;
+            success2 = false;
           } else {
             opt2;
-            success = do_lo_export(opt1.value, opt2.value);
+            success2 = do_lo_export(opt1.value, opt2.value);
           }
         } else if (strcmp(cmd2.slice(3), "import") == 0) {
           if (opt1.value == NULL) {
             pg_log_error("\\%s: missing required argument", cmd2);
-            success = false;
+            success2 = false;
           } else {
             opt1;
-            success = do_lo_import(opt1.value, opt2.value);
+            success2 = do_lo_import(opt1.value, opt2.value);
           }
         } else if (strncmp(cmd2.slice(3), "list", 4) == 0) {
           let show_verbose;
@@ -837,19 +848,19 @@ ${sql}
           save_expanded = pset.popt.topt.expanded;
           if (strchr(cmd2, "x") != NULL)
             pset.popt.topt.expanded = 1;
-          success = await listLargeObjects(show_verbose);
+          success2 = await listLargeObjects(show_verbose);
           pset.popt.topt.expanded = save_expanded;
         } else if (strcmp(cmd2.slice(3), "unlink") == 0) {
           if (opt1.value == NULL) {
             pg_log_error("\\%s: missing required argument", cmd2);
-            success = false;
+            success2 = false;
           } else
-            success = do_lo_unlink(opt1.value);
+            success2 = do_lo_unlink(opt1.value);
         } else
           status = PSQL_CMD_UNKNOWN;
       } else
         ignore_slash_options(scan_state2);
-      if (!success)
+      if (!success2)
         status = PSQL_CMD_ERROR;
       return status;
     }
@@ -902,7 +913,7 @@ ${sql}
       return status;
     }
     async function exec_command_z(scan_state2, active_branch, cmd2) {
-      let success = true;
+      let success2 = true;
       if (active_branch) {
         let pattern;
         let show_system;
@@ -917,11 +928,11 @@ ${sql}
         save_expanded = pset.popt.topt.expanded;
         if (strchr(cmd2, "x") != NULL)
           pset.popt.topt.expanded = 1;
-        success = await permissionsList(pattern, show_system);
+        success2 = await permissionsList(pattern, show_system);
         pset.popt.topt.expanded = save_expanded;
       } else
         ignore_slash_options(scan_state2);
-      return success ? PSQL_CMD_SKIP_LINE : PSQL_CMD_ERROR;
+      return success2 ? PSQL_CMD_SKIP_LINE : PSQL_CMD_ERROR;
     }
     function exec_command_slash_command_help(scan_state2, active_branch) {
       if (active_branch) {
@@ -7980,7 +7991,7 @@ ORDER BY oid`,
       }
       return buf;
     }
-    function appendReloptionsArray(buffer, reloptions, prefix, encoding, std_strings2) {
+    function appendReloptionsArray(buffer, reloptions, prefix, encoding, std_strings) {
       let options = {};
       let noptions = {};
       let i;
@@ -8005,7 +8016,7 @@ ORDER BY oid`,
         if (strcmp(fmtId(value), value) == 0)
           appendPQExpBufferStr(buffer, value);
         else
-          appendStringLiteral(buffer, value, encoding, std_strings2);
+          appendStringLiteral(buffer, value, encoding, std_strings);
       }
       return true;
     }
@@ -9432,14 +9443,10 @@ ORDER BY oid`,
       return id_return.data;
     }
     let pset;
+    let success = true, commands = 0;
     try {
-      const isHelp = ["?", "h", "help"].includes(psql_scan_slash_command([...scan_state]));
-      if (!sversion && !isHelp) {
-        const vres = await PSQLexec("SHOW server_version_num", true);
-        sversion = parseInt(vres.rows[0][0], 10);
-      }
       pset = {
-        sversion,
+        sversion: serverVersion,
         cur_cmd_interactive: false,
         queryFout: stdout,
         logfile: NULL,
@@ -9447,8 +9454,8 @@ ORDER BY oid`,
         db: {
           // PGconn struct
           dbName,
-          sversion,
-          std_strings,
+          sversion: serverVersion,
+          std_strings: standardConformingStrings,
           status: CONNECTION_OK,
           encoding: PG_UTF8
         },
@@ -9462,13 +9469,26 @@ ORDER BY oid`,
           nullPrint: ""
         }
       };
-      await HandleSlashCmds(scan_state, {}, createPQExpBuffer(), createPQExpBuffer());
-      if (isHelp) return false;
+      const [str] = scan_state;
+      for (; ; ) {
+        const isHelp = ["?", "h", "help"].includes(psql_scan_slash_command([...scan_state]));
+        if (!pset.sversion && !isHelp) {
+          const vres = await PSQLexec("SHOW server_version_num", true);
+          pset.sversion = pset.db.sversion = parseInt(vres.rows[0][0], 10);
+        }
+        commands++;
+        if (await HandleSlashCmds(scan_state, {}, createPQExpBuffer(), createPQExpBuffer()) === PSQL_CMD_ERROR) {
+          success = false;
+        }
+        while (/\s/.test(str[scan_state[1]] ?? "")) scan_state[1]++;
+        if (!multipleCommands || str[scan_state[1]] !== "\\") break;
+        scan_state[1]++;
+      }
+      return { success, remainder: str.slice(scan_state[1]), commands };
     } catch (err) {
       output("ERROR:  " + err.message);
-      return cancel_pressed ? null : false;
+      return cancel_pressed ? null : { success: false, remainder: "", commands };
     }
-    return true;
   }
   const promise = main().finally(flushText);
   return { promise, cancel };
@@ -9810,6 +9830,9 @@ function psql_scan_slash_command(scan_state) {
   scan_state[1] += name.length;
   return name;
 }
+function psql_scan_slash_command_end(scan_state) {
+  if (scan_state[0].startsWith("\\\\", scan_state[1])) scan_state[1] += 2;
+}
 function noop(x) {
   return x;
 }
@@ -9874,7 +9897,7 @@ async function go() {
       outputEl.innerHTML += (firstOutput ? "" : "\n\n") + htmlEscape(describeDataToString(x));
       firstOutput = false;
     };
-    const { promise, cancel } = describe(cmd, dbName, queryFn, outputFn, echoHidden);
+    const { promise, cancel } = describe(cmd, dbName, queryFn, outputFn, { echoHidden });
     cancelFn = cancel;
     const status = await promise;
     if (status !== null) end();
