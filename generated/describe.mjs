@@ -123,7 +123,7 @@ export function describe(
   sversion = null,
   std_strings = 1,
   docsURLTemplate = (id) => `https://www.postgresql.org/docs/${strstr(PG_VERSION, "devel") ? "devel" : PG_MAJORVERSION}/${id}.html`,
-  multipleCommands = true,
+  multipleCommands = false,
 ) {
   let cancel_pressed = false;
 
@@ -151,12 +151,11 @@ export function describe(
   }
 
   async function main() {
-    if (cmd[0] !== '\\') {
-      output(`unsupported command: ${cmd}`);
-      return false;
-    }
+    // anything before a backslash command is SQL, which is for the caller
+    const remainder = cmd.trimStart();
+    if (remainder[0] !== '\\') return { success: true, remainder, commands: 0 };
     // what's after the backslash, as psql's lexer leaves it for HandleSlashCmds
-    const scan_state = [cmd.slice(1), 0];
+    const scan_state = [remainder.slice(1), 0];
 
     // psql's SQL help (\h), from the docs (see sql-help.generated.mjs)
     function helpSQL(topic, pager) {
@@ -10435,6 +10434,7 @@ function copy_printTableOpt(s) {
 
     // Run the commands (after everything is declared, including the translated globals)
     let pset;
+    let success = true, commands = 0;
     try {
       pset = {
         sversion,
@@ -10458,39 +10458,34 @@ function copy_printTableOpt(s) {
         }
       };
 
-      // As psql's MainLoop does with a line, run each backslash command in turn, from where the one before stopped (an
-      // error stops at the end of the line). Or, if not multipleCommands, run just the first, as psql -c does.
+      // As psql's MainLoop does with a line, run each backslash command in turn, from where the one before stopped,
+      // until there are no more (an error ends the line), and leave the rest, which psql would send as SQL. Or, if not
+      // multipleCommands, run just the first, as psql -c does.
       const [str] = scan_state;
-      let onlyHelp = true;
       for (; ;) {
         // get the server version, if not supplied, and needed (not for help)
         const isHelp = ['?', 'h', 'help'].includes(psql_scan_slash_command([...scan_state]));
-        onlyHelp &&= isHelp;
         if (!pset.sversion && !isHelp) {  // covers null, undefined and (importantly) 0
           const vres = await PSQLexec('SHOW server_version_num', true);
           pset.sversion = pset.db.sversion = parseInt(vres.rows[0][0], 10);
         }
 
-        await HandleSlashCmds(scan_state, {}, createPQExpBuffer(), createPQExpBuffer());
-
-        if (!multipleCommands) break;
-        while (/\s/.test(str[scan_state[1]] ?? '')) scan_state[1]++;
-        if (scan_state[1] === str.length) break;
-        if (str[scan_state[1]] !== '\\') {  // SQL, which psql would send
-          output(`unsupported command: ${str.slice(scan_state[1])}`);
-          break;
+        commands++;
+        if (await HandleSlashCmds(scan_state, {}, createPQExpBuffer(), createPQExpBuffer()) === PSQL_CMD_ERROR) {
+          success = false;
         }
+
+        while (/\s/.test(str[scan_state[1]] ?? '')) scan_state[1]++;
+        if (!multipleCommands || str[scan_state[1]] !== '\\') break;
         scan_state[1]++;
       }
-      if (onlyHelp) return false;  // as before: help is informational
+      return { success, remainder: str.slice(scan_state[1]), commands };
 
     } catch (err) {
       // throw err;
       output('ERROR:  ' + err.message);
-      return cancel_pressed ? null : false;
+      return cancel_pressed ? null : { success: false, remainder: '', commands };
     }
-
-    return true;
   }
 
   const promise = main().finally(flushText);

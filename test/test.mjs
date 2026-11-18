@@ -205,7 +205,8 @@ try {
         true,
         null,
         true,
-        id => `https://www.postgresql.org/docs/current/${id}.html`
+        id => `https://www.postgresql.org/docs/current/${id}.html`,
+        true,  // multipleCommands, as psql reading stdin
       ).promise,
     ]);
     const localOutput = localOutputArr.map(x => describeDataToString(...x)).join('\n\n');

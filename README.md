@@ -26,7 +26,7 @@ describe(
   sversion = null,
   std_strings = true, 
   docsURLTemplate = (id) => `https://www.postgresql.org/docs/19/${id}.html`,
-  multipleCommands = true,
+  multipleCommands = false,
 ): { promise, cancel };
 ```
 
@@ -38,11 +38,14 @@ describe(
 * `sversion` (number) should be the same value as `SHOW server_version_num` executed on the server. It is used to determine what features the database supports. If it is not provided, the server is queried for it.
 * `std_strings` (boolean) indicates the value of `standard_conforming_strings` in the database.
 * `docsURLTemplate` (function) specifies how a docs page ID is transformed into a URL, for use with `\h`. 
-* `multipleCommands` (boolean) says whether to run every backslash command in `cmd`, as psql does with a line it reads (interactively, or from a file): e.g. `\dt film \dv` runs `\dt film` and then `\dv` (and so does `\dt film \\ \dv`). If it's `false`, only the first command runs, as with `psql -c`. An error in one command ends the line, as in psql. SQL is not supported.
+* `multipleCommands` (boolean) says whether to run every backslash command at the start of `cmd`, as psql does with a line it reads (interactively, or from a file): e.g. `\dt film \dv` runs `\dt film` and then `\dv` (and so does `\dt film \\ \dv`). If it's `false`, the default, only the first command runs, as with `psql -c`. Either way, anything left over is returned as `remainder` (see below).
 
 The function returns an object with two keys: `{ promise, cancel }`: 
 
-* `promise` is a `Promise` that resolves when the command completes. 
+* `promise` is a `Promise` that resolves when the command completes, to an object `{ success, remainder, commands }`, or to `null` if it was cancelled:
+  * `success` (boolean) is `false` if any command failed (as when `psql -c` exits with an error, e.g. for `\dz`, an invalid command), or a query failed (e.g. `runQuery` rejected), and otherwise `true`.
+  * `remainder` (string) is what wasn't run, from its first non-whitespace character, or `''` if that's nothing. If `multipleCommands` is `true`, that's anything after the backslash commands, which psql would send as SQL: e.g. `\dt \\ SELECT 1;` runs `\dt`, and leaves `SELECT 1;`. So you can pass any input to `describe()`, and run the `remainder` as SQL. (After an error, though, it's `''`, since psql ignores the rest of the line.)
+  * `commands` (number) is how many backslash commands ran, including any that failed: e.g. `0` for `SELECT 1`, which leaves just the `remainder`.
 * `cancel()` is a function you can call to abort the command.
 
 The outputs of `describe()`, as passed to the `outputFn` argument, are a mix of plain strings and JS objects representing tables.

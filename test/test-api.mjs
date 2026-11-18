@@ -109,7 +109,7 @@ test('a rejected runQuery surfaces as an error, not a hang', async () => {
     false, 190000,
   ).promise;
 
-  assert.equal(resolved, false);
+  assert.equal(resolved.success, false);
   assert.ok(outputs.some(o => typeof o === 'string' && o.includes('boom-async')));
 });
 
@@ -122,7 +122,7 @@ test('a synchronously throwing runQuery surfaces as an error', async () => {
     false, 190000,
   ).promise;
 
-  assert.equal(resolved, false);
+  assert.equal(resolved.success, false);
   assert.ok(outputs.some(o => typeof o === 'string' && o.includes('boom-sync')));
 });
 
@@ -139,7 +139,7 @@ test('\\h uses a custom docsURLTemplate for the help URL', async () => {
   ).promise;
 
   const text = outputs.join('\n');
-  assert.equal(resolved, false);           // \h is informational, returns false
+  assert.equal(resolved.success, true);
   assert.ok(text.includes('Command:     SELECT'));
   assert.ok(text.includes('URL: https://docs.example.test/'));
   assert.ok(!text.includes('postgresql.org'));  // the default template is unused
@@ -229,7 +229,7 @@ test('an unterminated quote in an argument is an error', async () => {
   assert.match(outputs[0], /^unterminated quoted string$/m);
 });
 
-// 9. Multiple commands ------------------------------------------------------
+// 9. Multiple commands, and what the promise resolves to ---------------------
 
 // Run a command line, recording the SQL it runs (each query returning no rows) and its output
 async function run(cmd, { sversion = 190000, multipleCommands } = {}) {
@@ -241,28 +241,46 @@ async function run(cmd, { sversion = 190000, multipleCommands } = {}) {
   return { queries, outputs, result };
 }
 
-test('each backslash command on a line runs in turn, unless multipleCommands is false', async () => {
+test('with multipleCommands, each backslash command on a line runs in turn', async () => {
   for (const cmd of [String.raw`\dt film \dv`, String.raw`\dt film \\ \dv`, String.raw`\dt film\dv`]) {
-    const { queries } = await run(cmd);
+    const { queries, result } = await run(cmd, { multipleCommands: true });
     assert.equal(queries.length, 2, cmd);
     assert.match(queries[0], /'\^\(film\)\$'/, cmd);
     assert.doesNotMatch(queries[1], /film/, cmd);
+    assert.deepEqual(result, { success: true, remainder: '', commands: 2 }, cmd);
   }
-  assert.equal((await run(String.raw`\dt film \dv`, { multipleCommands: false })).queries.length, 1);
 });
 
-test('an error ends the line, and SQL after a command is unsupported', async () => {
-  const invalid = await run(String.raw`\dz \dt`);
+test('by default, only the first command runs, and the rest is the remainder', async () => {
+  const { queries, result } = await run(String.raw`\dt film \dv`);
+  assert.equal(queries.length, 1);
+  assert.deepEqual(result, { success: true, remainder: String.raw`\dv`, commands: 1 });
+});
+
+test('what isn\'t a backslash command is the remainder, e.g. SQL', async () => {
+  assert.deepEqual((await run(String.raw`\dt \\ SELECT 1;`, { multipleCommands: true })).result,
+    { success: true, remainder: 'SELECT 1;', commands: 1 });
+  const sql = await run('  SELECT 1;');
+  assert.deepEqual(sql.queries, []);
+  assert.deepEqual(sql.outputs, []);
+  assert.deepEqual(sql.result, { success: true, remainder: 'SELECT 1;', commands: 0 });
+  assert.deepEqual((await run('')).result, { success: true, remainder: '', commands: 0 });
+});
+
+test('a failed command makes success false, and ends the line', async () => {
+  const invalid = await run(String.raw`\dz \dt`, { multipleCommands: true });
   assert.deepEqual(invalid.queries, []);
   assert.deepEqual(invalid.outputs, [String.raw`invalid command \dz`]);
+  assert.deepEqual(invalid.result, { success: false, remainder: '', commands: 1 });
+});
 
-  const sql = await run(String.raw`\dt \\ select 1`);
-  assert.equal(sql.queries.length, 1);
-  assert.equal(sql.outputs.at(-1), 'unsupported command: select 1');
+test('help succeeds', async () => {
+  assert.deepEqual((await run(String.raw`\? \h SELECT`, { multipleCommands: true })).result,
+    { success: true, remainder: '', commands: 2 });
 });
 
 test('the server version is queried before the first command that needs it', async () => {
-  const { queries } = await run(String.raw`\? \dt`, { sversion: null });
+  const { queries } = await run(String.raw`\? \dt`, { sversion: null, multipleCommands: true });
   assert.equal(queries.length, 2);
   assert.equal(queries[0], 'SHOW server_version_num');
 });
