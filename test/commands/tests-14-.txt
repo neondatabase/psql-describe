@@ -11,10 +11,12 @@
 \sf+ citext(boolean)
 \sf last_day
 \sf+ last_day(timestamptz)
+\sf no_such_function
 \sv
 \sv actor_info
 \sv+ actor_info
 \sv pg_stats
+\sv no_such_view
 \sz
 \d
 \d+

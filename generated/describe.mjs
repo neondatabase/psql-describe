@@ -10821,40 +10821,17 @@ function appendStringLiteralConn(buf, str, conn) {
   appendStringLiteral(buf, str, conn.encoding, conn.std_strings);
 }
 
-function sprintf(template, ...values) {  // just enough sprintf
-  let result = '';
-  let valuesIndex = 0;
-  let chrIndex = 0;
-  let nextChrIndex;
-  while ((nextChrIndex = template.indexOf('%', chrIndex)) !== -1) {
-    let padTo = 0;
-    let padLeft = false;
-    result += template.slice(chrIndex, nextChrIndex);
-    chrIndex = nextChrIndex + 1;
-    let pcChr = template[chrIndex++];
-    if (pcChr === '%') result += '%';
-    if (pcChr === '*') {
-      padTo = parseInt(values[valuesIndex++], 10);
-      pcChr = template[chrIndex++];
-    }
-    if (pcChr === '-') {
-      padLeft = true;
-      pcChr = template[chrIndex++];
-    }
-    if (pcChr >= '0' && pcChr <= '9') {  // don't support multidigit widths!
-      padTo = parseInt(pcChr, 10);
-      pcChr = template[chrIndex++];
-    }
-    if (pcChr === 's' || pcChr === 'c' || pcChr === 'd' || pcChr === 'u') {
-      const ins = String(values[valuesIndex++]);
-      const padBy = padTo - ins.length;
-      if (padLeft === false && padBy > 0) result += ' '.repeat(padBy);
-      result += ins;
-      if (padLeft === true && padBy > 0) result += ' '.repeat(padBy);
-    }
-  }
-  result += template.slice(chrIndex);
-  return result;
+function sprintf(template, ...values) {  // C's conversions, minus the floating-point ones
+  let i = 0;
+  return template.replace(/%([-+ #0]*)(\*|\d+)?(?:\.(\*|\d+))?(?:hh?|ll?|[zjtL])?([%csdiux])/g,
+    (_, flags, width, precision, conversion) => {
+      if (conversion === '%') return '%';
+      if (width === '*') width = values[i++];
+      if (precision === '*') precision = values[i++];
+      let s = conversion === 'x' ? values[i++].toString(16) : String(values[i++]);
+      if (conversion === 's' && precision !== undefined) s = s.slice(0, precision);
+      return flags.includes('-') || width < 0 ? s.padEnd(Math.abs(width ?? 0)) : s.padStart(width ?? 0);
+    });
 }
 
 const psprintf = sprintf;
