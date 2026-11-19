@@ -123,7 +123,7 @@ MACOSX_DEPLOYMENT_TARGET="$(sw_vers -productVersion)" make
 
 ## Tests
 
-The database-dependent tests compare this software's output against the PostgreSQL 19 `psql` client for the commands in `test/commands/tests-*.txt`. Output should be character-for-character identical, except for differences in trailing whitespace.
+The database-dependent tests compare this software's output against the PostgreSQL 19 `psql` client for the commands in `test/commands/tests-*.txt`. Output should be character-for-character identical, except for differences in trailing whitespace. And each command must fail (`success: false`) exactly when psql's does: psql runs with `ON_ERROR_STOP`, so a failed command ends its session (which the tests then restart).
 
 The same client is tested against the latest official PostgreSQL 14, 15, 16, 17 and 19 container images, and `imresamu/postgis:18-3.6` for PostgreSQL 18 with PostGIS (because the official PostGIS image is not multi-arch). This exercises all server-version branches and adds coverage of PostGIS objects.
 
