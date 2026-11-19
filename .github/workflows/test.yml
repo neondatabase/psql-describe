@@ -63,13 +63,14 @@ jobs:
           compression-level: 0
 
       # pcpp, the C preprocessor that xslt/preprocess.py uses, as wheels, which the test job installs offline. (pip goes
-      # through JFrog's db-pypi, as in databricks/cli's setup-jfrog action.)
+      # through JFrog's db-pypi, as in databricks/cli's setup-jfrog action.) Only wheels, checked against their hashes in
+      # requirements.txt: building an sdist would run its code in this job, which holds the OIDC token.
       - name: Build Python dependencies as wheels
         env:
           PIP_INDEX_URL: https://${{ steps.jfrog.outputs.oidc-user }}:${{ steps.jfrog.outputs.oidc-token }}@databricks.jfrog.io/artifactory/api/pypi/db-pypi/simple
         run: |
           python3 -m venv "$RUNNER_TEMP/venv"
-          "$RUNNER_TEMP/venv/bin/pip" wheel -r xslt/requirements.txt -w "$RUNNER_TEMP/wheels"
+          "$RUNNER_TEMP/venv/bin/pip" wheel --only-binary=:all: --require-hashes -r xslt/requirements.txt -w "$RUNNER_TEMP/wheels"
 
       - name: Upload Python dependencies
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -121,7 +122,7 @@ jobs:
       - name: Install Python dependencies offline
         run: |
           python3 -m venv .venv
-          .venv/bin/pip install --no-index --find-links "$RUNNER_TEMP/wheels" -r xslt/requirements.txt
+          .venv/bin/pip install --no-index --only-binary=:all: --require-hashes --find-links "$RUNNER_TEMP/wheels" -r xslt/requirements.txt
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       # goal: fetch Postgres, translate, check the committed output is what that gives, and test

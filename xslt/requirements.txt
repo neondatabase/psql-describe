@@ -1,1 +1,2 @@
-pcpp==1.30
+# pinned by hash (of the wheel, which is all CI accepts: see .github/workflows/test.yml)
+pcpp==1.30 --hash=sha256:05fe08292b6da57f385001c891a87f40d6aa7f46787b03e8ba326d20a3297c6e
