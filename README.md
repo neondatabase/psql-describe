@@ -51,7 +51,7 @@ The function returns an object with two keys: `{ promise, cancel }`:
   * `success` (boolean) is `false` if any command failed (as when `psql -c` exits with an error, e.g. for `\dz`, an invalid command), or a query failed (e.g. `runQuery` rejected), and otherwise `true`.
   * `remainder` (string) is what wasn't run, from its first non-whitespace character, or `''` if that's nothing. If `multipleCommands` is `true`, that's anything after the backslash commands, which psql would send as SQL: e.g. `\dt \\ SELECT 1;` runs `\dt`, and leaves `SELECT 1;`. So you can pass any input to `describe()`, and run the `remainder` as SQL. (After an error, though, it's `''`, since psql ignores the rest of the line.)
   * `commands` (number) is how many backslash commands ran, including any that failed: e.g. `0` for `SELECT 1`, which leaves just the `remainder`.
-* `cancel()` is a function you can call to abort the command.
+* `cancel()` is a function you can call to abort the command: `promise` then resolves to `null` at once, without waiting for any query in progress to finish, and no more output or queries follow.
 
 The outputs of `describe()`, as passed to the `outputFn` argument, are a mix of plain strings and JS objects representing tables.
 
@@ -95,9 +95,11 @@ The repo has three build outputs, all committed:
 
   This runs two steps, which you can also run separately. `npm run parse` reads the Postgres source, and writes the parsed and typed C and the parsed runtime to the .gitignored `build` directory, plus the SQL help. By default, the source is the version pinned in `xslt/fetch-postgres.sh`, which it fetches into `build/postgres` (once, as a sparse clone of about 8 MB), but you can give it another tree, e.g. `npm run parse -- ../postgres`. Then `npm run transform` translates the C into the runtime. When you're working on the `c-to-js` stylesheets, only the second step needs rerunning. See [xslt/README.md](xslt/README.md) for the details.
 
-* `index.js` is the published bundle of `generated/describe.mjs`, made with `npm run build` (which runs `esbuild`). The tests run this step themselves.
+* `index.js` and `sql-help.js` are the published bundle of `generated/describe.mjs`, made with `npm run build` (which runs `esbuild`). The tests run this step themselves. The SQL help is a third of the library's size, so `index.js` loads `sql-help.js` with `import()` only when `\h` is first used, and a bundler such as Vite or webpack makes it a separate chunk. (If it can't be loaded, e.g. because the network is down, `\h` gives an error, and `success` is `false`.)
 
 * `demo/demo.js` is the demo's bundle, made with `npm run bundle-demo`.
+
+`npm run end-to-end` makes all of these from scratch (fetching Postgres if need be), and then runs all the tests. CI runs `npm run ci`, which is the same, except that before testing it checks that the outputs it made are what's committed: so run `end-to-end` and commit what it changes along with your other changes.
 
 
 ### Building psql on a Mac

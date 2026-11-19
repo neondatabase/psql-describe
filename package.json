@@ -4,6 +4,7 @@
   "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
   "files": [
     "index.js",
+    "sql-help.js",
     "index.d.ts",
     "README.md",
     "LICENSE"
@@ -14,13 +15,15 @@
     "parse": "xslt/parse.sh",
     "transform": "xslt/transform.sh",
     "translate": "npm run parse && npm run transform",
-    "build": "esbuild generated/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
-    "check:generated": "git diff --exit-code -- generated index.js",
+    "build": "esbuild index=generated/describe.mjs sql-help=generated/sql-help.generated.mjs --bundle --splitting --format=esm --outdir=. --platform=neutral --target=es2020 --minify --line-limit=120",
+    "check:generated": "git status --porcelain -- generated index.js sql-help.js demo | awk '{ print \"Out of date (regenerate, and commit):\", $0 } END { exit (NR > 0) }'",
     "test:api": "npm run build && node test/test-api.mjs",
     "test:matrix": "npm run build && node test/test-matrix.mjs",
     "test": "npm run test:api && npm run test:matrix",
-    "end-to-end": "npm run fetch-postgres && npm run check:xslt && npm run translate && npm run build && npm run check:generated && npm run test",
-    "bundle-demo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020"
+    "bundle-demo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020",
+    "regenerate": "npm run fetch-postgres && npm run check:xslt && npm run translate && npm run build && npm run bundle-demo",
+    "end-to-end": "npm run regenerate && npm test",
+    "ci": "npm run regenerate && npm run check:generated && npm test"
   },
   "type": "module",
   "author": "George MacKerron",
@@ -29,7 +32,6 @@
     "@types/node": "^26.6.5",
     "esbuild": "^0.28.2",
     "pg": "^8.23.0",
-    "prettier": "^3.9.10",
     "tree-sitter-c": "^0.24.1",
     "tree-sitter-javascript": "^0.25.0",
     "typescript": "^7.0.2",

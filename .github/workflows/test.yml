@@ -126,4 +126,4 @@ jobs:
 
       # goal: fetch Postgres, translate, check the committed output is what that gives, and test
       - name: Translate and run all tests
-        run: npm run end-to-end
+        run: npm run ci

@@ -1,6 +1,4 @@
 
-import { helpIndex } from './sql-help.generated.mjs';
-
 const NULL = null;
 const FUNC_MAX_ARGS = 100;
 const ESCAPE_STRING_SYNTAX = 'E';
@@ -127,12 +125,14 @@ export function describe(
     multipleCommands = false,
   } = {},
 ) {
-  let cancel_pressed = false;
-
-  function cancel() {
+  // cancel() resolves the promise to null at once, without waiting for a query (or the SQL help) in flight. Then any
+  // output is dropped, and no more queries are run.
+  let cancel_pressed = false, cancel;
+  const cancelled = new Promise(resolve => cancel = () => {
     cancel_pressed = true;
     outputFn = () => void 0;
-  }
+    resolve(null);
+  });
   function throwIfCancelled() {
     if (cancel_pressed) throw new Error('cancelled');
   }
@@ -160,8 +160,15 @@ export function describe(
     // what's after the backslash, as psql's lexer leaves it for HandleSlashCmds
     const scan_state = [remainder.slice(1), 0];
 
-    // psql's SQL help (\h), from the docs (see sql-help.generated.mjs)
-    function helpSQL(topic, pager) {
+    // psql's SQL help (\h), from the docs (see sql-help.generated.mjs): it's a third of the size of everything else,
+    // so it's loaded on first use, and bundlers can split it out
+    async function helpSQL(topic, pager) {
+      let helpIndex;
+      try {
+        ({ helpIndex } = await import('./sql-help.generated.mjs'));
+      } catch (err) {
+        throw new Error('could not load the SQL help, perhaps because of a network problem: please try again', { cause: err });
+      }
       const helpSearch = (topic ?? '').trim().toUpperCase().replace(/\s+/g, ' ');
       if (helpSearch === '') {
         output("Available help:\n" + helpIndex.map(arr => arr[0]).join('\n'));
@@ -508,7 +515,7 @@ async function exec_command(cmd, scan_state, cstack, query_buf, previous_buf)
 	if (cmd[0] == 'd')
 		status = (await exec_command_d(scan_state, active_branch, cmd));
 	else if (strcmp(cmd, "h") == 0 || strcmp(cmd, "help") == 0)
-		status = exec_command_help(scan_state, active_branch);
+		status = (await exec_command_help(scan_state, active_branch));
 	else if (strcmp(cmd, "l") == 0 || strcmp(cmd, "list") == 0 ||
 			 strcmp(cmd, "lx") == 0 || strcmp(cmd, "listx") == 0 ||
 			 strcmp(cmd, "l+") == 0 || strcmp(cmd, "list+") == 0 ||
@@ -856,14 +863,14 @@ async function exec_command_dfo(scan_state, cmd, pattern, show_verbose, show_sys
 /*
  * \help [topic] -- print help about SQL commands
  */
-function exec_command_help(scan_state, active_branch)
+async function exec_command_help(scan_state, active_branch)
 {
 	if (active_branch)
 	{
 		let opt = psql_scan_slash_option(scan_state,
 												 OT_WHOLE_LINE, NULL, true);
 
-		helpSQL(opt, pset.popt.topt.pager);
+		(await helpSQL(opt, pset.popt.topt.pager));
 	}
 	else
 		ignore_slash_whole_line(scan_state);
@@ -10496,11 +10503,11 @@ function copy_printTableOpt(s) {
 
     } catch (err) {
       output('ERROR:  ' + err.message);
-      return cancel_pressed ? null : { success: false, remainder: '', commands };
+      return { success: false, remainder: '', commands };
     }
   }
 
-  const promise = main().finally(flushText);
+  const promise = Promise.race([main().finally(flushText), cancelled]);
   return { promise, cancel };
 }
 

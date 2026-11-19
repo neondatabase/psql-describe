@@ -96,6 +96,62 @@ test('cancel() aborts a command in flight and suppresses further output', async 
   assert.deepEqual(outputs, []);     // nothing is emitted after cancel()
 });
 
+test('cancel() resolves at once, even if the query in flight never completes', async () => {
+  const { promise, cancel } = describe(
+    '\\l', 'testdb', () => new Promise(() => {}), () => {}, { serverVersion: 190000 },
+  );
+
+  await tick();
+  cancel();
+  assert.equal(await promise, null);
+});
+
+test('a cancelled command, still running in the background, doesn\'t affect any other', async () => {
+  const deferredQuery = () => {
+    let resolveQuery;
+    const runQuery = () => new Promise(resolve => { resolveQuery = resolve; });
+    return { runQuery, resolve: result => resolveQuery(result) };
+  };
+  const run = (runQuery, outputs) =>
+    describe('\\l', 'testdb', runQuery, x => outputs.push(x), { serverVersion: 190000 });
+
+  // what \l gives on its own
+  const expected = [];
+  await run(async () => emptyResult, expected).promise;
+
+  // A is cancelled while its query is in flight, then B starts, and A's query completes while B's is in flight
+  const a = deferredQuery(), aOutputs = [];
+  const { promise: aPromise, cancel } = run(a.runQuery, aOutputs);
+  await tick();
+  cancel();
+  assert.equal(await aPromise, null);
+
+  const b = deferredQuery(), bOutputs = [];
+  const { promise: bPromise } = run(b.runQuery, bOutputs);
+  await tick();
+  a.resolve(emptyResult);
+  await tick();
+  b.resolve(emptyResult);
+
+  assert.deepEqual(await bPromise, { success: true, remainder: '', commands: 1 });
+  assert.deepEqual(bOutputs, expected);
+  assert.deepEqual(aOutputs, []);
+
+  // and cancelling C, while D is in flight, doesn't cancel D
+  const c = deferredQuery(), d = deferredQuery(), dOutputs = [];
+  const { promise: cPromise, cancel: cancelC } = run(c.runQuery, []);
+  const { promise: dPromise } = run(d.runQuery, dOutputs);
+  await tick();
+  cancelC();
+  assert.equal(await cPromise, null);
+  c.resolve(emptyResult);
+  await tick();
+  d.resolve(emptyResult);
+
+  assert.deepEqual(await dPromise, { success: true, remainder: '', commands: 1 });
+  assert.deepEqual(dOutputs, expected);
+});
+
 // 3. Error propagation -----------------------------------------------------
 
 test('a rejected runQuery surfaces as an error, not a hang', async () => {
