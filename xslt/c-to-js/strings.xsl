@@ -58,6 +58,14 @@
   <!-- '\0': undefined -->
   <template match="char_literal[. = $nul]">undefined</template>
 
+  <!-- So a char is a one-character string (or undefined), not a number, and arithmetic on one, e.g. c - 'a' + 'A', or
+       comparing one with a number, e.g. s[0] == 0, is refused -->
+  <template match="binary_expression[*[@type = ('char', 'const char')]]
+      [c:operator(.) = ('+', '-', '*', '/', '%') or c:operator(.) = ('==', '!=', '&lt;', '&lt;=', '&gt;', '&gt;=') and *[c:is-int(.)]]
+      | (assignment_expression[c:operator(.) = ('+=', '-=')] | update_expression)[*[@type = 'char']]" priority="3">
+    <value-of select="c:refuse(.)"/>
+  </template>
+
   <!-- *s: s[0] -->
   <template match="pointer_expression[c:is-string-dereference(.)]" priority="2">
     <text>{c:operand(*[@field = 'argument'])}[0]</text>
