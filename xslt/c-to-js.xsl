@@ -86,7 +86,7 @@
 
   <!-- At the root: output the runtime, with the constants and the translation in place of its markers (or just the
        translation, if there's no runtime), and report any externals (see reach.xsl), and any C that JS numbers can't
-       do (see types.xsl) -->
+       do (see types.xsl); and write out the C that the runtime ports by hand (see runtime.xsl) -->
   <template match="/">
     <if test="exists($marker) and exists($externals)">
       <message select="'Not translated or provided by the runtime: ' || string-join($externals, ', ')"/>
@@ -99,6 +99,7 @@
           '; '
         )"/>
     </if>
+    <if test="exists($hand-ported)"><call-template name="hand-ported"/></if>
     <variable name="translation"><call-template name="translation"/></variable>
     <!-- note: the 'q' flag to replace() suppresses interpolations with $n -->
     <value-of select="

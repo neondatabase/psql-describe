@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # The first half of the translation: reads a Postgres source tree, and writes what xslt/transform.sh needs. That's the
-# preprocessed C, parsed as XML and typed (build/typed.xml), and the version (build/version). It also generates the
+# preprocessed C, parsed as XML and typed (build/typed.xml), the version (build/version), and the slash-command
+# lexer (build/psqlscanslash.l). It also generates the
 # SQL help for \h, from the docs (generated/sql-help.generated.mjs). Rerun this when Postgres, xslt/preprocess.py,
 # xslt/libc.h, xslt/keywords.c or xslt/add-types.xsl change.
 #
@@ -42,6 +43,9 @@ python3 xslt/preprocess.py "$BUILD/pp" "$PG/include" \
 
 echo "Typing C XML representation ..."
 npx xslt3 -xsl:xslt/add-types.xsl -s:"$BUILD/sources.xml" -o:"$BUILD/typed.xml"
+
+# The slash-command lexer, which the runtime ports by hand (see xslt/transform.sh)
+cp "$PG/bin/psql/psqlscanslash.l" "$BUILD/"
 
 echo "Parsing JS runtime to XML ..."
 node xslt/code-to-xml.ts javascript xslt/runtime.mjs > "$BUILD/runtime.xml"

@@ -109,4 +109,46 @@
     </value-of>
   </variable>
 
+  <!--
+    * HAND PORTS
+
+    Some of the runtime's own versions of C functions are ports, which would go out of date if upstream changed the C.
+    Each says what it's ported from, in a comment such as `// Ported from fmtIdEnc (fe_utils/string_utils.c)`. (A port
+    can be of C that isn't otherwise reached, e.g. print_aligned_text, which printTable calls.) Their C is written out,
+    so that transform.sh can check it against xslt/hand-ported.c, the C that the ports were last checked against.
+  -->
+
+  <param name="hand-ported" as="xs:string?" select="()"/>
+
+  <!-- The C definitions that the runtime's comments say it ports, each checked to exist in the file named -->
+  <variable name="ported" as="element()*">
+    <for-each select="$runtime-doc//comment[contains(., 'Ported from')]">
+      <!-- (not \w, which in XPath doesn't include _) -->
+      <variable name="pattern" select="'([A-Za-z0-9_]+) \(([A-Za-z0-9_/]+\.c)\)'"/>
+      <if test="not(matches(., $pattern))">
+        <message terminate="yes" select="'A Ported from comment in the runtime names no function and file: ' || ."/>
+      </if>
+      <analyze-string select="." regex="{$pattern}">
+        <matching-substring>
+          <variable name="name" select="regex-group(1)"/>
+          <variable name="file" select="regex-group(2)"/>
+          <variable name="definition" select="key('definition', $name, $sources)[ends-with(parent::translation_unit/@file, '/src/' || $file)]"/>
+          <if test="empty($definition)">
+            <message terminate="yes" select="'The runtime says it ports ' || $name || ' from ' || $file || ', which has no such definition'"/>
+          </if>
+          <sequence select="$definition"/>
+        </matching-substring>
+      </analyze-string>
+    </for-each>
+  </variable>
+
+  <!-- Write out the C of the ported definitions, in source order, each headed with its file and name -->
+  <template name="hand-ported">
+    <result-document href="{$hand-ported}" method="text">
+      <for-each select="$ported/.">
+        <text>/* {replace(parent::translation_unit/@file, '.*/src/', '')}: {c:defined-names(.)} */&#10;{.}&#10;&#10;</text>
+      </for-each>
+    </result-document>
+  </template>
+
 </stylesheet>

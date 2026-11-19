@@ -11,10 +11,10 @@ This is how [psql-describe](../README.md) is made: turn psql's C parse tree into
 3. `preprocess.py` minimally preprocesses the C files and headers (see below).
 4. `code-to-xml.ts` parses the preprocessed C and serializes it to `build/sources.xml`.
 5. `add-types.xsl` adds type information to the parse tree, saving to `build/typed.xml`.
-6. `code-to-xml.ts` parses and serializes `runtime.mjs` to `build/runtime.xml`.
+6. `code-to-xml.ts` parses and serializes `runtime.mjs` to `build/runtime.xml`, and `psqlscanslash.l`, the slash-command lexer, is copied to `build/` (see [Hand ports](#hand-ports)).
 7. `create-help.mjs` generates the SQL help text from the Postgres docs.
 
-`xslt/transform.sh` (`npm run transform`) then needs only `build/` and the `c-to-js` stylesheets, so it's all you need to rerun when working on those: `c-to-js.xsl` translates the C-in-XML to JavaScript, inserting it into the hand-built JS runtime.
+`xslt/transform.sh` (`npm run transform`) then needs only `build/` and the `c-to-js` stylesheets, so it's all you need to rerun when working on those: `c-to-js.xsl` translates the C-in-XML to JavaScript, inserting it into the hand-built JS runtime. It also checks that the C that the runtime ports by hand hasn't changed upstream (see [Hand ports](#hand-ports)).
 
 ## The runtime
 
@@ -27,6 +27,10 @@ For C library functions, it does just enough. For example, `PQexec` runs a query
 `HandleSlashCmds` and `exec_command` are translated too, so psql decides what's an invalid command, and warns about extra arguments. For these, the runtime has `psql_scan_slash_command` (which reads the command name, up to whitespace or a backslash, as psql's lexer does) and stubs for the `\if` stack (we're always in an active branch).
 
 What psql has but the library doesn't is declared `unsupported`, e.g. `do_lo_export = unsupported('lo_export')`, which reports an error. This lets `exec_command_lo` be translated whole, for `\lo_list`.
+
+### Hand ports
+
+The runtime's own versions of C functions take the place of the C, so a change to that C upstream wouldn't otherwise show. So each port says what it's ported from, in a comment such as `// Ported from fmtIdEnc (fe_utils/string_utils.c)`. That includes C that isn't otherwise reached, such as `print_aligned_text`, which `printTable` calls, and which the runtime's `tableToString` ports. `runtime.xsl` collects these comments, and `transform.sh` writes the C they name to `build/hand-ported.c`, followed by the rules of `psqlscanslash.l` (which `psql_scan_slash_option` and its neighbours port). If that isn't the same as `xslt/hand-ported.c`, the C the ports were last checked against, the build stops with a `diff -u`: then you update the ports, and accept the change with `cp build/hand-ported.c xslt/`. A comment naming a function that isn't in the file it names (e.g. because upstream renamed or moved it) stops the build too.
 
 The translation goes in place of the comment `/* TRANSLATED FROM C */`, in `describe()`'s `main()`. Any name visible there (declared in an enclosing scope, or a parameter of an enclosing function) is provided by the runtime, so it isn't translated: the runtime's version wins. Like `c:declarator`, this walks up the scopes, but in the runtime's JS parse tree:
 

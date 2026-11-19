@@ -217,6 +217,7 @@ export function describe(
       do_lo_unlink = unsupported('lo_unlink'),
       expand_tilde = noop;
 
+    // Ported from PSQLexec (bin/psql/common.c)
     const PSQLexec = async (sql, suppressEcho = false) => {
       throwIfCancelled();
       if (echoHidden && !suppressEcho) output(`/**** INTERNAL QUERY ****/\n${sql}\n/************************/`);
@@ -285,7 +286,7 @@ export function describe(
      * syntax error we just throw away the string and return NULL; there is no
      * need to worry about flushing remaining input.
      *
-     * (This follows the lexer rules in psqlscanslash.l, for the option types the translation uses. There are no psql
+     * (This ports the lexer rules in psqlscanslash.l, for the option types the translation uses. There are no psql
      * variables here, so :name, :'name' and :"name" stay as they are, as in psql for a variable that isn't set, and
      * :{?name} is FALSE; and there are no backticks, which psql runs as shell commands, so ` is just a character.)
      */
@@ -10284,6 +10285,7 @@ function copy_printTableOpt(s) {
      * Initialise a table contents struct.
      *		Must be called before any other printTable method is used.
      */
+    // Ported from printTableInit (fe_utils/print.c)
     function printTableInit(content, opt, title, ncolumns, nrows) {
       content.opt = opt;
       content.title = title;
@@ -10295,6 +10297,7 @@ function copy_printTableOpt(s) {
       content.aligns = [];
     }
 
+    // Ported from printTableAddHeader (fe_utils/print.c)
     function printTableAddHeader(content, header, translate, align) {
       if (translate) header = _(header);
       content.headers.push(header);
@@ -10303,23 +10306,27 @@ function copy_printTableOpt(s) {
       content.align = align;
     }
 
+    // Ported from printTableAddCell (fe_utils/print.c)
     function printTableAddCell(content, cell, translate, mustfree) {
       if (translate) cell = _(cell);
       content.cells.push(cell);
       content.cell = cell;
     }
 
+    // Ported from printTableAddFooter (fe_utils/print.c)
     function printTableAddFooter(content, footer) {
       if (content.footers == NULL) content.footers = [];
       content.footers.push(footer);
       content.footer = { data: footer };  // as in C, the last footer (a printTableFooter)
     }
 
+    // Ported from printTableSetFooter (fe_utils/print.c)
     function printTableSetFooter(content, footer) {
       if (content.footers) content.footers.pop();
       printTableAddFooter(content, footer);
     }
 
+    // Ported from printTable (fe_utils/print.c)
     function printTable(cont, fout, is_pager, flog) {
       output({ ...cont });  // must clone in case same content object is reused (and thus mutated) later
     }
@@ -10334,6 +10341,7 @@ function copy_printTableOpt(s) {
      *
      * NOTE: free'ing itemarray is sufficient to deallocate the working storage.
      */
+    // Ported from parsePGArray (fe_utils/string_utils.c)
     function parsePGArray(atext, itemarray, nitems) {
       let inputlen;
       let strings;
@@ -10405,6 +10413,7 @@ function copy_printTableOpt(s) {
      *	Note that the returned string must be used before calling fmtId again,
      *	since we re-use the same return buffer each time.
      */
+    // Ported from fmtId (fe_utils/string_utils.c) and fmtIdEnc (fe_utils/string_utils.c)
     function fmtId(rawid) {
       let id_return = { /* struct */ };
       initPQExpBuffer(id_return);
@@ -10543,6 +10552,7 @@ export function htmlEscape(str, convertWhitespace) {
   return str;
 }
 
+// Ported from print_aligned_vertical (fe_utils/print.c)
 function tableToStringVertical(td) {
   const { ncolumns, nrows, headers, cells } = td;
   if (cells.length === 0) return `(${nrows} row${nrows === 1 ? '' : 's'})`;
@@ -10602,6 +10612,7 @@ function tableToStringVertical(td) {
   return result;
 }
 
+// Ported from print_aligned_text (fe_utils/print.c)
 function tableToString(td) {
   if (td.opt.expanded) return tableToStringVertical(td);
   const
@@ -10801,11 +10812,13 @@ function printfPQExpBuffer(buf, template, ...values) {
   appendPQExpBuffer(buf, template, ...values);
 }
 
+// Ported from appendStringLiteral (fe_utils/string_utils.c)
 function appendStringLiteral(buf, str, encoding, std_strings) {
   // as SQL_STR_DOUBLE: each quote is doubled, and so is each backslash, without standard_conforming_strings
   appendPQExpBufferStr(buf, "'" + str.replace(std_strings ? /'/g : /['\\]/g, '$&$&') + "'");
 }
 
+// Ported from appendStringLiteralConn (fe_utils/string_utils.c)
 function appendStringLiteralConn(buf, str, conn) {
   /*
    * XXX This is a kluge to silence escape_string_warning in our utility
