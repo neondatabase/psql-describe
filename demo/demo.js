@@ -287,7 +287,6 @@ function describe(cmd, dbName, runQuery, outputFn, {
   async function main() {
     const remainder = cmd.trimStart();
     if (remainder[0] !== "\\") return { success: true, remainder, commands: 0 };
-    const scan_state = [remainder.slice(1), 0];
     async function helpSQL(topic, pager) {
       let helpIndex2;
       try {
@@ -354,18 +353,18 @@ ${sql}
     const stdout = { write }, fputs = (str, stream) => stream.write(str), fprintf = (stream, template, ...args) => stream.write(sprintf(template, ...args)), printf = (template, ...args) => fprintf(stdout, template, ...args), fflush = noop, ClosePager = noop, PageOutput = (lines, topt) => stdout;
     const pg_log_error = (template, ...args) => write(sprintf(template, ...args) + "\n"), pg_log_error_internal = pg_log_error, pg_log_error_hint = pg_log_error, pg_log_warning = pg_log_error;
     const conditional_active = (cstack) => true, conditional_stack_push = noop, conditional_stack_pop = noop;
-    function psql_scan_slash_option(scan_state2, type, quote, semicolon) {
+    function psql_scan_slash_option(scan_state, type, quote, semicolon) {
       if (type !== OT_NORMAL && type !== OT_WHOLE_LINE) throw new Error(`scan type ${type} not implemented`);
-      const [str] = scan_state2;
+      const [str] = scan_state;
       const space = /[ \t\n\r\f\v]/;
-      let i = scan_state2[1];
+      let i = scan_state[1];
       let result = "";
       let lastQuote = 0;
       let unquotedChars = 0;
       let m;
       const unterminated = () => {
         pg_log_error("unterminated quoted string");
-        scan_state2[1] = str.length;
+        scan_state[1] = str.length;
         return NULL;
       };
       while (space.test(str[i] ?? "")) i++;
@@ -423,25 +422,25 @@ ${sql}
         if (semicolon) while (unquotedChars-- > 0 && result.endsWith(";")) result = result.slice(0, -1);
       }
       result = result.split("\0")[0];
-      scan_state2[1] = i;
+      scan_state[1] = i;
       if (quote != NULL) quote.value = lastQuote;
       return result === "" && lastQuote === 0 ? NULL : result;
     }
     let restricted = false;
-    async function HandleSlashCmds(scan_state2, cstack, query_buf, previous_buf) {
+    async function HandleSlashCmds(scan_state, cstack, query_buf, previous_buf) {
       let status;
       let cmd2;
       let arg;
-      Assert(scan_state2 != NULL);
+      Assert(scan_state != NULL);
       Assert(cstack != NULL);
-      cmd2 = psql_scan_slash_command(scan_state2);
+      cmd2 = psql_scan_slash_command(scan_state);
       if (cmd2 == NULL)
         status = PSQL_CMD_ERROR;
       else if (restricted && strcmp(cmd2, "unrestrict") != 0) {
         pg_log_error("backslash commands are restricted; only \\unrestrict is allowed");
         status = PSQL_CMD_ERROR;
       } else
-        status = await exec_command(cmd2, scan_state2, cstack, query_buf, previous_buf);
+        status = await exec_command(cmd2, scan_state, cstack, query_buf, previous_buf);
       if (status == PSQL_CMD_UNKNOWN) {
         pg_log_error("invalid command \\%s", cmd2);
         if (pset.cur_cmd_interactive)
@@ -452,7 +451,7 @@ ${sql}
         let active_branch = conditional_active(cstack);
         conditional_stack_push(cstack, IFSTATE_IGNORED);
         while ((arg = psql_scan_slash_option(
-          scan_state2,
+          scan_state,
           OT_NORMAL,
           NULL,
           false
@@ -463,18 +462,18 @@ ${sql}
         cstack;
       } else {
         while ((arg = psql_scan_slash_option(
-          scan_state2,
+          scan_state,
           OT_WHOLE_LINE,
           NULL,
           false
         )) != NULL) {
         }
       }
-      psql_scan_slash_command_end(scan_state2);
+      psql_scan_slash_command_end(scan_state);
       pset.queryFout;
       return status;
     }
-    async function exec_command(cmd2, scan_state2, cstack, query_buf, previous_buf) {
+    async function exec_command(cmd2, scan_state, cstack, query_buf, previous_buf) {
       let status;
       let active_branch = conditional_active(cstack);
       if (pset.cur_cmd_interactive && !active_branch && !is_branching_command(cmd2)) {
@@ -484,28 +483,28 @@ ${sql}
         );
       }
       if (cmd2[0] == "d")
-        status = await exec_command_d(scan_state2, active_branch, cmd2);
+        status = await exec_command_d(scan_state, active_branch, cmd2);
       else if (strcmp(cmd2, "h") == 0 || strcmp(cmd2, "help") == 0)
-        status = await exec_command_help(scan_state2, active_branch);
+        status = await exec_command_help(scan_state, active_branch);
       else if (strcmp(cmd2, "l") == 0 || strcmp(cmd2, "list") == 0 || strcmp(cmd2, "lx") == 0 || strcmp(cmd2, "listx") == 0 || strcmp(cmd2, "l+") == 0 || strcmp(cmd2, "list+") == 0 || strcmp(cmd2, "lx+") == 0 || strcmp(cmd2, "listx+") == 0 || strcmp(cmd2, "l+x") == 0 || strcmp(cmd2, "list+x") == 0)
-        status = await exec_command_list(scan_state2, active_branch, cmd2);
+        status = await exec_command_list(scan_state, active_branch, cmd2);
       else if (strncmp(cmd2, "lo_", 3) == 0)
-        status = await exec_command_lo(scan_state2, active_branch, cmd2);
+        status = await exec_command_lo(scan_state, active_branch, cmd2);
       else if (strcmp(cmd2, "sf") == 0 || strcmp(cmd2, "sf+") == 0)
-        status = await exec_command_sf_sv(scan_state2, active_branch, cmd2, true);
+        status = await exec_command_sf_sv(scan_state, active_branch, cmd2, true);
       else if (strcmp(cmd2, "sv") == 0 || strcmp(cmd2, "sv+") == 0)
-        status = await exec_command_sf_sv(scan_state2, active_branch, cmd2, false);
+        status = await exec_command_sf_sv(scan_state, active_branch, cmd2, false);
       else if (strcmp(cmd2, "z") == 0 || strcmp(cmd2, "zS") == 0 || strcmp(cmd2, "zx") == 0 || strcmp(cmd2, "zSx") == 0 || strcmp(cmd2, "zxS") == 0)
-        status = await exec_command_z(scan_state2, active_branch, cmd2);
+        status = await exec_command_z(scan_state, active_branch, cmd2);
       else if (strcmp(cmd2, "?") == 0)
-        status = exec_command_slash_command_help(scan_state2, active_branch);
+        status = exec_command_slash_command_help(scan_state, active_branch);
       else
         status = PSQL_CMD_UNKNOWN;
       if (status == PSQL_CMD_SEND)
         copy_previous_query(query_buf, previous_buf);
       return status;
     }
-    async function exec_command_d(scan_state2, active_branch, cmd2) {
+    async function exec_command_d(scan_state, active_branch, cmd2) {
       let status = PSQL_CMD_SKIP_LINE;
       let success2 = true;
       if (active_branch) {
@@ -513,7 +512,7 @@ ${sql}
         let show_verbose, show_system;
         let save_expanded;
         pattern = psql_scan_slash_option(
-          scan_state2,
+          scan_state,
           OT_NORMAL,
           NULL,
           true
@@ -536,7 +535,7 @@ ${sql}
             {
               let pattern2 = NULL;
               if (pattern != NULL && cmd2[2] != void 0 && cmd2[2] != "+" && cmd2[2] != "x")
-                pattern2 = psql_scan_slash_option(scan_state2, OT_NORMAL, NULL, true);
+                pattern2 = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true);
               switch (cmd2[2]) {
                 case void 0:
                 case "+":
@@ -605,7 +604,7 @@ ${sql}
               case "w":
               case "x":
                 success2 = await exec_command_dfo(
-                  scan_state2,
+                  scan_state,
                   cmd2,
                   pattern,
                   show_verbose,
@@ -631,7 +630,7 @@ ${sql}
             break;
           case "o":
             success2 = await exec_command_dfo(
-              scan_state2,
+              scan_state,
               cmd2,
               pattern,
               show_verbose,
@@ -677,7 +676,7 @@ ${sql}
               let pattern2 = NULL;
               if (pattern != NULL)
                 pattern2 = psql_scan_slash_option(
-                  scan_state2,
+                  scan_state,
                   OT_NORMAL,
                   NULL,
                   true
@@ -763,19 +762,19 @@ ${sql}
         }
         pset.popt.topt.expanded = save_expanded;
       } else
-        ignore_slash_options(scan_state2);
+        ignore_slash_options(scan_state);
       if (!success2)
         status = PSQL_CMD_ERROR;
       return status;
     }
-    async function exec_command_dfo(scan_state2, cmd2, pattern, show_verbose, show_system) {
+    async function exec_command_dfo(scan_state, cmd2, pattern, show_verbose, show_system) {
       let success2;
       let arg_patterns = [];
       let num_arg_patterns = 0;
       if (pattern != NULL) {
         let ap;
         while ((ap = psql_scan_slash_option(
-          scan_state2,
+          scan_state,
           OT_NORMAL,
           NULL,
           true
@@ -804,27 +803,27 @@ ${sql}
         );
       return success2;
     }
-    async function exec_command_help(scan_state2, active_branch) {
+    async function exec_command_help(scan_state, active_branch) {
       if (active_branch) {
         let opt = psql_scan_slash_option(
-          scan_state2,
+          scan_state,
           OT_WHOLE_LINE,
           NULL,
           true
         );
         await helpSQL(opt, pset.popt.topt.pager);
       } else
-        ignore_slash_whole_line(scan_state2);
+        ignore_slash_whole_line(scan_state);
       return PSQL_CMD_SKIP_LINE;
     }
-    async function exec_command_list(scan_state2, active_branch, cmd2) {
+    async function exec_command_list(scan_state, active_branch, cmd2) {
       let success2 = true;
       if (active_branch) {
         let pattern;
         let show_verbose;
         let save_expanded;
         pattern = psql_scan_slash_option(
-          scan_state2,
+          scan_state,
           OT_NORMAL,
           NULL,
           true
@@ -836,22 +835,22 @@ ${sql}
         success2 = await listAllDbs(pattern, show_verbose);
         pset.popt.topt.expanded = save_expanded;
       } else
-        ignore_slash_options(scan_state2);
+        ignore_slash_options(scan_state);
       return success2 ? PSQL_CMD_SKIP_LINE : PSQL_CMD_ERROR;
     }
-    async function exec_command_lo(scan_state2, active_branch, cmd2) {
+    async function exec_command_lo(scan_state, active_branch, cmd2) {
       let status = PSQL_CMD_SKIP_LINE;
       let success2 = true;
       if (active_branch) {
         let opt1 = {}, opt2 = {};
         opt1.value = psql_scan_slash_option(
-          scan_state2,
+          scan_state,
           OT_NORMAL,
           NULL,
           true
         );
         opt2.value = psql_scan_slash_option(
-          scan_state2,
+          scan_state,
           OT_NORMAL,
           NULL,
           true
@@ -890,12 +889,12 @@ ${sql}
         } else
           status = PSQL_CMD_UNKNOWN;
       } else
-        ignore_slash_options(scan_state2);
+        ignore_slash_options(scan_state);
       if (!success2)
         status = PSQL_CMD_ERROR;
       return status;
     }
-    async function exec_command_sf_sv(scan_state2, active_branch, cmd2, is_func) {
+    async function exec_command_sf_sv(scan_state, active_branch, cmd2, is_func) {
       let status = PSQL_CMD_SKIP_LINE;
       if (active_branch) {
         let show_linenumbers = strchr(cmd2, "+") != NULL;
@@ -905,7 +904,7 @@ ${sql}
         let eot = is_func ? EditableFunction : EditableView;
         buf = createPQExpBuffer();
         obj_desc = psql_scan_slash_option(
-          scan_state2,
+          scan_state,
           OT_WHOLE_LINE,
           NULL,
           true
@@ -940,17 +939,17 @@ ${sql}
             output2;
         }
       } else
-        ignore_slash_whole_line(scan_state2);
+        ignore_slash_whole_line(scan_state);
       return status;
     }
-    async function exec_command_z(scan_state2, active_branch, cmd2) {
+    async function exec_command_z(scan_state, active_branch, cmd2) {
       let success2 = true;
       if (active_branch) {
         let pattern;
         let show_system;
         let save_expanded;
         pattern = psql_scan_slash_option(
-          scan_state2,
+          scan_state,
           OT_NORMAL,
           NULL,
           true
@@ -962,13 +961,13 @@ ${sql}
         success2 = await permissionsList(pattern, show_system);
         pset.popt.topt.expanded = save_expanded;
       } else
-        ignore_slash_options(scan_state2);
+        ignore_slash_options(scan_state);
       return success2 ? PSQL_CMD_SKIP_LINE : PSQL_CMD_ERROR;
     }
-    function exec_command_slash_command_help(scan_state2, active_branch) {
+    function exec_command_slash_command_help(scan_state, active_branch) {
       if (active_branch) {
         let opt0 = psql_scan_slash_option(
-          scan_state2,
+          scan_state,
           OT_NORMAL,
           NULL,
           false
@@ -982,22 +981,22 @@ ${sql}
         else
           slashUsage(pset.popt.topt.pager);
       } else
-        ignore_slash_options(scan_state2);
+        ignore_slash_options(scan_state);
       return PSQL_CMD_SKIP_LINE;
     }
-    function ignore_slash_options(scan_state2) {
+    function ignore_slash_options(scan_state) {
       let arg;
       while ((arg = psql_scan_slash_option(
-        scan_state2,
+        scan_state,
         OT_NORMAL,
         NULL,
         false
       )) != NULL) {
       }
     }
-    function ignore_slash_whole_line(scan_state2) {
+    function ignore_slash_whole_line(scan_state) {
       let arg = psql_scan_slash_option(
-        scan_state2,
+        scan_state,
         OT_WHOLE_LINE,
         NULL,
         false
@@ -9500,22 +9499,31 @@ ORDER BY oid`,
           nullPrint: ""
         }
       };
-      const [str] = scan_state;
+      let rest = remainder;
       for (; ; ) {
-        const isHelp = ["?", "h", "help"].includes(psql_scan_slash_command([...scan_state]));
-        if (!pset.sversion && !isHelp) {
-          const vres = await PSQLexec("SHOW server_version_num", true);
-          pset.sversion = pset.db.sversion = parseInt(vres.rows[0][0], 10);
+        const newline = multipleCommands ? rest.indexOf("\n") : -1;
+        const after = newline === -1 ? "" : rest.slice(newline + 1);
+        const scan_state = [newline === -1 ? rest.slice(1) : rest.slice(1, newline), 0];
+        const [str] = scan_state;
+        for (; ; ) {
+          const isHelp = ["?", "h", "help"].includes(psql_scan_slash_command([...scan_state]));
+          if (!pset.sversion && !isHelp) {
+            const vres = await PSQLexec("SHOW server_version_num", true);
+            pset.sversion = pset.db.sversion = parseInt(vres.rows[0][0], 10);
+          }
+          commands++;
+          if (await HandleSlashCmds(scan_state, {}, createPQExpBuffer(), createPQExpBuffer()) === PSQL_CMD_ERROR) {
+            success = false;
+          }
+          while (/\s/.test(str[scan_state[1]] ?? "")) scan_state[1]++;
+          if (!multipleCommands || str[scan_state[1]] !== "\\") break;
+          scan_state[1]++;
         }
-        commands++;
-        if (await HandleSlashCmds(scan_state, {}, createPQExpBuffer(), createPQExpBuffer()) === PSQL_CMD_ERROR) {
-          success = false;
-        }
-        while (/\s/.test(str[scan_state[1]] ?? "")) scan_state[1]++;
-        if (!multipleCommands || str[scan_state[1]] !== "\\") break;
-        scan_state[1]++;
+        const lineRest = str.slice(scan_state[1]);
+        if (lineRest !== "") return { success, remainder: newline === -1 ? lineRest : lineRest + "\n" + after, commands };
+        rest = after.trimStart();
+        if (rest[0] !== "\\") return { success, remainder: rest, commands };
       }
-      return { success, remainder: str.slice(scan_state[1]), commands };
     } catch (err) {
       output("ERROR:  " + err instanceof Error ? err.message : String(err));
       return { success: false, remainder: "", commands };

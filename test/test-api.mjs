@@ -337,3 +337,26 @@ test('the server version is queried before the first command that needs it', asy
   assert.equal(queries.length, 2);
   assert.equal(queries[0], 'SHOW server_version_num');
 });
+
+test('with multipleCommands, a line ends the commands on it, as in psql', async () => {
+  // SQL on the next line is the remainder, not the command's arguments
+  const sql = await run('\\dt\nSELECT 1;', { multipleCommands: true });
+  assert.equal(sql.queries.length, 1);
+  assert.doesNotMatch(sql.queries[0], /SELECT'|\^\(select\)/i);
+  assert.deepEqual(sql.outputs.filter(x => typeof x === 'string' && /extra argument/.test(x)), []);
+  assert.deepEqual(sql.result, { success: true, remainder: 'SELECT 1;', commands: 1 });
+
+  // commands go on while the next line starts with a backslash, and the remainder is from the first that doesn't
+  const lines = await run('\\dt film \\dv\n\n  \\di\nSELECT 1;\n\\dm', { multipleCommands: true });
+  assert.equal(lines.queries.length, 3);
+  assert.deepEqual(lines.result, { success: true, remainder: 'SELECT 1;\n\\dm', commands: 3 });
+
+  // SQL after a command on the same line starts the remainder, which includes the lines after it
+  assert.deepEqual((await run('\\dt \\\\ SELECT\n1;', { multipleCommands: true })).result,
+    { success: true, remainder: 'SELECT\n1;', commands: 1 });
+
+  // a failed command ends its line, but not the commands on the lines after it
+  const failed = await run('\\dz \\dt\n\\dv', { multipleCommands: true });
+  assert.equal(failed.queries.length, 1);
+  assert.deepEqual(failed.result, { success: false, remainder: '', commands: 2 });
+});
