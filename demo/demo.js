@@ -9525,7 +9525,7 @@ ORDER BY oid`,
         if (rest[0] !== "\\") return { success, remainder: rest, commands };
       }
     } catch (err) {
-      output("ERROR:  " + err instanceof Error ? err.message : String(err));
+      output("ERROR:  " + (err instanceof Error ? err.message : String(err)));
       return { success: false, remainder: "", commands };
     }
   }

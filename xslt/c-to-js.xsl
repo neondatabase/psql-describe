@@ -85,19 +85,24 @@
   <variable name="sources" select="/"/>
 
   <!-- At the root: output the runtime, with the constants and the translation in place of its markers (or just the
-       translation, if there's no runtime), and report any externals (see reach.xsl), and any C that JS numbers can't
-       do (see types.xsl); and write out the C that the runtime ports by hand (see runtime.xsl) -->
+       translation, if there's no runtime); and write out the C that the runtime ports by hand (see runtime.xsl). But
+       first, report anything that would fail at run time: names that the translation uses but nothing defines (see
+       reach.xsl), or that the runtime does (see runtime.xsl), and C that JS numbers can't do (see types.xsl). Each is
+       reported, so that one run shows them all, and then, given a runtime, the translation fails. -->
   <template match="/">
-    <if test="exists($marker) and exists($externals)">
-      <message select="'Not translated or provided by the runtime: ' || string-join($externals, ', ')"/>
-    </if>
-    <if test="exists($number-hazards)">
-      <message select="
-        'Beyond JS numbers: ' ||
-        string-join(
-          distinct-values($number-hazards ! (ancestor::function_definition ! c:function-name(.) || ': ' || normalize-space(.))),
-          '; '
-        )"/>
+    <variable name="problems" as="xs:string*" select="
+      if (exists($marker) and exists($externals))
+        then 'Not translated or provided by the runtime: ' || string-join($externals, ', ') else (),
+      if (exists($runtime-undefined))
+        then 'Used by the runtime, but defined nowhere: ' || string-join($runtime-undefined, ', ') else (),
+      if (exists($number-hazards))
+        then 'Beyond JS numbers: ' || string-join(distinct-values($number-hazards
+          ! (ancestor::function_definition ! c:function-name(.) || ': ' || normalize-space(.))), '; ') else ()"/>
+    <for-each select="$problems">
+      <message select="."/>
+    </for-each>
+    <if test="exists($problems) and exists($marker)">
+      <message terminate="yes" select="'The translation would fail at run time (see above)'"/>
     </if>
     <if test="exists($hand-ported)"><call-template name="hand-ported"/></if>
     <variable name="translation"><call-template name="translation"/></variable>

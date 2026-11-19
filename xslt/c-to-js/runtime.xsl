@@ -43,6 +43,22 @@
       $marker/ancestor::*/*[@field = 'parameters']/descendant::identifier[not(ancestor::*[@field = 'right'])]
     ))"/>
 
+  <!-- What the runtime uses but doesn't declare (anywhere in it), and isn't translated, a constant, generated (see
+       constants-js, below), or a JS global (as listed by transform.sh): e.g. a C constant that upstream renames. There
+       should be none. -->
+  <param name="js-globals" as="xs:string" select="''"/>
+
+  <variable name="runtime-undefined" select="
+    let $declared := $runtime-doc//(
+      variable_declarator/*[@field = 'name'], (function_declaration | class_declaration)/*[@field = 'name'],
+      formal_parameters, arrow_function/*[@field = 'parameter'], catch_clause/*[@field = 'parameter'], import_specifier
+    ) ! (let $d := . return descendant-or-self::*[self::identifier | self::shorthand_property_identifier_pattern]
+      [not(ancestor::*[@field = 'right'][ancestor::* intersect $d])])  (: not default values, e.g. the false in x = false :)
+    return distinct-values($runtime-doc//identifier[not(. = (
+      $declared, $translated ! c:defined-names(.), $constants/*[@field = 'name'], 'PG_VERSION', 'PG_MAJORVERSION', 'helpText',
+      tokenize($js-globals)
+    ))])"/>
+
   <!--
     * CONSTANTS
 

@@ -10,7 +10,8 @@ BUILD=build
 
 echo "Transforming C to JS ..."
 npx xslt3 -xsl:xslt/c-to-js.xsl -s:"$BUILD/typed.xml" -o:generated/describe.mjs \
-  runtime="$PWD/$BUILD/runtime.xml" version="$(cat "$BUILD/version")" hand-ported="$PWD/$BUILD/hand-ported.c"
+  runtime="$PWD/$BUILD/runtime.xml" version="$(cat "$BUILD/version")" hand-ported="$PWD/$BUILD/hand-ported.c" \
+  js-globals="$(node -p 'Object.getOwnPropertyNames(globalThis).join(" ")')"
 
 echo "Checking JS syntax ..."
 node --check generated/describe.mjs

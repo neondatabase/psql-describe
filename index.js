@@ -1756,7 +1756,7 @@ if(!o.sversion&&!r){let f=await A("SHOW server_version_num",!0);o.sversion=o.db.
 await $t(a,{},he(),he())===5&&(ct=!1);/\s/.test(i[a[1]]??"");)a[1]++;if(!le||i[a[1]]!=="\\")break;a[1]++}let e=i.slice(a[1]);
 if(e!=="")return{success:ct,remainder:s===-1?e:e+`
 `+t,commands:Be};if(n=t.trimStart(),n[0]!=="\\")return{success:ct,remainder:n,commands:Be}}}catch(n){return z("ERROR:  "+
-n instanceof Error?n.message:String(n)),{success:!1,remainder:"",commands:Be}}}return{promise:Promise.race([te().finally(
+(n instanceof Error?n.message:String(n))),{success:!1,remainder:"",commands:Be}}}return{promise:Promise.race([te().finally(
 Q),fe]),cancel:Z}}function it(d,O,T,V="",F=""){let G=Math.max(0,O-be(d));return T==="r"?V+" ".repeat(G)+d+F:T==="c"?V+" ".
 repeat(Math.floor(G/2))+d+" ".repeat(Math.ceil(G/2))+F:V+d+" ".repeat(G)+F}function Mt(d,O){let T=0,V=d.length,F=[];for(;T<
 V;)F.push(d.slice(T,T+=O));return F}function ft(d){let O=-1,T=0,V=1,F=0;for(;(O=d.indexOf(`

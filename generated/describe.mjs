@@ -10520,7 +10520,7 @@ function copy_printTableOpt(s) {
       }
 
     } catch (err) {
-      output('ERROR:  ' + err instanceof Error ? err.message : String(err));
+      output('ERROR:  ' + (err instanceof Error ? err.message : String(err)));
       return { success: false, remainder: '', commands };
     }
   }
