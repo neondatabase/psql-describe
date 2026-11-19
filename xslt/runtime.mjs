@@ -336,7 +336,9 @@ export function describe(
 
     // Ported from printTable (fe_utils/print.c)
     function printTable(cont, fout, is_pager, flog) {
-      output({ ...cont });  // must clone in case same content object is reused (and thus mutated) later
+      // a snapshot, all the way down: the C goes on to change and reuse what's in it (e.g. describeOneTSParser sets
+      // opt.default_footer between its two tables), before outputFn's caller necessarily renders it
+      output(structuredClone(cont));
     }
 
     /*

@@ -221,12 +221,7 @@ try {
 
     // exceptions: ignore unimportant differences
     if (!pass) {
-      if (test === '\\dFp+' &&
-        stdPsqlOutput.replace(/\n\(\d+ rows?\)/g, '')
-        === stdLocalOutput.replace(/\n\(\d+ rows?\)/g, '')) {
-        pass = true;
-
-      } else if ((test === '\\dconfig' || test === '\\dconfig+') &&
+      if ((test === '\\dconfig' || test === '\\dconfig+') &&
         stdPsqlOutput.replace(/\n\s*application_name[^\n]+/, '').replace(/\n\(\d+ rows?\)/g, '')
         === stdLocalOutput.replace(/\n\(\d+ rows?\)/g, '')) {
         pass = true;

@@ -9396,7 +9396,7 @@ ORDER BY oid`,
       printTableAddFooter(content, footer);
     }
     function printTable(cont, fout, is_pager, flog) {
-      output({ ...cont });
+      output(structuredClone(cont));
     }
     function parsePGArray(atext, itemarray, nitems) {
       let inputlen;

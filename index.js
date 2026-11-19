@@ -1743,14 +1743,14 @@ return{...n,topt:Ge(n.topt)}}function Ge(n){return{...n,fieldSep:{...n.fieldSep}
 n.opt=s,n.title=t,n.ncolumns=a,n.nrows=i,n.headers=[],n.cells=[],n.footers=null,n.aligns=[]}function ce(n,s,t,a){t&&(s=vt(
 s)),n.headers.push(s),n.header=s,n.aligns.push(a),n.align=a}function $(n,s,t,a){t&&(s=vt(s)),n.cells.push(s),n.cell=s}function C(n,s){
 n.footers==null&&(n.footers=[]),n.footers.push(s),n.footer={data:s}}function En(n,s){n.footers&&n.footers.pop(),C(n,s)}function je(n,s,t,a){
-z({...n})}function pn(n,s,t){let a,i,e;if(a=be(n),s.value=null,t.value=0,a<2||n[0]!="{"||n[a-1]!="}")return!1;let r=s.value=
-[],f=0;for(f++,e=0;n[f]!="}";){if(n[f]==null)return!1;for(i="";n[f]!="}"&&n[f]!=",";){if(n[f]==null)return!1;if(n[f]!='"')
-i+=n[f++];else{for(f++;n[f]!='"';){if(n[f]==null||n[f]=="\\"&&(f++,n[f]==null))return!1;i+=n[f++]}f++}}r[e]=i,n[f]==","&&
-f++,e++}return n[f+1]&&n[f+1]!=null?!1:(t.value=e,!0)}function ye(n){let s={};y(s);let t=!1;if(an?t=!0:n[0]>="a"&&n[0]<=
-"z"||n[0]=="_"?/[^a-z0-9_]/.test(n)&&(t=!0):t=!0,!t){let a=on.indexOf(n);a>=0&&rn[a]!=0&&(t=!0)}return t?(X(s,'"'),X(s,n.
-replace(/"/g,'""')),X(s,'"')):l(s,n),s.data}let o,ct=!0,Be=0;try{o={sversion:G,cur_cmd_interactive:!1,queryFout:Te,logfile:null,
-echo_hidden:F?1:0,db:{dbName:O,sversion:G,std_strings:M,status:0,encoding:6},popt:{topt:{default_footer:!0,expanded:0},nullPrint:""}};
-let n=Ee;for(;;){let s=le?n.indexOf(`
+z(structuredClone(n))}function pn(n,s,t){let a,i,e;if(a=be(n),s.value=null,t.value=0,a<2||n[0]!="{"||n[a-1]!="}")return!1;
+let r=s.value=[],f=0;for(f++,e=0;n[f]!="}";){if(n[f]==null)return!1;for(i="";n[f]!="}"&&n[f]!=",";){if(n[f]==null)return!1;
+if(n[f]!='"')i+=n[f++];else{for(f++;n[f]!='"';){if(n[f]==null||n[f]=="\\"&&(f++,n[f]==null))return!1;i+=n[f++]}f++}}r[e]=
+i,n[f]==","&&f++,e++}return n[f+1]&&n[f+1]!=null?!1:(t.value=e,!0)}function ye(n){let s={};y(s);let t=!1;if(an?t=!0:n[0]>=
+"a"&&n[0]<="z"||n[0]=="_"?/[^a-z0-9_]/.test(n)&&(t=!0):t=!0,!t){let a=on.indexOf(n);a>=0&&rn[a]!=0&&(t=!0)}return t?(X(s,
+'"'),X(s,n.replace(/"/g,'""')),X(s,'"')):l(s,n),s.data}let o,ct=!0,Be=0;try{o={sversion:G,cur_cmd_interactive:!1,queryFout:Te,
+logfile:null,echo_hidden:F?1:0,db:{dbName:O,sversion:G,std_strings:M,status:0,encoding:6},popt:{topt:{default_footer:!0,
+expanded:0},nullPrint:""}};let n=Ee;for(;;){let s=le?n.indexOf(`
 `):-1,t=s===-1?"":n.slice(s+1),a=[s===-1?n.slice(1):n.slice(1,s),0],[i]=a;for(;;){let r=["?","h","help"].includes(It([...a]));
 if(!o.sversion&&!r){let f=await A("SHOW server_version_num",!0);o.sversion=o.db.sversion=parseInt(f.rows[0][0],10)}for(Be++,
 await $t(a,{},he(),he())===5&&(ct=!1);/\s/.test(i[a[1]]??"");)a[1]++;if(!le||i[a[1]]!=="\\")break;a[1]++}let e=i.slice(a[1]);
