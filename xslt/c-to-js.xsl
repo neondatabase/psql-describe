@@ -15,7 +15,7 @@
     async.xsl      Which functions are async: those that run queries, and those that call them, and so on
     syntax.xsl     What's the same in JS, apart from syntax: functions, declarations, a->b, casts, ...
     memory.xsl     What goes: freeing memory, and the gotos that lead to it
-    types.xsl      Where types make a difference: strings as conditions, and integer division
+    types.xsl      Where types make a difference: strings as conditions, integer division, and sizeof
     pointers.xsl   Pointers to variables, which are boxes, and pointers into arrays, which are indexes
     strings.xsl    Pointers to strings, which are JS strings: read and sliced, but not written to
     structs.xsl    Copying structs, which contain their structs and arrays

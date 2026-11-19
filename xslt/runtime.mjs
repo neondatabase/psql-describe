@@ -782,10 +782,6 @@ function pg_wcswidth(pwcs, len, encoding) {
   return len;
 }
 
-function sizeof(x) {
-  return 0;
-}
-
 function initPQExpBuffer(buf) {
   buf.data = '';
   buf.len = 0;

@@ -114,6 +114,30 @@
   </template>
 
   <!--
+    * SIZES
+  -->
+
+  <!-- sizeof, which C works out as it compiles, and so do we, for a char array: its size, as declared (`char buf[32]`:
+       32) or given by its string (`char prefix[] = "service="`: 9, counting the \0). Anything else is refused (see
+       strings.xsl), since JS has no sizes to go on. -->
+  <key name="declarator" match="identifier[@field = 'declarator']" use="@declared"/>
+
+  <template match="sizeof_expression">
+    <variable name="id" select="*[@field = 'value']/descendant-or-self::*[not(self::parenthesized_expression | self::token)][1]
+      /self::identifier[c:is-string(.)][c:is-array(.)]"/>
+    <variable name="array" select="$id ! key('declarator', @declared)[1]/parent::array_declarator"/>
+    <variable name="string" select="$array/parent::init_declarator/*[@field = 'value'][self::string_literal | self::concatenated_string]"/>
+    <value-of select="($array/*[@field = 'size']/self::number_literal, $string ! (c:byte-length(.) + 1), c:refuse(.))[1]"/>
+  </template>
+
+  <!-- The number of bytes a string literal's text takes in UTF-8: e.g. 3 for `a\nb`, and 4 for `café` -->
+  <function name="c:byte-length" as="xs:integer">
+    <param name="literal" as="element()"/>
+    <variable name="text" select="replace(c:literal-text($literal), '\\(x[0-9a-fA-F]+|[0-7]{1,3}|.)', 'b')"/>
+    <sequence select="sum(string-to-codepoints($text) ! (if (. lt 128) then 1 else if (. lt 2048) then 2 else if (. lt 65536) then 3 else 4))"/>
+  </function>
+
+  <!--
     * WHAT JS NUMBERS CAN'T DO
 
     A JS number is exact for integers up to 2^53, which is enough for C's integers, other than those of 64 bits. And

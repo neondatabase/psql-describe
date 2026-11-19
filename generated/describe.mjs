@@ -1618,7 +1618,7 @@ async function describeAccessMethods(pattern, verbose)
 
 		pg_log_error("The server (version %s) does not support access methods.",
 					 formatPGVersionNumber(pset.sversion, false,
-										   sverbuf, sizeof(sverbuf)));
+										   sverbuf, 32));
 		return true;
 	}
 
@@ -1773,7 +1773,7 @@ async function describeFunctions(functypes, func_pattern, arg_patterns, num_arg_
 		pg_log_error("\\df does not take a \"%c\" option with server version %s",
 					 'p',
 					 formatPGVersionNumber(pset.sversion, false,
-										   sverbuf, sizeof(sverbuf)));
+										   sverbuf, 32));
 		return true;
 	}
 
@@ -5686,7 +5686,7 @@ async function listPartitionedTables(reltypes, pattern, verbose)
 
 		pg_log_error("The server (version %s) does not support declarative table partitioning.",
 					 formatPGVersionNumber(pset.sversion, false,
-										   sverbuf, sizeof(sverbuf)));
+										   sverbuf, 32));
 		return true;
 	}
 
@@ -6173,7 +6173,7 @@ async function listEventTriggers(pattern, verbose)
 
 		pg_log_error("The server (version %s) does not support event triggers.",
 					 formatPGVersionNumber(pset.sversion, false,
-										   sverbuf, sizeof(sverbuf)));
+										   sverbuf, 32));
 		return true;
 	}
 
@@ -6247,7 +6247,7 @@ async function listExtendedStats(pattern, verbose)
 
 		pg_log_error("The server (version %s) does not support extended statistics.",
 					 formatPGVersionNumber(pset.sversion, false,
-										   sverbuf, sizeof(sverbuf)));
+										   sverbuf, 32));
 		return true;
 	}
 
@@ -7682,7 +7682,7 @@ async function listPublications(pattern)
 
 		pg_log_error("The server (version %s) does not support publications.",
 					 formatPGVersionNumber(pset.sversion, false,
-										   sverbuf, sizeof(sverbuf)));
+										   sverbuf, 32));
 		return true;
 	}
 
@@ -7820,7 +7820,7 @@ async function describePublications(pattern)
 
 		pg_log_error("The server (version %s) does not support publications.",
 					 formatPGVersionNumber(pset.sversion, false,
-										   sverbuf, sizeof(sverbuf)));
+										   sverbuf, 32));
 		return true;
 	}
 
@@ -8058,7 +8058,7 @@ async function describeSubscriptions(pattern, verbose)
 
 		pg_log_error("The server (version %s) does not support subscriptions.",
 					 formatPGVersionNumber(pset.sversion, false,
-										   sverbuf, sizeof(sverbuf)));
+										   sverbuf, 32));
 		return true;
 	}
 
@@ -10769,10 +10769,6 @@ function PQmblenBounded(s, encoding) {  // a JS string is characters, not bytes,
 
 function pg_wcswidth(pwcs, len, encoding) {
   return len;
-}
-
-function sizeof(x) {
-  return 0;
 }
 
 function initPQExpBuffer(buf) {

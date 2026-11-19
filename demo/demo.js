@@ -1302,7 +1302,7 @@ WHERE p.proisagg
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
@@ -1451,7 +1451,7 @@ WHERE p.proisagg
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
@@ -4978,7 +4978,7 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
@@ -5445,7 +5445,7 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
@@ -5528,7 +5528,7 @@ pg_catalog.obj_description(e.oid, 'pg_event_trigger') as "%s"`,
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
@@ -6928,7 +6928,7 @@ ORDER BY 1;`,
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
@@ -7069,7 +7069,7 @@ ORDER BY 1;`,
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
@@ -7391,7 +7391,7 @@ ORDER BY 1;`,
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
@@ -9713,9 +9713,6 @@ function format_numeric_locale(my_str) {
 }
 function PQmblenBounded(s, encoding) {
   return 1;
-}
-function sizeof(x) {
-  return 0;
 }
 function initPQExpBuffer(buf) {
   buf.data = "";
