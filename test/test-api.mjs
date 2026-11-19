@@ -360,3 +360,16 @@ test('with multipleCommands, a line ends the commands on it, as in psql', async 
   assert.equal(failed.queries.length, 1);
   assert.deepEqual(failed.result, { success: false, remainder: '', commands: 2 });
 });
+
+// 10. Options ---------------------------------------------------------------
+
+test('the options must be an object of known options: positional ones (from before 0.2) are a TypeError', () => {
+  const call = options => () => describe('\\dt', 'testdb', async () => emptyResult, () => {}, options);
+  assert.throws(call(true), { name: 'TypeError', message: /fifth argument must be an object of options.*not boolean/ });
+  assert.throws(call(null), { name: 'TypeError', message: /not null/ });
+  assert.throws(call([]), TypeError);
+  assert.throws(call({ sversion: 170000 }), { name: 'TypeError', message: /unknown option sversion/ });
+  assert.throws(() => describe('\\dt', 'testdb', async () => emptyResult, () => {}, true, 170000, false), TypeError);
+  assert.doesNotThrow(call(undefined));
+  assert.doesNotThrow(call({ echoHidden: true, serverVersion: 170000 }));
+});

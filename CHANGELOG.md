@@ -16,6 +16,8 @@ becomes:
 describe(cmd, dbName, runQuery, outputFn, { echoHidden, serverVersion, standardConformingStrings, docsURLTemplate })
 ```
 
+  Anything else as the fifth argument (such as an old positional `echoHidden`), or an unknown option (such as the old name `sversion`), throws a `TypeError`.
+
 - The promise resolves to an object, `{ success, remainder, commands }` (or `null` if cancelled), not a boolean. So a check such as `if (!(await promise))` no longer sees failures: use `(await promise)?.success` instead. (Before, it resolved to `false` if a query failed, and also, misleadingly, for `\?` and `\h`.)
 - Text output, such as messages and warnings, comes to `outputFn` as one item up to the next table, or the end, as psql prints it together: e.g. `\dt foo bar` gives one item, where it gave two.
 - A table's `footer` (the last footer) is now `{ data }`, as in C's `printTableFooter`, not a string. `footers` is unchanged.

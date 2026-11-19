@@ -256,13 +256,22 @@ function describeDataToString(item) {
 function describeDataToHtml(item) {
   return typeof item === "string" ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item);
 }
-function describe(cmd, dbName, runQuery, outputFn, {
-  echoHidden = false,
-  serverVersion = null,
-  standardConformingStrings = true,
-  docsURLTemplate = (id) => `https://www.postgresql.org/docs/${strstr(PG_VERSION, "devel") ? "devel" : PG_MAJORVERSION}/${id}.html`,
-  multipleCommands = false
-} = {}) {
+function describe(cmd, dbName, runQuery, outputFn, options = {}) {
+  const optionNames = ["echoHidden", "serverVersion", "standardConformingStrings", "docsURLTemplate", "multipleCommands"];
+  if (options === null || typeof options !== "object" || Array.isArray(options)) {
+    throw new TypeError(`describe(): the fifth argument must be an object of options, e.g. { echoHidden: true }, not ${options === null ? "null" : typeof options}`);
+  }
+  const unknown = Object.keys(options).filter((name) => !optionNames.includes(name));
+  if (unknown.length > 0) {
+    throw new TypeError(`describe(): unknown option${unknown.length > 1 ? "s" : ""} ${unknown.join(", ")} (options are: ${optionNames.join(", ")})`);
+  }
+  const {
+    echoHidden = false,
+    serverVersion = null,
+    standardConformingStrings = true,
+    docsURLTemplate = (id) => `https://www.postgresql.org/docs/${strstr(PG_VERSION, "devel") ? "devel" : PG_MAJORVERSION}/${id}.html`,
+    multipleCommands = false
+  } = options;
   let cancel_pressed = false, cancel;
   const cancelled = new Promise((resolve) => cancel = () => {
     cancel_pressed = true;
@@ -8022,14 +8031,14 @@ ORDER BY oid`,
       return buf;
     }
     function appendReloptionsArray(buffer, reloptions, prefix, encoding, std_strings) {
-      let options = {};
+      let options2 = {};
       let noptions = {};
       let i;
-      if (!parsePGArray(reloptions, options, noptions)) {
+      if (!parsePGArray(reloptions, options2, noptions)) {
         return false;
       }
       for (i = 0; i < noptions.value; i++) {
-        let option = options.value[i];
+        let option = options2.value[i];
         let name;
         let separator;
         let value;

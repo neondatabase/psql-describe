@@ -20,14 +20,25 @@ export function describe(
   dbName,
   runQuery,
   outputFn,
-  {
+  options = {},
+) {
+  // Before 0.2, the options were positional, so that e.g. describe(cmd, db, run, out, true, 170000) would now be
+  // silently ignored: so anything but an object of the options below is a TypeError
+  const optionNames = ['echoHidden', 'serverVersion', 'standardConformingStrings', 'docsURLTemplate', 'multipleCommands'];
+  if (options === null || typeof options !== 'object' || Array.isArray(options)) {
+    throw new TypeError(`describe(): the fifth argument must be an object of options, e.g. { echoHidden: true }, not ${options === null ? 'null' : typeof options}`);
+  }
+  const unknown = Object.keys(options).filter(name => !optionNames.includes(name));
+  if (unknown.length > 0) {
+    throw new TypeError(`describe(): unknown option${unknown.length > 1 ? 's' : ''} ${unknown.join(', ')} (options are: ${optionNames.join(', ')})`);
+  }
+  const {
     echoHidden = false,
     serverVersion = null,
     standardConformingStrings = true,
     docsURLTemplate = (id) => `https://www.postgresql.org/docs/${strstr(PG_VERSION, "devel") ? "devel" : PG_MAJORVERSION}/${id}.html`,
     multipleCommands = false,
-  } = {},
-) {
+  } = options;
   // cancel() resolves the promise to null at once, without waiting for a query (or the SQL help) in flight. Then any
   // output is dropped, and no more queries are run.
   let cancel_pressed = false, cancel;

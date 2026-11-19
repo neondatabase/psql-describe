@@ -37,7 +37,7 @@ describe(
 * `runQuery` is an async function that takes a SQL query (string) and must return *unparsed* query results in the same format used by node-postgres when specifying `rowMode: 'array'`.
 * `outputFn` is a function that receives output for display: either a string or a table object (see below).
 
-The last argument, which is optional, is an object of options, any of which may be left out:
+The last argument, which is optional, is an object of options, any of which may be left out (anything else, or an unknown option, throws a `TypeError`):
 
 * `echoHidden` (boolean) has the same effect as the `-E` argument to psql: if `true`, all SQL queries are output to `outputFn`, in addition to the final results.
 * `serverVersion` (number) should be the same value as `SHOW server_version_num` executed on the server. It is used to determine what features the database supports. If it is not provided, the server is queried for it.

@@ -31,7 +31,8 @@
     <sequence select="
       $statements/(self::function_declaration | self::class_declaration)/*[@field = 'name'],
       $statements/(self::lexical_declaration | self::variable_declaration)/variable_declarator/*[@field = 'name']
-        /descendant-or-self::*[self::identifier | self::shorthand_property_identifier_pattern],
+        ! (let $pattern := . return descendant-or-self::*[self::identifier | self::shorthand_property_identifier_pattern]
+          [not(ancestor::*[@field = 'right'][ancestor::* intersect $pattern])]),  (: not default values, e.g. x = false :)
       $statements/self::import_statement//import_specifier/*[@field = ('alias', 'name')][last()]"/>
   </function>
 
