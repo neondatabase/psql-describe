@@ -9517,7 +9517,7 @@ ORDER BY oid`,
       }
       return { success, remainder: str.slice(scan_state[1]), commands };
     } catch (err) {
-      output("ERROR:  " + err.message);
+      output("ERROR:  " + err instanceof Error ? err.message : String(err));
       return { success: false, remainder: "", commands };
     }
   }
@@ -9756,14 +9756,37 @@ function appendStringLiteralConn(buf, str, conn) {
 function sprintf(template, ...values) {
   let i = 0;
   return template.replace(
-    /%([-+ #0]*)(\*|\d+)?(?:\.(\*|\d+))?(?:hh?|ll?|[zjtL])?([%csdiux])/g,
+    /%([-+ #0']*)(\*|\d+)?(?:\.(\*|\d*))?(?:hh?|ll?|[zjtLq])?([%csdiuoxXfFeEgGaAp])/g,
     (_2, flags, width, precision, conversion) => {
       if (conversion === "%") return "%";
-      if (width === "*") width = values[i++];
-      if (precision === "*") precision = values[i++];
-      let s = conversion === "x" ? values[i++].toString(16) : String(values[i++]);
-      if (conversion === "s" && precision !== void 0) s = s.slice(0, precision);
-      return flags.includes("-") || width < 0 ? s.padEnd(Math.abs(width ?? 0)) : s.padStart(width ?? 0);
+      width = Number(width === "*" ? values[i++] : width ?? 0);
+      precision = precision === "*" ? values[i++] : precision;
+      precision = precision === void 0 || precision < 0 ? void 0 : Number(precision);
+      const value = values[i++], n = Number(value), kind = conversion.toLowerCase();
+      const exponent = (str) => str.replace(/e([+-])(\d)$/, "e$10$2");
+      let s;
+      if (kind === "s") s = precision === void 0 ? String(value) : String(value).slice(0, precision);
+      else if (kind === "c") s = typeof value === "number" ? String.fromCharCode(value) : String(value);
+      else if ("fge".includes(kind) && !isFinite(n)) s = isNaN(n) ? "nan" : n < 0 ? "-inf" : "inf";
+      else if (kind === "f") s = n.toFixed(precision ?? 6);
+      else if (kind === "e") s = exponent(n.toExponential(precision ?? 6));
+      else if (kind === "g") {
+        const p = precision === 0 ? 1 : precision ?? 6, x = Number(n.toExponential(p - 1).split("e")[1]);
+        s = p > x && x >= -4 ? n.toFixed(p - 1 - x) : exponent(n.toExponential(p - 1));
+        if (!flags.includes("#")) s = s.replace(/(\.\d*?)0+(?=e|$)/, "$1").replace(/\.(?=e|$)/, "");
+      } else if ("diuox".includes(kind)) {
+        const digits = Math.abs(Math.trunc(n)).toString({ o: 8, x: 16 }[kind] ?? 10).padStart(precision ?? 0, "0");
+        s = (n < 0 ? "-" : "") + (flags.includes("#") && n !== 0 ? { o: "0", x: "0x" }[kind] ?? "" : "") + digits;
+      } else s = String(value);
+      if (conversion !== kind) s = s.toUpperCase();
+      if ("difeg".includes(kind) && s[0] !== "-") s = (flags.includes("+") ? "+" : flags.includes(" ") ? " " : "") + s;
+      const pad2 = Math.abs(width);
+      if (flags.includes("-") || width < 0) return s.padEnd(pad2);
+      if (flags.includes("0") && "diuoxfeg".includes(kind) && !("diuox".includes(kind) && precision !== void 0)) {
+        const [, sign, rest] = s.match(/^([-+ ]?(?:0[xX])?)(.*)$/);
+        return sign + rest.padStart(pad2 - sign.length, "0");
+      }
+      return s.padStart(pad2);
     }
   );
 }
