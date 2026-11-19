@@ -11,10 +11,10 @@ This is how [psql-describe](../README.md) is made: turn psql's C parse tree into
 3. `preprocess.py` minimally preprocesses the C files and headers (see below).
 4. `code-to-xml.ts` parses the preprocessed C and serializes it to `build/sources.xml`.
 5. `add-types.xsl` adds type information to the parse tree, saving to `build/typed.xml`.
-6. `code-to-xml.ts` parses and serializes `runtime.mjs` to `build/runtime.xml`, and `psqlscanslash.l`, the slash-command lexer, is copied to `build/` (see [Hand ports](#hand-ports)).
+6. `psqlscanslash.l`, the slash-command lexer, is copied to `build/` (see [Hand ports](#hand-ports)).
 7. `create-help.mjs` generates the SQL help text from the Postgres docs.
 
-`xslt/transform.sh` (`npm run transform`) then needs only `build/` and the `c-to-js` stylesheets, so it's all you need to rerun when working on those: `c-to-js.xsl` translates the C-in-XML to JavaScript, inserting it into the hand-built JS runtime. It also checks that the C that the runtime ports by hand hasn't changed upstream (see [Hand ports](#hand-ports)).
+`xslt/transform.sh` (`npm run transform`) then needs only `build/`, the `c-to-js` stylesheets and `runtime.mjs`, so it's all you need to rerun when working on those: `code-to-xml.ts` parses and serializes `runtime.mjs` to `build/runtime.xml`, and `c-to-js.xsl` translates the C-in-XML to JavaScript, inserting it into the hand-built JS runtime. It also checks that the C that the runtime ports by hand hasn't changed upstream (see [Hand ports](#hand-ports)).
 
 ## The runtime
 

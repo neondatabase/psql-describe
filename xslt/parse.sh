@@ -47,9 +47,6 @@ npx xslt3 -xsl:xslt/add-types.xsl -s:"$BUILD/sources.xml" -o:"$BUILD/typed.xml"
 # The slash-command lexer, which the runtime ports by hand (see xslt/transform.sh)
 cp "$PG/bin/psql/psqlscanslash.l" "$BUILD/"
 
-echo "Parsing JS runtime to XML ..."
-node xslt/code-to-xml.ts javascript xslt/runtime.mjs > "$BUILD/runtime.xml"
-
 echo "Generating SQL help for \\h ..."
 node xslt/create-help.mjs --docdir "$PG/../doc/src/sgml/ref" --output generated/sql-help.generated.mjs
 
