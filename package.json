@@ -17,7 +17,7 @@
     "transform": "xslt/transform.sh",
     "translate": "npm run parse && npm run transform",
     "build": "esbuild index=generated/describe.mjs sql-help=generated/sql-help.generated.mjs --bundle --splitting --format=esm --outdir=. --platform=neutral --target=es2020 --minify --line-limit=120",
-    "check:generated": "git status --porcelain -- generated index.js sql-help.js demo | awk '{ print \"Out of date (regenerate, and commit):\", $0 } END { exit (NR > 0) }'",
+    "check:generated": "status=$(git status --porcelain) && if [ -n \"$status\" ]; then printf 'Not as committed (regenerate, and commit):\\n%s\\n' \"$status\"; exit 1; fi",
     "test:api": "npm run build && node test/test-api.mjs",
     "test:matrix": "npm run build && node test/test-matrix.mjs",
     "test": "npm run test:api && npm run test:matrix",
