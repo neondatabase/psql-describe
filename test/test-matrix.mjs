@@ -340,21 +340,22 @@ async function testSlashHelp(server) {
     lines.length, ' \\?' + (missing === undefined ? '' : `: not in psql's, in order: ${JSON.stringify(missing)}`));
   if (missing !== undefined) throw new Error('\\? lines differ from psql\'s');
 
-  // And each of psql's commands that we support has its line: we support it if running it, as its line gives it
+  // And it's exactly psql's lines for the commands we have: we have a command if running it, as its line gives it
   // (e.g. \lo_export LOBOID FILE, from \lo_export LOBOID FILE write large object to file, and \dRp [PATTERN], from
   // \dRp[x+] [PATTERN]), doesn't say it's an invalid command or not supported
-  const unlisted = [];
+  const wrong = [];
   for (const line of psqlLines.filter(line => line.startsWith('  \\'))) {
     const [name, ...args] = line.trim().split(/\s{2,}/)[0].split(/\s+/);
     const output = [];
     await describe([name.replace(/\[[^\]]*\]|\{[^}]*\}/g, ''), ...args].join(' '), POSTGRES_DB,
       async () => ({ rowCount: 0, fields: [], rows: [] }), x => output.push(x), { serverVersion: 190000 }).promise;
-    if (!output.some(x => /invalid command|is not supported/.test(x)) && !lines.includes(line)) unlisted.push(line);
+    const have = !output.some(x => /invalid command|is not supported/.test(x));
+    if (have !== lines.includes(line)) wrong.push((have ? 'missing: ' : 'unsupported: ') + line.trim());
   }
   const commandCount = psqlLines.filter(line => line.startsWith('  \\')).length;
-  console.log(unlisted.length === 0 ? 'Pass' + ' '.repeat(6 - String(commandCount).length) : '*** FAIL ***', commandCount,
-    ' \\? lines for every command we have' + (unlisted.length === 0 ? '' : `: missing ${JSON.stringify(unlisted)}`));
-  if (unlisted.length > 0) throw new Error('\\? lacks lines for commands we have');
+  console.log(wrong.length === 0 ? 'Pass' + ' '.repeat(6 - String(commandCount).length) : '*** FAIL ***', commandCount,
+    ' \\? lines for exactly the commands we have' + (wrong.length === 0 ? '' : `: ${JSON.stringify(wrong)}`));
+  if (wrong.length > 0) throw new Error('\\? lines don\'t match the commands we have');
 }
 
 async function runTests(server, referenceContainer, label, tests) {

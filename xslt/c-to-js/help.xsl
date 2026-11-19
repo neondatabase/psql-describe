@@ -6,19 +6,22 @@
   runtime.xsl). To find which commands we have, we follow each command's name as psql would: through the if-else chain
   in exec_command, which calls the function for it, and on into that function, if it's passed the name. A command is
   one we have if every function its branch calls is translated or provided by the runtime, and isn't one the runtime
-  declares unsupported, e.g. `do_lo_export = unsupported('lo_export')`.
+  declares unsupported, e.g. `do_lo_export = unsupported('lo_export')`. And the line for each command the runtime names
+  as unsupported goes too: that's how `usage = unsupported('? options')` drops the line for \? options, which is
+  the \? command (which we have) with an argument.
 -->
 <stylesheet version="3.0" expand-text="yes"
   xmlns="http://www.w3.org/1999/XSL/Transform"
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
   xmlns:c="urn:c-to-js">
 
-  <!-- Suppressed (unsupported) lines -->
-  <variable name="suppressed-commands" select="'\\? options', '\\? variables'"/>
+  <!-- The names the runtime declares unsupported, e.g. do_lo_export -->
+  <variable name="unsupported-declarators" select="$runtime-statements/(self::lexical_declaration | self::variable_declaration)
+    /variable_declarator[*[@field = 'value']/self::call_expression/*[@field = 'function'] = 'unsupported']"/>
+  <variable name="unsupported" select="$unsupported-declarators/*[@field = 'name']"/>
 
-  <!-- The names the runtime declares unsupported -->
-  <variable name="unsupported" select="$runtime-statements/(self::lexical_declaration | self::variable_declaration)/variable_declarator
-    [*[@field = 'value']/self::call_expression/*[@field = 'function'] = 'unsupported']/*[@field = 'name']"/>
+  <!-- The commands they're for, as the \? text starts their lines, e.g. \\lo_export and \\? options -->
+  <variable name="unsupported-commands" select="$unsupported-declarators/*[@field = 'value']//string_fragment ! ('\\' || .)"/>
 
   <!-- The functions we have: those provided, translated, or freeing memory (which goes: see memory.xsl), but not
        those unsupported -->
@@ -139,7 +142,7 @@
         <variable name="have" select="
           $commands
           [c:has-command($exec-command, $var, replace(c:literal-text(.), '^  \\\\([^\s\[{]+).*', '$1', 's'))]
-          [not(some $prefix in $suppressed-commands satisfies starts-with(normalize-space(c:literal-text(.)), $prefix))]"/>
+          [not(some $command in $unsupported-commands satisfies starts-with(normalize-space(c:literal-text(.)) || ' ', $command || ' '))]"/>
         <sequence select="if (exists($have)) then current-group() except ($commands except $have) else ()"/>
       </for-each-group>
     </variable>
