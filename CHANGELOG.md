@@ -2,7 +2,9 @@
 
 The C is now translated to JS automatically, from Postgres `REL_19_0`, by XSLT stylesheets (see [xslt/README.md](xslt/README.md)), replacing the RegExp-assisted, hand-fixed port of earlier versions. The output is tested against psql's on Postgres 14 to 19.
 
-**Breaking change:** the optional arguments to `describe()` are now an options object, and some are renamed. So this:
+### Breaking changes
+
+- The optional arguments to `describe()` are now an options object, and some are renamed. So this:
 
 ```js
 describe(cmd, dbName, runQuery, outputFn, echoHidden, sversion, std_strings, docsURLTemplate)
@@ -14,9 +16,12 @@ becomes:
 describe(cmd, dbName, runQuery, outputFn, { echoHidden, serverVersion, standardConformingStrings, docsURLTemplate })
 ```
 
-Other changes:
+- The promise resolves to an object, `{ success, remainder, commands }` (or `null` if cancelled), not a boolean. So a check such as `if (!(await promise))` no longer sees failures: use `(await promise)?.success` instead. (Before, it resolved to `false` if a query failed, and also, misleadingly, for `\?` and `\h`.)
+- Text output, such as messages and warnings, comes to `outputFn` as one item up to the next table, or the end, as psql prints it together: e.g. `\dt foo bar` gives one item, where it gave two.
+- A table's `footer` (the last footer) is now `{ data }`, as in C's `printTableFooter`, not a string. `footers` is unchanged.
 
-- The promise now resolves to `{ success, remainder, commands }` (or `null` if cancelled): whether every command succeeded, what wasn't run (e.g. SQL after the backslash commands, which psql would send to the server), and how many commands ran. The resolved value was previously `true`, but undocumented.
+### Other changes
+
 - A new `multipleCommands` option runs every backslash command at the start of `cmd`, as psql does with the lines it reads: e.g. `\dt film \dv`, `\dt \\ SELECT 1`, or `\dt` and `\dv` on lines of their own, followed by SQL. The default, `false`, runs only the first, as `psql -c` does.
 - `cancel()` now resolves the promise to `null` at once, without waiting for a query in flight.
 - The `\h` SQL help is a separate file, `sql-help.js`, loaded the first time `\h` runs: so it's left out of the main bundle (by Vite, webpack, etc.), which is about a third smaller. If it can't be loaded, `\h` gives an error.
