@@ -16,13 +16,20 @@
     A statement that only frees memory goes, along with the whitespace before it. That includes an if statement whose
     body only frees memory (and whose condition has no side effects), e.g. `if (x) PQclear(res);`, and a loop whose
     body only frees memory, such as `for (p = list; *p; p++) free(*p);`. Where a statement can't just go, because
-    it's the body of an if or loop that stays, it becomes {}.
+    it's the body of an if or loop that stays, it becomes {}. But what a free's arguments do stays: so
+    `PQclear(executeQuery(...));` is `executeQuery(...);`.
   -->
 
   <param name="freeing-functions" select="'free', 'pg_free', 'PQclear', 'termPQExpBuffer', 'destroyPQExpBuffer', 'printTableCleanup'"/>
 
+  <!-- Is a call a free: a statement calling one of $freeing-functions? -->
+  <function name="c:is-free-call" as="xs:boolean">
+    <param name="call" as="element()"/>
+    <sequence select="exists($call/self::call_expression[parent::expression_statement][*[@field = 'function'] = $freeing-functions])"/>
+  </function>
+
   <!-- Does a node only free memory? It does if it's:
-       - an expression_statement whose call_expression's function name is in $freeing-functions, e.g. `free(x);`
+       - a free whose arguments have no side effects, e.g. `free(x);`
        - a block whose statements (other than comments) all only free memory, apart from declarations without side
          effects (e.g. of a loop variable)
        - an if_statement with no else, whose condition contains no calls, assignments, increments or decrements, and
@@ -33,7 +40,7 @@
   <function name="c:is-freeing" as="xs:boolean">
     <param name="statement" as="node()"/>
     <variable name="statements" select="c:inner($statement/self::compound_statement)"/>
-    <sequence select="exists($statement/self::expression_statement/call_expression/*[@field = 'function'][. = $freeing-functions])
+    <sequence select="exists($statement/self::expression_statement/call_expression[c:is-free-call(.)][not(c:has-side-effects(*[@field = 'arguments']))])
       or (some $s in $statements satisfies c:is-freeing($s))
         and (every $s in $statements satisfies c:is-freeing($s) or $s/self::declaration[not(c:has-side-effects(.))])
       or exists($statement/self::if_statement[not(*[@field = 'alternative'])]
@@ -49,6 +56,12 @@
 
   <!-- But in a block or case, where it's one of a list of statements: output nothing -->
   <template match="(compound_statement | case_statement)/*[c:is-freeing(.)]" priority="1"/>
+
+  <!-- A free whose arguments have side effects, e.g. PQclear(executeQuery(...));: just its arguments, executeQuery(...); -->
+  <template match="expression_statement[call_expression[c:is-free-call(.)][c:has-side-effects(*[@field = 'arguments'])]]">
+    <value-of select="string-join(call_expression/*[@field = 'arguments']/*[not(self::token | self::comment)] ! c:js(.), ', ')"/>
+    <text>;</text>
+  </template>
 
   <!-- The whitespace just before such a statement (e.g. a newline and indent): output nothing, so that the deleted
        statement doesn't leave a blank line. Likewise for the other statements that go, below: labels whose statement

@@ -38,13 +38,15 @@
   </template>
 
   <!-- Is this a node in C that isn't translated, so that the names in it don't count? It is if it's in a dropped branch, a
-       statement that only frees memory or an array allocation (see memory.xsl), or an array's size in a declarator (see syntax.xsl) -->
+       statement that only frees memory, the name of a freeing function in a free that stays for its arguments, or an
+       array allocation (see memory.xsl), or an array's size in a declarator (see syntax.xsl) -->
   <function name="c:is-dropped" as="xs:boolean">
     <param name="node" as="node()"/>
     <sequence select="
       exists($node/ancestor-or-self::* intersect $dropped-branches)
       or exists($node/ancestor-or-self::*[
         c:is-freeing(.)
+        or @field = 'function' and parent::call_expression[c:is-free-call(.)]
         or c:is-array-allocation(.)
         or @field = 'size' and parent::array_declarator
       ])"/>
