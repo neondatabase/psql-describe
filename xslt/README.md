@@ -153,6 +153,8 @@ Since it makes no difference where a template is, the rules are arranged as a st
    <template match="initializer_list/token[. = '}']">]</template>
    ```
 
+   That's right when `buf` is a local char array, or a `char *` parameter that the function goes on to use or return, as in `formatPGVersionNumber`. But a JS function can't change its caller's string, so a caller that reads its buffer after such a call, rather than using the result, would read `''`: e.g. `formatPGVersionNumber(..., vbuf, sizeof(vbuf)); SetVariable(..., vbuf);` in psql's `SyncVariables`. So that call is refused (`c:reads-unset-buffer`), and so is `snprintf` into anything else, such as a struct's field.
+
    This file also has functions about expressions in general, for the files that follow: e.g. which assignment last set a variable before some point (`c:last-set`).
 
 5. **`memory.xsl`, what goes:** a statement that only frees memory goes, along with the whitespace before it. So does a block, an `if` or a loop whose body only frees memory, as long as its condition makes no calls: e.g. `for (p = list; *p; p++) free(*p);`. Where a statement can't just go, because it's the body of an `if` or loop that stays, it becomes `{}`. (So `while ((arg = next_option(...)) != NULL) free(arg);` keeps its loop, since deleting it would skip the calls. Likewise, a free whose arguments do something keeps what they do: `PQclear(executeQuery(...));` is `executeQuery(...);`, which runs the query, and `executeQuery` still has to be translated or provided.) The recursion is in a `function`, `c:is-freeing`, which a template's match pattern can call. `pg_malloc_array(type, n)` is `[]`.

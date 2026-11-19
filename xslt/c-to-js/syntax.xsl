@@ -81,11 +81,52 @@
     <apply-templates select="*[@field = 'value']"/>
   </template>
 
-  <!-- snprintf(buf, size, format, ...), as a statement: buf = sprintf(format, ...) -->
+  <!-- snprintf(buf, size, format, ...), as a statement: buf = sprintf(format, ...). That's right where buf is a local
+       char array, or a char * parameter that the function then reads or returns (as in formatPGVersionNumber). But
+       it's refused (see strings.xsl) for anything else, e.g. a struct's field, which the assignment wouldn't change -->
   <template match="call_expression[*[@field = 'function'] = 'snprintf'][c:is-statement(.)]">
     <variable name="arguments" select="c:arguments(.)"/>
-    <text>{c:js($arguments[1])} = sprintf(</text>
-    <apply-templates select="$arguments[3], $arguments[3]/following-sibling::node()"/>
+    <choose>
+      <when test="$arguments[1]/self::identifier[c:is-array(.)][key('local-declaration', @declared)] or c:is-own-parameter($arguments[1])">
+        <text>{c:js($arguments[1])} = sprintf(</text>
+        <apply-templates select="$arguments[3], $arguments[3]/following-sibling::node()"/>
+      </when>
+      <otherwise>
+        <value-of select="c:refuse(.)"/>
+      </otherwise>
+    </choose>
+  </template>
+
+  <!-- Is an expression a parameter of the function it's in? -->
+  <function name="c:is-own-parameter" as="xs:boolean">
+    <param name="expr" as="element()?"/>
+    <sequence select="exists($expr/self::identifier[@declared = ancestor::function_definition[1]
+      /descendant::parameter_list[1]/parameter_declaration//identifier[@field = 'declarator']/@declared])"/>
+  </function>
+
+  <!-- The parameters set by snprintf in the functions we translate, e.g. buf in formatPGVersionNumber. Setting one
+       only rebinds the parameter: the caller's buffer doesn't change, as it would in C. -->
+  <variable name="snprintf-parameters" select="$translated//call_expression[*[@field = 'function'] = 'snprintf'][c:is-statement(.)]
+    ! c:arguments(.)[1][c:is-own-parameter(.)] ! (let $id := . return ancestor::function_definition[1]
+      /descendant::parameter_list[1]/parameter_declaration[descendant::identifier[@field = 'declarator']/@declared = $id/@declared])"/>
+
+  <!-- Does a call pass a variable to a parameter set by snprintf, and then read the variable? Then it relies on the
+       callee setting its buffer, as in `formatPGVersionNumber(..., vbuf, sizeof(vbuf)); SetVariable(..., vbuf);` (in
+       psql's SyncVariables), which would read an empty string. (Using the result, as in
+       `pg_log_error("...", formatPGVersionNumber(..., sverbuf, sizeof(sverbuf)))`, is fine.) -->
+  <function name="c:reads-unset-buffer" as="xs:boolean">
+    <param name="call" as="element()"/>
+    <variable name="parameters" select="key('definition', $call/*[@field = 'function']/self::identifier, $sources)
+      [self::function_definition]/descendant::parameter_list[1]/parameter_declaration"/>
+    <variable name="arguments" select="c:arguments($call)"/>
+    <sequence select="some $i in 1 to count($parameters) satisfies exists($parameters[$i] intersect $snprintf-parameters)
+      and exists($arguments[$i]/self::identifier[@declared][let $declared := @declared return
+        exists($call/ancestor::function_definition[1]//identifier[@declared = $declared][. >> $call][not(ancestor::* intersect $call)])])"/>
+  </function>
+
+  <!-- Such a call: refused -->
+  <template match="call_expression[c:reads-unset-buffer(.)]" priority="1">
+    <value-of select="c:refuse(.)"/>
   </template>
 
   <!--
