@@ -148,6 +148,14 @@ The matrix downloads Pagila on first use and caches it in the .gitignored `test/
 
 Version suffixes on command and fixture files select the PostgreSQL versions to which they apply: `-18` means exactly version 18, `-15-16` means versions 15 through 16 inclusive, and `-18-` means version 18 and later.
 
+## Releasing
+
+1. Bump the version in `package.json` and `package-lock.json` (e.g. `npm version --no-git-tag-version minor`).
+2. Make sure `CHANGELOG.md` has a heading for the new version, with the release date (e.g. `## 0.2.0 (2026-11-19)`).
+3. Merge to `main`, and wait for CI to pass.
+
+Then, from a clean `main` matching `origin/main`, run `npm run tag-release`. This checks that the version isn't yet on npm, that the CHANGELOG has a dated heading for it, and that the Test workflow passed on `main` for the current commit (which means the committed build output is up to date). Then it creates and pushes an annotated `vX.Y.Z` tag.
+
 ## License
 
 This package is released under the [Postgres license](LICENSE).

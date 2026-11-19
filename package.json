@@ -1,13 +1,14 @@
 {
   "name": "psql-describe",
-  "version": "0.3.0",
+  "version": "0.2.0",
   "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
   "files": [
     "index.js",
     "sql-help.js",
     "index.d.ts",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "fetch-postgres": "xslt/fetch-postgres.sh",
@@ -23,7 +24,8 @@
     "bundle-demo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020",
     "regenerate": "npm run fetch-postgres && npm run check:xslt && npm run translate && npm run build && npm run bundle-demo",
     "end-to-end": "npm run regenerate && npm test",
-    "ci": "npm run regenerate && npm run check:generated && npm test"
+    "ci": "npm run regenerate && npm run check:generated && npm test",
+    "tag-release": "./tag-release.sh"
   },
   "type": "module",
   "author": "George MacKerron",
