@@ -339,6 +339,22 @@ async function testSlashHelp(server) {
   console.log(missing === undefined ? 'Pass' + ' '.repeat(6 - String(lines.length).length) : '*** FAIL ***',
     lines.length, ' \\?' + (missing === undefined ? '' : `: not in psql's, in order: ${JSON.stringify(missing)}`));
   if (missing !== undefined) throw new Error('\\? lines differ from psql\'s');
+
+  // And each of psql's commands that we support has its line: we support it if running it, as its line gives it
+  // (e.g. \lo_export LOBOID FILE, from \lo_export LOBOID FILE write large object to file, and \dRp [PATTERN], from
+  // \dRp[x+] [PATTERN]), doesn't say it's an invalid command or not supported
+  const unlisted = [];
+  for (const line of psqlLines.filter(line => line.startsWith('  \\'))) {
+    const [name, ...args] = line.trim().split(/\s{2,}/)[0].split(/\s+/);
+    const output = [];
+    await describe([name.replace(/\[[^\]]*\]|\{[^}]*\}/g, ''), ...args].join(' '), POSTGRES_DB,
+      async () => ({ rowCount: 0, fields: [], rows: [] }), x => output.push(x), { serverVersion: 190000 }).promise;
+    if (!output.some(x => /invalid command|is not supported/.test(x)) && !lines.includes(line)) unlisted.push(line);
+  }
+  const commandCount = psqlLines.filter(line => line.startsWith('  \\')).length;
+  console.log(unlisted.length === 0 ? 'Pass' + ' '.repeat(6 - String(commandCount).length) : '*** FAIL ***', commandCount,
+    ' \\? lines for every command we have' + (unlisted.length === 0 ? '' : `: missing ${JSON.stringify(unlisted)}`));
+  if (unlisted.length > 0) throw new Error('\\? lacks lines for commands we have');
 }
 
 async function runTests(server, referenceContainer, label, tests) {
