@@ -2,7 +2,7 @@
 
 psql's `\d` (describe) family of commands ported to JavaScript.
 
-* From Postgres `REL_19_RC2`, we translate psql's C to JS automatically: its backslash-command handling and everything that the `\d` describe commands and `\sf`, `\sv`, `\lo_list`, `\z`, `\?` and `\h` need from `command.c`, `describe.c`, `help.c`, `print.c`, `string_utils.c` and `common.c`.
+* From Postgres `REL_19_0`, we translate psql's C to JS automatically: its backslash-command handling and everything that the `\d` describe commands and `\sf`, `\sv`, `\lo_list`, `\z`, `\?` and `\h` need from `command.c`, `describe.c`, `help.c`, `print.c`, `string_utils.c` and `common.c`.
 * The translation is done by XSLT stylesheets, working on tree-sitter's parse of the C serialized to XML. These insert the translated C into a hand-written JS runtime that provides the C library functions that psql needs, such as `strchr` and `PQexec`, and the table output.
 * We generate the `\h` SQL help from the Postgres SGML doc files (rather like how `create_help.pl` generates `sql_help.c` for `psql`).
 * We test the output against psql's on Postgres 14 to 19.
@@ -125,7 +125,7 @@ MACOSX_DEPLOYMENT_TARGET="$(sw_vers -productVersion)" make
 
 The database-dependent tests compare this software's output against the PostgreSQL 19 `psql` client for the commands in `test/commands/tests-*.txt`. Output should be character-for-character identical, except for differences in trailing whitespace.
 
-The same client is tested against the latest official PostgreSQL 14, 15, 16, and 17 container images, `imresamu/postgis:18-3.6` for PostgreSQL 18, and the official PostgreSQL 19rc2 image. This exercises all server-version branches and adds coverage of PostGIS objects.
+The same client is tested against the latest official PostgreSQL 14, 15, 16, 17 and 19 container images, and `imresamu/postgis:18-3.6` for PostgreSQL 18 with PostGIS (because the official PostGIS image is not multi-arch). This exercises all server-version branches and adds coverage of PostGIS objects.
 
 In case of failure, the tests halt and a `psql.txt` and `local.txt` are written, which you can then `diff`.
 
@@ -155,6 +155,8 @@ Version suffixes on command and fixture files select the PostgreSQL versions to 
 3. Merge to `main`, and wait for CI to pass.
 
 Then, from a clean `main` matching `origin/main`, run `npm run tag-release`. This checks that the version isn't yet on npm, that the CHANGELOG has a dated heading for it, and that the Test workflow passed on `main` for the current commit (which means the committed build output is up to date). Then it creates and pushes an annotated `vX.Y.Z` tag.
+
+Publish using that `vX.Y.Z` tag.
 
 ## License
 

@@ -1,4 +1,4 @@
-var fn="19rc2";var dn=`Help
+var fn="19.0";var dn=`Help
   \\? [commands]          show help on backslash commands
   \\h [NAME]              help on syntax of SQL commands, * for all commands
 

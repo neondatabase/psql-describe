@@ -1,6 +1,6 @@
 ## 0.2.0 (2026-11-19)
 
-The C is now translated to JS automatically, from Postgres `REL_19_RC2`, by XSLT stylesheets (see [xslt/README.md](xslt/README.md)), replacing the RegExp-assisted, hand-fixed port of earlier versions. The output is tested against psql's on Postgres 14 to 19.
+The C is now translated to JS automatically, from Postgres `REL_19_0`, by XSLT stylesheets (see [xslt/README.md](xslt/README.md)), replacing the RegExp-assisted, hand-fixed port of earlier versions. The output is tested against psql's on Postgres 14 to 19.
 
 **Breaking change:** the optional arguments to `describe()` are now an options object, and some are renamed. So this:
 

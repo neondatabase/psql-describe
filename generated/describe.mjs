@@ -34,7 +34,7 @@ const OT_WHOLE_LINE = 4;
 const PSQL_ECHO_HIDDEN_OFF = 0;
 const PSQL_ECHO_HIDDEN_ON = 1;
 const PSQL_ECHO_HIDDEN_NOEXEC = 2;
-const PG_VERSION = "19rc2";
+const PG_VERSION = "19.0";
 const PG_MAJORVERSION = "19";
 
 const helpText =

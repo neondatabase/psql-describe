@@ -16,7 +16,7 @@ const POSTGRES_VERSIONS = [
   // official postgis/postgis image: unlike the official one (amd64 only), it's
   // multi-arch, so it runs natively on arm64 (e.g. Apple silicon)
   { major: '18', tag: '18', image: 'docker.io/imresamu/postgis:18-3.6@sha256:b5766ee720aca09c61b9a868abefbf273348a4b90ad4cf146b4f8c9ac85d48e4' },
-  { major: '19', tag: '19rc2', digest: 'sha256:15924313d5606f326836976643a5f681a64fb30f591e79fcb15e160979323802' },
+  { major: '19', tag: '19rc2', digest: 'sha256:d34ad117d8c8cdbefc60196f88e1c8d1ea0940395b4d09304b169b074e57cb20' },
 ];
 
 // fixed revision, compatible with all Postgres versions
@@ -32,7 +32,7 @@ function usage() {
   return `Usage: node test/test-matrix.mjs [options]
 
 Run database-dependent tests against PostgreSQL container images.
-PostgreSQL 19rc2 psql is used as the reference client for every server.
+PostgreSQL 19 psql is used as the reference client for every server.
 
 Options:
   --runtime podman|docker  Container runtime (auto-detected by default)

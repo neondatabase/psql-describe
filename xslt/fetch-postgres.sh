@@ -8,7 +8,7 @@
 # Usage: xslt/fetch-postgres.sh
 
 set -eo pipefail
-TAG=REL_19_RC2
+TAG=REL_19_0
 DIR=build/postgres
 
 if [ "$(git -C "$DIR" describe --tags --exact-match HEAD 2>/dev/null)" = "$TAG" ]; then
