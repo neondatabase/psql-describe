@@ -4,29 +4,49 @@
   "description": "psql's `\\d` (describe) family of commands ported to JavaScript.",
   "files": [
     "index.js",
+    "sql-help.js",
     "index.d.ts",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "npm run test:api && npm run test:matrix",
+    "fetch-postgres": "xslt/fetch-postgres.sh",
+    "check:xslt": "tsc -p xslt",
+    "parse": "xslt/parse.sh",
+    "transform": "xslt/transform.sh",
+    "translate": "npm run parse && npm run transform",
+    "build": "esbuild index=generated/describe.mjs sql-help=generated/sql-help.generated.mjs --bundle --splitting --format=esm --outdir=. --platform=neutral --target=es2020 --minify --line-limit=120",
+    "check:generated": "status=$(git status --porcelain) && if [ -n \"$status\" ]; then printf 'Not as committed (regenerate, and commit):\\n%s\\n' \"$status\"; exit 1; fi",
     "test:api": "npm run build && node test/test-api.mjs",
     "test:matrix": "npm run build && node test/test-matrix.mjs",
-    "build": "esbuild src/describe.mjs --bundle --outfile=index.js --platform=neutral --target=es2020 --minify --line-limit=120",
-    "bundleDemo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020"
+    "test": "npm run test:api && npm run test:matrix",
+    "bundle-demo": "esbuild demo-src/demo.js --bundle --outfile=demo/demo.js --platform=neutral --target=es2020",
+    "regenerate": "npm run fetch-postgres && npm run check:xslt && npm run translate && npm run build && npm run bundle-demo",
+    "end-to-end": "npm run regenerate && npm test",
+    "ci": "npm run regenerate && npm run check:generated && npm test",
+    "tag-release": "./tag-release.sh"
   },
   "type": "module",
   "author": "George MacKerron",
   "license": "postgresql",
   "devDependencies": {
+    "@types/node": "^26.6.5",
     "esbuild": "^0.28.2",
-    "pg": "^8.23.0"
+    "pg": "^8.23.0",
+    "tree-sitter-c": "^0.24.1",
+    "tree-sitter-javascript": "^0.25.0",
+    "typescript": "^7.0.2",
+    "web-tree-sitter": "^0.27.1",
+    "xslt3": "^2.7.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/neondatabase/psql-describe"
   },
   "allowScripts": {
-    "esbuild@0.28.2": true
+    "esbuild@0.28.2": true,
+    "tree-sitter-c": false,
+    "tree-sitter-javascript": false
   }
 }

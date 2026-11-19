@@ -2,7 +2,8 @@
 
 import fs from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
-import { helpIndex } from '../src/sql-help.generated.mjs';
+import { helpIndex } from '../generated/sql-help.generated.mjs';
+import { describe } from '../index.js';
 
 // images are pinned to multi-arch index digests, so their contents can't change
 // without a commit here
@@ -15,7 +16,7 @@ const POSTGRES_VERSIONS = [
   // official postgis/postgis image: unlike the official one (amd64 only), it's
   // multi-arch, so it runs natively on arm64 (e.g. Apple silicon)
   { major: '18', tag: '18', image: 'docker.io/imresamu/postgis:18-3.6@sha256:b5766ee720aca09c61b9a868abefbf273348a4b90ad4cf146b4f8c9ac85d48e4' },
-  { major: '19', tag: '19rc1', digest: 'sha256:de2cbeff2b8177e65bd64d077b46c90a1898aa8aea974a9e35a8cf60b5e90581' },
+  { major: '19', tag: '19rc2', digest: 'sha256:d34ad117d8c8cdbefc60196f88e1c8d1ea0940395b4d09304b169b074e57cb20' },
 ];
 
 // fixed revision, compatible with all Postgres versions
@@ -31,7 +32,7 @@ function usage() {
   return `Usage: node test/test-matrix.mjs [options]
 
 Run database-dependent tests against PostgreSQL container images.
-PostgreSQL 19rc1 psql is used as the reference client for every server.
+PostgreSQL 19 psql is used as the reference client for every server.
 
 Options:
   --runtime podman|docker  Container runtime (auto-detected by default)
@@ -124,7 +125,12 @@ function run(command, args, { input, env, capture = false } = {}) {
       child.stdout.on('data', chunk => output += chunk);
       child.stderr.on('data', chunk => output += chunk);
     }
-    if (input !== undefined) child.stdin.end(input);
+    if (input !== undefined) {
+      // The child may exit before reading all its input (e.g. psql with ON_ERROR_STOP, at an error): then its exit
+      // status and output, on close, say why
+      child.stdin.on('error', error => { if (error.code !== 'EPIPE') reject(error); });
+      child.stdin.end(input);
+    }
 
     child.on('error', reject);
     child.on('close', code => {
@@ -242,18 +248,17 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 }
 
 async function waitUntilReady(container) {
-  let consecutiveReadyChecks = 0;
-
   for (let attempt = 0; attempt < 120; attempt++) {
+    // On first start, the image's entrypoint runs initdb and its init scripts
+    // (e.g. postgis's) on a temporary server, then stops it and starts the
+    // real one. The temporary server only listens on the Unix socket, so
+    // checking over TCP waits for the real one.
     const status = spawnSync(
       runtime,
-      ['exec', container, 'pg_isready', '-U', 'postgres', '-d', POSTGRES_DB],
+      ['exec', container, 'pg_isready', '-h', '127.0.0.1', '-U', 'postgres', '-d', POSTGRES_DB],
       { stdio: 'ignore' },
     ).status;
-    consecutiveReadyChecks = status === 0 ? consecutiveReadyChecks + 1 : 0;
-    // initdb briefly starts and then stops a temporary server. Waiting for
-    // several successful checks avoids racing that shutdown.
-    if (consecutiveReadyChecks === 4) return;
+    if (status === 0) return;
     await new Promise(resolve => setTimeout(resolve, 250));
   }
 
@@ -263,7 +268,6 @@ async function waitUntilReady(container) {
 
 async function startServer(version) {
   const container = containerName(version);
-  const alias = `pg${version.major}`;
 
   await run(runtime, [
     'run',
@@ -271,7 +275,6 @@ async function startServer(version) {
     '--rm',
     '--name', container,
     '--network', network,
-    '--network-alias', alias,
     '--env', `POSTGRES_PASSWORD=${POSTGRES_PASSWORD}`,
     '--env', `POSTGRES_DB=${POSTGRES_DB}`,
     '--publish', '127.0.0.1::5432',
@@ -284,11 +287,19 @@ async function startServer(version) {
   const port = portOutput.trim().match(/:(\d+)$/)?.[1];
   if (!port) throw new Error(`could not determine host port from: ${portOutput}`);
 
+  // The reference psql, in another container on the network, connects by IP address rather than by name, since
+  // container DNS (e.g. Podman's aardvark-dns) can fail to resolve a container started just after another was removed
+  const ipOutput = await run(runtime, ['inspect', '--format',
+    `{{(index .NetworkSettings.Networks "${network}").IPAddress}}`, container], { capture: true });
+  const ip = ipOutput.trim();
+  if (!/^[0-9.]+$/.test(ip)) throw new Error(`could not determine ${container}'s address from: ${ipOutput}`);
+
   return {
-    alias,
     container,
+    // for psql-describe, which runs on the host
     hostUrl: `postgres://postgres:${POSTGRES_PASSWORD}@127.0.0.1:${port}/${POSTGRES_DB}`,
-    networkUrl: `postgres://postgres:${POSTGRES_PASSWORD}@${alias}:5432/${POSTGRES_DB}`,
+    // for the reference psql, which runs in the reference container
+    networkUrl: `postgres://postgres:${POSTGRES_PASSWORD}@${ip}:5432/${POSTGRES_DB}`,
   };
 }
 
@@ -308,6 +319,43 @@ async function setupDatabase(server, version, pagilaSchema, pagilaData) {
   for (const fixture of filesForVersion(versionedAdditions, version)) {
     await loadSql(server.container, fixture.filename, fixture.contents);
   }
+}
+
+// Our \? lists only some of psql's commands, so rather than compare outputs, check
+// that each of our lines is one of psql's, in the same order
+async function testSlashHelp(server) {
+  console.log('\nBackslash command help');
+  const psqlLines = (await run(
+    runtime,
+    ['exec', server.container, 'psql', '-X', '-U', 'postgres', '-d', POSTGRES_DB, '-c', '\\?'],
+    { capture: true },
+  )).split('\n');
+  const outputs = [];
+  await describe('\\?', POSTGRES_DB, () => { throw new Error('no queries for \\?'); }, x => outputs.push(x)).promise;
+  const lines = outputs.join('\n').split('\n');
+
+  let i = 0;
+  const missing = lines.find(line => (i = psqlLines.indexOf(line, i) + 1) === 0);
+  console.log(missing === undefined ? 'Pass' + ' '.repeat(6 - String(lines.length).length) : '*** FAIL ***',
+    lines.length, ' \\?' + (missing === undefined ? '' : `: not in psql's, in order: ${JSON.stringify(missing)}`));
+  if (missing !== undefined) throw new Error('\\? lines differ from psql\'s');
+
+  // And it's exactly psql's lines for the commands we have: we have a command if running it, as its line gives it
+  // (e.g. \lo_export LOBOID FILE, from \lo_export LOBOID FILE write large object to file, and \dRp [PATTERN], from
+  // \dRp[x+] [PATTERN]), doesn't say it's an invalid command or not supported
+  const wrong = [];
+  for (const line of psqlLines.filter(line => line.startsWith('  \\'))) {
+    const [name, ...args] = line.trim().split(/\s{2,}/)[0].split(/\s+/);
+    const output = [];
+    await describe([name.replace(/\[[^\]]*\]|\{[^}]*\}/g, ''), ...args].join(' '), POSTGRES_DB,
+      async () => ({ rowCount: 0, fields: [], rows: [] }), x => output.push(x), { serverVersion: 190000 }).promise;
+    const have = !output.some(x => /invalid command|is not supported/.test(x));
+    if (have !== lines.includes(line)) wrong.push((have ? 'missing: ' : 'unsupported: ') + line.trim());
+  }
+  const commandCount = psqlLines.filter(line => line.startsWith('  \\')).length;
+  console.log(wrong.length === 0 ? 'Pass' + ' '.repeat(6 - String(commandCount).length) : '*** FAIL ***', commandCount,
+    ' \\? lines for exactly the commands we have' + (wrong.length === 0 ? '' : `: ${JSON.stringify(wrong)}`));
+  if (wrong.length > 0) throw new Error('\\? lines don\'t match the commands we have');
 }
 
 async function runTests(server, referenceContainer, label, tests) {
@@ -350,7 +398,10 @@ try {
   const referenceVersion = POSTGRES_VERSIONS.at(-1);
   const referenceServer = await startServer(referenceVersion);
 
-  if (help) await runTests(referenceServer, referenceServer.container, 'SQL help', helpTests);
+  if (help) {
+    await runTests(referenceServer, referenceServer.container, 'SQL help', helpTests);
+    await testSlashHelp(referenceServer);
+  }
 
   for (const version of versions) {
     const server = version.major === referenceVersion.major

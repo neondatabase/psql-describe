@@ -11,10 +11,12 @@
 \sf+ citext(boolean)
 \sf last_day
 \sf+ last_day(timestamptz)
+\sf no_such_function
 \sv
 \sv actor_info
 \sv+ actor_info
 \sv pg_stats
+\sv no_such_view
 \sz
 \d
 \d+
@@ -25,6 +27,21 @@
 \d public.Film
 \d public."Film"
 \d public.'Film'
+\dt "o'x"
+\dt "o'x";
+\dt 'o''x'
+\dt 'o\'x'
+\dt 'o\047x'
+\dt 'o\x27x'
+\dt 'o\303\251x'
+\dt 'o\xc3\xa9x'
+\dt 'o\0x'
+\dt o'''x'
+\dt 'o"x'
+\dt ';'
+\dt film \dv
+\dt film \\ \dv actor_info
+\dz \dv
 \d psqldescribe.public.film
 \d other.public.film
 \dS
@@ -192,6 +209,7 @@
 \duS
 \duS+
 \du p?stgres
+\du *connection*_role
 \dx
 \dx+
 \dx+ ??text
@@ -210,3 +228,4 @@
 \d+ payment_p2022_01
 \d+ payment_pkey
 \d+ empty_partitioned
+\sv "json_table"

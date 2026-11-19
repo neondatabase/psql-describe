@@ -36,8 +36,8 @@ export function parseURL(url, parseQueryString = false) {
 function openPsqlSession() {
   const command = psqlContainer ? psqlContainerRuntime : psqlPath;
   const args = psqlContainer
-    ? ['exec', '-i', '-e', 'PGCLIENTENCODING=UTF8', psqlContainer, 'psql', psqlDbUrl, '-X', '-P', 'pager=off', '-E']
-    : [dbUrl, '-X', '-P', 'pager=off', '-E'];
+    ? ['exec', '-i', '-e', 'PGCLIENTENCODING=UTF8', psqlContainer, 'psql', psqlDbUrl, '-X', '-P', 'pager=off', '-E', '-v', 'ON_ERROR_STOP=1']
+    : [dbUrl, '-X', '-P', 'pager=off', '-E', '-v', 'ON_ERROR_STOP=1'];
 
   const child = spawn(command, args, {
     env: { ...process.env, PGCLIENTENCODING: 'UTF8' },  // to match node-postgres for \dconfig
@@ -47,6 +47,10 @@ function openPsqlSession() {
   // Results go to stdout, errors such as `\sf` with no argument go to stderr.
   // Completing on an `\echo` marker alone can resolve before stderr is read, so
   // each command is followed by markers on both streams.
+  //
+  // psql doesn't record whether a backslash command failed anywhere we can read,
+  // but with ON_ERROR_STOP, it exits (with status 3) when one does, before the
+  // markers: so then the command failed, and the session is over.
   let stdoutBuf = '';
   let stderrBuf = '';
   let seq = 0;
@@ -60,7 +64,10 @@ function openPsqlSession() {
       } else if (signal) {
         exitError = new Error(`psql exited from signal ${signal}${stderrBuf || stdoutBuf ? `\n${stdoutBuf}${stderrBuf}` : ''}`);
       }
-      if (pending) {
+      if (pending && code === 3) {
+        pending.resolve({ output: stdoutBuf + stderrBuf, failed: true });
+        pending = null;
+      } else if (pending) {
         pending.reject(exitError ?? new Error(`psql closed before marker${stderrBuf || stdoutBuf ? `\n${stdoutBuf}${stderrBuf}` : ''}`));
         pending = null;
       }
@@ -96,7 +103,7 @@ function openPsqlSession() {
     if (pending.gotOut && pending.gotErr) {
       const { resolve, outPart, errPart } = pending;
       pending = null;
-      resolve(outPart + errPart);
+      resolve({ output: outPart + errPart, failed: false });
     }
   }
 
@@ -196,19 +203,26 @@ try {
 
   for (let test of expandedTests) {
     const localOutputArr = [];
-    const [psqlOutput] = await Promise.all([
+    const [{ output: psqlOutput, failed: psqlFailed }, { success }] = await Promise.all([
       psqlSession.run(test),
       describe(
         test,
         db.pathname.slice(1),
         queryFn, (...x) => localOutputArr.push(x),
-        true,
-        null,
-        true,
-        id => `https://www.postgresql.org/docs/current/${id}.html`
+        {
+          echoHidden: true,
+          docsURLTemplate: id => `https://www.postgresql.org/docs/current/${id}.html`,
+          multipleCommands: true,  // as psql reading stdin
+        },
       ).promise,
     ]);
     const localOutput = localOutputArr.map(x => describeDataToString(...x)).join('\n\n');
+
+    // a failed command ends the psql session (see openPsqlSession), so start another
+    if (psqlFailed) {
+      psqlSession = openPsqlSession();
+      await psqlSession.ready();
+    }
 
     const stdPsqlOutput = psqlOutput
       .replace(/\/docs\/\d+\//g, '/docs/current/')
@@ -220,12 +234,7 @@ try {
 
     // exceptions: ignore unimportant differences
     if (!pass) {
-      if (test === '\\dFp+' &&
-        stdPsqlOutput.replace(/\n\(\d+ rows?\)/g, '')
-        === stdLocalOutput.replace(/\n\(\d+ rows?\)/g, '')) {
-        pass = true;
-
-      } else if ((test === '\\dconfig' || test === '\\dconfig+') &&
+      if ((test === '\\dconfig' || test === '\\dconfig+') &&
         stdPsqlOutput.replace(/\n\s*application_name[^\n]+/, '').replace(/\n\(\d+ rows?\)/g, '')
         === stdLocalOutput.replace(/\n\(\d+ rows?\)/g, '')) {
         pass = true;
@@ -233,8 +242,13 @@ try {
       }
     }
 
+    // and the command fails if and only if psql's does
+    const successMatches = success === !psqlFailed;
+    pass &&= successMatches;
+
     const lineCount = countLines(stdLocalOutput);
-    console.log(pass ? 'Pass' + ' '.repeat(6 - String(lineCount).length) : '*** FAIL ***', lineCount, ' ' + test);
+    console.log(pass ? 'Pass' + ' '.repeat(6 - String(lineCount).length) : '*** FAIL ***', lineCount, ' ' + test +
+      (successMatches ? '' : ` (success is ${success}, but psql's command ${psqlFailed ? 'failed' : 'succeeded'})`));
 
     if (!pass) {
       fs.writeFileSync('psql.txt', stdPsqlOutput);

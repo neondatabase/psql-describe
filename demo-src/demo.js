@@ -1,4 +1,4 @@
-import { describe, describeDataToString, describeDataToHtml, htmlEscape } from '../src/describe.mjs';
+import { describe, describeDataToString, describeDataToHtml, htmlEscape } from '../generated/describe.mjs';
 
 function parse(url, parseQueryString) {
   const { protocol } = new URL(url);
@@ -81,7 +81,7 @@ async function go() {
         firstOutput = false;
       };
 
-    const { promise, cancel } = describe(cmd, dbName, queryFn, outputFn, echoHidden);
+    const { promise, cancel } = describe(cmd, dbName, queryFn, outputFn, { echoHidden });
     cancelFn = cancel;
     const status = await promise;
 

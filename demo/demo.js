@@ -1,796 +1,1089 @@
-// src/sql-help.generated.mjs
-var helpIndex = [
-  ["ABORT", "abort the current transaction", "sql-abort", "ABORT [ WORK | TRANSACTION ] [ AND [ NO ] CHAIN ]"],
-  ["ALTER AGGREGATE", "change the definition of an aggregate function", "sql-alteraggregate", "ALTER AGGREGATE name ( aggregate_signature ) RENAME TO new_name\nALTER AGGREGATE name ( aggregate_signature )\n                OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER AGGREGATE name ( aggregate_signature ) SET SCHEMA new_schema\n\nwhere aggregate_signature is:\n\n* |\n[ argmode ] [ argname ] argtype [ , ... ] |\n[ [ argmode ] [ argname ] argtype [ , ... ] ] ORDER BY [ argmode ] [ argname ] argtype [ , ... ]"],
-  ["ALTER COLLATION", "change the definition of a collation", "sql-altercollation", "ALTER COLLATION name REFRESH VERSION\n\nALTER COLLATION name RENAME TO new_name\nALTER COLLATION name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER COLLATION name SET SCHEMA new_schema"],
-  ["ALTER CONVERSION", "change the definition of a conversion", "sql-alterconversion", "ALTER CONVERSION name RENAME TO new_name\nALTER CONVERSION name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER CONVERSION name SET SCHEMA new_schema"],
-  ["ALTER DATABASE", "change a database", "sql-alterdatabase", "ALTER DATABASE name [ [ WITH ] option [ ... ] ]\n\nwhere option can be:\n\n    ALLOW_CONNECTIONS allowconn\n    CONNECTION LIMIT connlimit\n    IS_TEMPLATE istemplate\n\nALTER DATABASE name RENAME TO new_name\n\nALTER DATABASE name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n\nALTER DATABASE name SET TABLESPACE new_tablespace\n\nALTER DATABASE name REFRESH COLLATION VERSION\n\nALTER DATABASE name SET configuration_parameter { TO | = } { value | DEFAULT }\nALTER DATABASE name SET configuration_parameter FROM CURRENT\nALTER DATABASE name RESET configuration_parameter\nALTER DATABASE name RESET ALL"],
-  ["ALTER DEFAULT PRIVILEGES", "define default access privileges", "sql-alterdefaultprivileges", "ALTER DEFAULT PRIVILEGES\n    [ FOR { ROLE | USER } target_role [, ...] ]\n    [ IN SCHEMA schema_name [, ...] ]\n    abbreviated_grant_or_revoke\n\nwhere abbreviated_grant_or_revoke is one of:\n\nGRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON TABLES\n    TO { [ GROUP ] role_name | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SEQUENCES\n    TO { [ GROUP ] role_name | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { FUNCTIONS | ROUTINES }\n    TO { [ GROUP ] role_name | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPES\n    TO { [ GROUP ] role_name | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { USAGE | CREATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMAS\n    TO { [ GROUP ] role_name | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECTS\n    TO { [ GROUP ] role_name | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON TABLES\n    FROM { [ GROUP ] role_name | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SEQUENCES\n    FROM { [ GROUP ] role_name | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { FUNCTIONS | ROUTINES }\n    FROM { [ GROUP ] role_name | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPES\n    FROM { [ GROUP ] role_name | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | CREATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMAS\n    FROM { [ GROUP ] role_name | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECTS\n    FROM { [ GROUP ] role_name | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]"],
-  ["ALTER DOMAIN", "change the definition of a domain", "sql-alterdomain", "ALTER DOMAIN name\n    { SET DEFAULT expression | DROP DEFAULT }\nALTER DOMAIN name\n    { SET | DROP } NOT NULL\nALTER DOMAIN name\n    ADD domain_constraint [ NOT VALID ]\nALTER DOMAIN name\n    DROP CONSTRAINT [ IF EXISTS ] constraint_name [ RESTRICT | CASCADE ]\nALTER DOMAIN name\n     RENAME CONSTRAINT constraint_name TO new_constraint_name\nALTER DOMAIN name\n    VALIDATE CONSTRAINT constraint_name\nALTER DOMAIN name\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER DOMAIN name\n    RENAME TO new_name\nALTER DOMAIN name\n    SET SCHEMA new_schema\n\nwhere domain_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ NOT NULL | CHECK (expression) }"],
-  ["ALTER EVENT TRIGGER", "change the definition of an event trigger", "sql-altereventtrigger", "ALTER EVENT TRIGGER name DISABLE\nALTER EVENT TRIGGER name ENABLE [ REPLICA | ALWAYS ]\nALTER EVENT TRIGGER name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER EVENT TRIGGER name RENAME TO new_name"],
-  ["ALTER EXTENSION", "change the definition of an extension", "sql-alterextension", "ALTER EXTENSION name UPDATE [ TO new_version ]\nALTER EXTENSION name SET SCHEMA new_schema\nALTER EXTENSION name ADD member_object\nALTER EXTENSION name DROP member_object\n\nwhere member_object is:\n\n  ACCESS METHOD object_name |\n  AGGREGATE aggregate_name ( aggregate_signature ) |\n  CAST (source_type AS target_type) |\n  COLLATION object_name |\n  CONVERSION object_name |\n  DOMAIN object_name |\n  EVENT TRIGGER object_name |\n  FOREIGN DATA WRAPPER object_name |\n  FOREIGN TABLE object_name |\n  FUNCTION function_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  MATERIALIZED VIEW object_name |\n  OPERATOR operator_name (left_type, right_type) |\n  OPERATOR CLASS object_name USING index_method |\n  OPERATOR FAMILY object_name USING index_method |\n  [ PROCEDURAL ] LANGUAGE object_name |\n  PROCEDURE procedure_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  ROUTINE routine_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  SCHEMA object_name |\n  SEQUENCE object_name |\n  SERVER object_name |\n  TABLE object_name |\n  TEXT SEARCH CONFIGURATION object_name |\n  TEXT SEARCH DICTIONARY object_name |\n  TEXT SEARCH PARSER object_name |\n  TEXT SEARCH TEMPLATE object_name |\n  TRANSFORM FOR type_name LANGUAGE lang_name |\n  TYPE object_name |\n  VIEW object_name\n\nand aggregate_signature is:\n\n* |\n[ argmode ] [ argname ] argtype [ , ... ] |\n[ [ argmode ] [ argname ] argtype [ , ... ] ] ORDER BY [ argmode ] [ argname ] argtype [ , ... ]"],
-  ["ALTER FOREIGN DATA WRAPPER", "change the definition of a foreign-data wrapper", "sql-alterforeigndatawrapper", "ALTER FOREIGN DATA WRAPPER name\n    [ HANDLER handler_function | NO HANDLER ]\n    [ VALIDATOR validator_function | NO VALIDATOR ]\n    [ CONNECTION connection_function | NO CONNECTION ]\n    [ OPTIONS ( [ ADD | SET | DROP ] option ['value'] [, ... ]) ]\nALTER FOREIGN DATA WRAPPER name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER FOREIGN DATA WRAPPER name RENAME TO new_name"],
-  ["ALTER FOREIGN TABLE", "change the definition of a foreign table", "sql-alterforeigntable", "ALTER FOREIGN TABLE [ IF EXISTS ] [ ONLY ] name [ * ]\n    action [, ... ]\nALTER FOREIGN TABLE [ IF EXISTS ] [ ONLY ] name [ * ]\n    RENAME [ COLUMN ] column_name TO new_column_name\nALTER FOREIGN TABLE [ IF EXISTS ] name\n    RENAME TO new_name\nALTER FOREIGN TABLE [ IF EXISTS ] name\n    SET SCHEMA new_schema\n\nwhere action is one of:\n\n    ADD [ COLUMN ] [ IF NOT EXISTS ] column_name data_type [ COLLATE collation ] [ column_constraint [ ... ] ]\n    DROP [ COLUMN ] [ IF EXISTS ] column_name [ RESTRICT | CASCADE ]\n    ALTER [ COLUMN ] column_name [ SET DATA ] TYPE data_type [ COLLATE collation ]\n    ALTER [ COLUMN ] column_name SET DEFAULT expression\n    ALTER [ COLUMN ] column_name DROP DEFAULT\n    ALTER [ COLUMN ] column_name { SET | DROP } NOT NULL\n    ALTER [ COLUMN ] column_name SET STATISTICS integer\n    ALTER [ COLUMN ] column_name SET ( attribute_option = value [, ... ] )\n    ALTER [ COLUMN ] column_name RESET ( attribute_option [, ... ] )\n    ALTER [ COLUMN ] column_name SET STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }\n    ALTER [ COLUMN ] column_name OPTIONS ( [ ADD | SET | DROP ] option ['value'] [, ... ])\n    ADD table_constraint [ NOT VALID ]\n    VALIDATE CONSTRAINT constraint_name\n    DROP CONSTRAINT [ IF EXISTS ]  constraint_name [ RESTRICT | CASCADE ]\n    DISABLE TRIGGER [ trigger_name | ALL | USER ]\n    ENABLE TRIGGER [ trigger_name | ALL | USER ]\n    ENABLE REPLICA TRIGGER trigger_name\n    ENABLE ALWAYS TRIGGER trigger_name\n    SET WITHOUT OIDS\n    INHERIT parent_table\n    NO INHERIT parent_table\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n    OPTIONS ( [ ADD | SET | DROP ] option ['value'] [, ... ])"],
-  ["ALTER FUNCTION", "change the definition of a function", "sql-alterfunction", "ALTER FUNCTION name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    action [ ... ] [ RESTRICT ]\nALTER FUNCTION name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    RENAME TO new_name\nALTER FUNCTION name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER FUNCTION name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    SET SCHEMA new_schema\nALTER FUNCTION name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    [ NO ] DEPENDS ON EXTENSION extension_name\n\nwhere action is one of:\n\n    CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT\n    IMMUTABLE | STABLE | VOLATILE\n    [ NOT ] LEAKPROOF\n    [ EXTERNAL ] SECURITY INVOKER | [ EXTERNAL ] SECURITY DEFINER\n    PARALLEL { UNSAFE | RESTRICTED | SAFE }\n    COST execution_cost\n    ROWS result_rows\n    SUPPORT support_function\n    SET configuration_parameter { TO | = } { value | DEFAULT }\n    SET configuration_parameter FROM CURRENT\n    RESET configuration_parameter\n    RESET ALL"],
-  ["ALTER GROUP", "change role name or membership", "sql-altergroup", "ALTER GROUP role_specification ADD USER user_name [, ... ]\nALTER GROUP role_specification DROP USER user_name [, ... ]\n\nwhere role_specification can be:\n\n    role_name\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER\n\nALTER GROUP group_name RENAME TO new_name"],
-  ["ALTER INDEX", "change the definition of an index", "sql-alterindex", "ALTER INDEX [ IF EXISTS ] name RENAME TO new_name\nALTER INDEX [ IF EXISTS ] name SET TABLESPACE tablespace_name\nALTER INDEX name ATTACH PARTITION index_name\nALTER INDEX name [ NO ] DEPENDS ON EXTENSION extension_name\nALTER INDEX [ IF EXISTS ] name SET ( storage_parameter [= value] [, ... ] )\nALTER INDEX [ IF EXISTS ] name RESET ( storage_parameter [, ... ] )\nALTER INDEX [ IF EXISTS ] name ALTER [ COLUMN ] column_number\n    SET STATISTICS integer\nALTER INDEX ALL IN TABLESPACE name [ OWNED BY role_name [, ... ] ]\n    SET TABLESPACE new_tablespace [ NOWAIT ]"],
-  ["ALTER LANGUAGE", "change the definition of a procedural language", "sql-alterlanguage", "ALTER [ PROCEDURAL ] LANGUAGE name RENAME TO new_name\nALTER [ PROCEDURAL ] LANGUAGE name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }"],
-  ["ALTER LARGE OBJECT", "change the definition of a large object", "sql-alterlargeobject", "ALTER LARGE OBJECT large_object_oid OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }"],
-  ["ALTER MATERIALIZED VIEW", "change the definition of a materialized view", "sql-altermaterializedview", "ALTER MATERIALIZED VIEW [ IF EXISTS ] name\n    action [, ... ]\nALTER MATERIALIZED VIEW name\n    [ NO ] DEPENDS ON EXTENSION extension_name\nALTER MATERIALIZED VIEW [ IF EXISTS ] name\n    RENAME [ COLUMN ] column_name TO new_column_name\nALTER MATERIALIZED VIEW [ IF EXISTS ] name\n    RENAME TO new_name\nALTER MATERIALIZED VIEW [ IF EXISTS ] name\n    SET SCHEMA new_schema\nALTER MATERIALIZED VIEW ALL IN TABLESPACE name [ OWNED BY role_name [, ... ] ]\n    SET TABLESPACE new_tablespace [ NOWAIT ]\n\nwhere action is one of:\n\n    ALTER [ COLUMN ] column_name SET STATISTICS integer\n    ALTER [ COLUMN ] column_name SET ( attribute_option = value [, ... ] )\n    ALTER [ COLUMN ] column_name RESET ( attribute_option [, ... ] )\n    ALTER [ COLUMN ] column_name SET STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }\n    ALTER [ COLUMN ] column_name SET COMPRESSION compression_method\n    CLUSTER ON index_name\n    SET WITHOUT CLUSTER\n    SET ACCESS METHOD new_access_method\n    SET TABLESPACE new_tablespace\n    SET ( storage_parameter [= value] [, ... ] )\n    RESET ( storage_parameter [, ... ] )\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }"],
-  ["ALTER OPERATOR", "change the definition of an operator", "sql-alteroperator", "ALTER OPERATOR name ( { left_type | NONE } , right_type )\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n\nALTER OPERATOR name ( { left_type | NONE } , right_type )\n    SET SCHEMA new_schema\n\nALTER OPERATOR name ( { left_type | NONE } , right_type )\n    SET ( {  RESTRICT = { res_proc | NONE }\n           | JOIN = { join_proc | NONE }\n           | COMMUTATOR = com_op\n           | NEGATOR = neg_op\n           | HASHES\n           | MERGES\n          } [, ... ] )"],
-  ["ALTER OPERATOR CLASS", "change the definition of an operator class", "sql-alteropclass", "ALTER OPERATOR CLASS name USING index_method\n    RENAME TO new_name\n\nALTER OPERATOR CLASS name USING index_method\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n\nALTER OPERATOR CLASS name USING index_method\n    SET SCHEMA new_schema"],
-  ["ALTER OPERATOR FAMILY", "change the definition of an operator family", "sql-alteropfamily", "ALTER OPERATOR FAMILY name USING index_method ADD\n  {  OPERATOR strategy_number operator_name ( op_type, op_type )\n              [ FOR SEARCH | FOR ORDER BY sort_family_name ]\n   | FUNCTION support_number [ ( op_type [ , op_type ] ) ]\n              function_name [ ( argument_type [, ...] ) ]\n  } [, ... ]\n\nALTER OPERATOR FAMILY name USING index_method DROP\n  {  OPERATOR strategy_number ( op_type [ , op_type ] )\n   | FUNCTION support_number ( op_type [ , op_type ] )\n  } [, ... ]\n\nALTER OPERATOR FAMILY name USING index_method\n    RENAME TO new_name\n\nALTER OPERATOR FAMILY name USING index_method\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n\nALTER OPERATOR FAMILY name USING index_method\n    SET SCHEMA new_schema"],
-  ["ALTER POLICY", "change the definition of a row-level security policy", "sql-alterpolicy", "ALTER POLICY name ON table_name RENAME TO new_name\n\nALTER POLICY name ON table_name\n    [ TO { role_name | PUBLIC | CURRENT_ROLE | CURRENT_USER | SESSION_USER } [, ...] ]\n    [ USING ( using_expression ) ]\n    [ WITH CHECK ( check_expression ) ]"],
-  ["ALTER PROCEDURE", "change the definition of a procedure", "sql-alterprocedure", "ALTER PROCEDURE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    action [ ... ] [ RESTRICT ]\nALTER PROCEDURE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    RENAME TO new_name\nALTER PROCEDURE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER PROCEDURE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    SET SCHEMA new_schema\nALTER PROCEDURE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    [ NO ] DEPENDS ON EXTENSION extension_name\n\nwhere action is one of:\n\n    [ EXTERNAL ] SECURITY INVOKER | [ EXTERNAL ] SECURITY DEFINER\n    SET configuration_parameter { TO | = } { value | DEFAULT }\n    SET configuration_parameter FROM CURRENT\n    RESET configuration_parameter\n    RESET ALL"],
-  ["ALTER PUBLICATION", "change the definition of a publication", "sql-alterpublication", "ALTER PUBLICATION name ADD publication_object [, ...]\nALTER PUBLICATION name DROP publication_drop_object [, ...]\nALTER PUBLICATION name SET { publication_object [, ...] | publication_all_object [, ... ] }\nALTER PUBLICATION name SET ( publication_parameter [= value] [, ... ] )\nALTER PUBLICATION name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER PUBLICATION name RENAME TO new_name\n\nwhere publication_object is one of:\n\n    TABLE table_and_columns [, ... ]\n    TABLES IN SCHEMA { schema_name | CURRENT_SCHEMA } [, ... ]\n\nand publication_all_object is one of:\n\n    ALL TABLES [ EXCEPT ( except_table_object [, ... ] ) ]\n    ALL SEQUENCES\n\nand publication_drop_object is one of:\n\n    TABLE table_object [, ... ]\n    TABLES IN SCHEMA { schema_name | CURRENT_SCHEMA } [, ... ]\n\nand table_and_columns is:\n\n    table_object [ ( column_name [, ... ] ) ] [ WHERE ( expression ) ]\n\nand except_table_object is:\n\n    TABLE table_object [, ... ]\n\nand table_object is:\n\n   [ ONLY ] table_name [ * ]"],
-  ["ALTER ROLE", "change a database role", "sql-alterrole", "ALTER ROLE role_specification [ WITH ] option [ ... ]\n\nwhere option can be:\n\n      SUPERUSER | NOSUPERUSER\n    | CREATEDB | NOCREATEDB\n    | CREATEROLE | NOCREATEROLE\n    | INHERIT | NOINHERIT\n    | LOGIN | NOLOGIN\n    | REPLICATION | NOREPLICATION\n    | BYPASSRLS | NOBYPASSRLS\n    | CONNECTION LIMIT connlimit\n    | [ ENCRYPTED ] PASSWORD 'password' | PASSWORD NULL\n    | VALID UNTIL 'timestamp'\n\nALTER ROLE name RENAME TO new_name\n\nALTER ROLE { role_specification | ALL } [ IN DATABASE database_name ] SET configuration_parameter { TO | = } { value | DEFAULT }\nALTER ROLE { role_specification | ALL } [ IN DATABASE database_name ] SET configuration_parameter FROM CURRENT\nALTER ROLE { role_specification | ALL } [ IN DATABASE database_name ] RESET configuration_parameter\nALTER ROLE { role_specification | ALL } [ IN DATABASE database_name ] RESET ALL\n\nwhere role_specification can be:\n\n    role_name\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER"],
-  ["ALTER ROUTINE", "change the definition of a routine", "sql-alterroutine", "ALTER ROUTINE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    action [ ... ] [ RESTRICT ]\nALTER ROUTINE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    RENAME TO new_name\nALTER ROUTINE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER ROUTINE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    SET SCHEMA new_schema\nALTER ROUTINE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    [ NO ] DEPENDS ON EXTENSION extension_name\n\nwhere action is one of:\n\n    IMMUTABLE | STABLE | VOLATILE\n    [ NOT ] LEAKPROOF\n    [ EXTERNAL ] SECURITY INVOKER | [ EXTERNAL ] SECURITY DEFINER\n    PARALLEL { UNSAFE | RESTRICTED | SAFE }\n    COST execution_cost\n    ROWS result_rows\n    SET configuration_parameter { TO | = } { value | DEFAULT }\n    SET configuration_parameter FROM CURRENT\n    RESET configuration_parameter\n    RESET ALL"],
-  ["ALTER RULE", "change the definition of a rule", "sql-alterrule", "ALTER RULE name ON table_name RENAME TO new_name"],
-  ["ALTER SCHEMA", "change the definition of a schema", "sql-alterschema", "ALTER SCHEMA name RENAME TO new_name\nALTER SCHEMA name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }"],
-  ["ALTER SEQUENCE", "change the definition of a sequence generator", "sql-altersequence", "ALTER SEQUENCE [ IF EXISTS ] name\n    [ AS data_type ]\n    [ INCREMENT [ BY ] increment ]\n    [ MINVALUE minvalue | NO MINVALUE ] [ MAXVALUE maxvalue | NO MAXVALUE ]\n    [ [ NO ] CYCLE ]\n    [ START [ WITH ] start ]\n    [ RESTART [ [ WITH ] restart ] ]\n    [ CACHE cache ]\n    [ OWNED BY { table_name.column_name | NONE } ]\nALTER SEQUENCE [ IF EXISTS ] name SET { LOGGED | UNLOGGED }\nALTER SEQUENCE [ IF EXISTS ] name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER SEQUENCE [ IF EXISTS ] name RENAME TO new_name\nALTER SEQUENCE [ IF EXISTS ] name SET SCHEMA new_schema"],
-  ["ALTER SERVER", "change the definition of a foreign server", "sql-alterserver", "ALTER SERVER name [ VERSION 'new_version' ]\n    [ OPTIONS ( [ ADD | SET | DROP ] option ['value'] [, ... ] ) ]\nALTER SERVER name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER SERVER name RENAME TO new_name"],
-  ["ALTER STATISTICS", "change the definition of an extended statistics object", "sql-alterstatistics", "ALTER STATISTICS name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER STATISTICS name RENAME TO new_name\nALTER STATISTICS name SET SCHEMA new_schema\nALTER STATISTICS name SET STATISTICS { new_target | DEFAULT }"],
-  ["ALTER SUBSCRIPTION", "change the definition of a subscription", "sql-altersubscription", "ALTER SUBSCRIPTION name SERVER server_name\nALTER SUBSCRIPTION name CONNECTION 'conninfo'\nALTER SUBSCRIPTION name SET PUBLICATION publication_name [, ...] [ WITH ( publication_option [= value] [, ... ] ) ]\nALTER SUBSCRIPTION name ADD PUBLICATION publication_name [, ...] [ WITH ( publication_option [= value] [, ... ] ) ]\nALTER SUBSCRIPTION name DROP PUBLICATION publication_name [, ...] [ WITH ( publication_option [= value] [, ... ] ) ]\nALTER SUBSCRIPTION name REFRESH PUBLICATION [ WITH ( refresh_option [= value] [, ... ] ) ]\nALTER SUBSCRIPTION name REFRESH SEQUENCES\nALTER SUBSCRIPTION name ENABLE\nALTER SUBSCRIPTION name DISABLE\nALTER SUBSCRIPTION name SET ( subscription_parameter [= value] [, ... ] )\nALTER SUBSCRIPTION name SKIP ( skip_option = value )\nALTER SUBSCRIPTION name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER SUBSCRIPTION name RENAME TO new_name"],
-  ["ALTER SYSTEM", "change a server configuration parameter", "sql-altersystem", "ALTER SYSTEM SET configuration_parameter { TO | = } { value [, ...] | DEFAULT }\n\nALTER SYSTEM RESET configuration_parameter\nALTER SYSTEM RESET ALL"],
-  ["ALTER TABLE", "change the definition of a table", "sql-altertable", "ALTER TABLE [ IF EXISTS ] [ ONLY ] name [ * ]\n    action [, ... ]\nALTER TABLE [ IF EXISTS ] [ ONLY ] name [ * ]\n    RENAME [ COLUMN ] column_name TO new_column_name\nALTER TABLE [ IF EXISTS ] [ ONLY ] name [ * ]\n    RENAME CONSTRAINT constraint_name TO new_constraint_name\nALTER TABLE [ IF EXISTS ] name\n    RENAME TO new_name\nALTER TABLE [ IF EXISTS ] name\n    SET SCHEMA new_schema\nALTER TABLE ALL IN TABLESPACE name [ OWNED BY role_name [, ... ] ]\n    SET TABLESPACE new_tablespace [ NOWAIT ]\nALTER TABLE [ IF EXISTS ] name\n    ATTACH PARTITION partition_name { FOR VALUES partition_bound_spec | DEFAULT }\nALTER TABLE [ IF EXISTS ] name\n    DETACH PARTITION partition_name [ CONCURRENTLY | FINALIZE ]\n\nwhere action is one of:\n\n    ADD [ COLUMN ] [ IF NOT EXISTS ] column_name data_type [ COLLATE collation ] [ column_constraint [ ... ] ]\n    DROP [ COLUMN ] [ IF EXISTS ] column_name [ RESTRICT | CASCADE ]\n    ALTER [ COLUMN ] column_name [ SET DATA ] TYPE data_type [ COLLATE collation ] [ USING expression ]\n    ALTER [ COLUMN ] column_name SET DEFAULT expression\n    ALTER [ COLUMN ] column_name DROP DEFAULT\n    ALTER [ COLUMN ] column_name { SET | DROP } NOT NULL\n    ALTER [ COLUMN ] column_name SET EXPRESSION AS ( expression )\n    ALTER [ COLUMN ] column_name DROP EXPRESSION [ IF EXISTS ]\n    ALTER [ COLUMN ] column_name ADD GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( sequence_options ) ]\n    ALTER [ COLUMN ] column_name { SET GENERATED { ALWAYS | BY DEFAULT } | SET sequence_option | RESTART [ [ WITH ] restart ] } [...]\n    ALTER [ COLUMN ] column_name DROP IDENTITY [ IF EXISTS ]\n    ALTER [ COLUMN ] column_name SET STATISTICS { integer | DEFAULT }\n    ALTER [ COLUMN ] column_name SET ( attribute_option = value [, ... ] )\n    ALTER [ COLUMN ] column_name RESET ( attribute_option [, ... ] )\n    ALTER [ COLUMN ] column_name SET STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }\n    ALTER [ COLUMN ] column_name SET COMPRESSION compression_method\n    ADD table_constraint [ NOT VALID ]\n    ADD table_constraint_using_index\n    ALTER CONSTRAINT constraint_name [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n    ALTER CONSTRAINT constraint_name [ INHERIT | NO INHERIT ]\n    VALIDATE CONSTRAINT constraint_name\n    DROP CONSTRAINT [ IF EXISTS ]  constraint_name [ RESTRICT | CASCADE ]\n    DISABLE TRIGGER [ trigger_name | ALL | USER ]\n    ENABLE TRIGGER [ trigger_name | ALL | USER ]\n    ENABLE REPLICA TRIGGER trigger_name\n    ENABLE ALWAYS TRIGGER trigger_name\n    DISABLE RULE rewrite_rule_name\n    ENABLE RULE rewrite_rule_name\n    ENABLE REPLICA RULE rewrite_rule_name\n    ENABLE ALWAYS RULE rewrite_rule_name\n    DISABLE ROW LEVEL SECURITY\n    ENABLE ROW LEVEL SECURITY\n    FORCE ROW LEVEL SECURITY\n    NO FORCE ROW LEVEL SECURITY\n    CLUSTER ON index_name\n    SET WITHOUT CLUSTER\n    SET WITHOUT OIDS\n    SET ACCESS METHOD { new_access_method | DEFAULT }\n    SET TABLESPACE new_tablespace\n    SET { LOGGED | UNLOGGED }\n    SET ( storage_parameter [= value] [, ... ] )\n    RESET ( storage_parameter [, ... ] )\n    INHERIT parent_table\n    NO INHERIT parent_table\n    OF type_name\n    NOT OF\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n    REPLICA IDENTITY { DEFAULT | USING INDEX index_name | FULL | NOTHING }\n\nand partition_bound_spec is:\n\nIN ( partition_bound_expr [, ...] ) |\nFROM ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS numeric_literal, REMAINDER numeric_literal )\n\nand column_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ NOT NULL [ NO INHERIT ] |\n  NULL |\n  CHECK ( expression ) [ NO INHERIT ] |\n  DEFAULT default_expr |\n  GENERATED ALWAYS AS ( generation_expr ) [ STORED | VIRTUAL ] |\n  GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( sequence_options ) ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] index_parameters |\n  PRIMARY KEY index_parameters |\n  REFERENCES reftable [ ( refcolumn ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]\n    [ ON DELETE referential_action ] [ ON UPDATE referential_action ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n\nand table_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ CHECK ( expression ) [ NO INHERIT ] |\n  NOT NULL column_name [ NO INHERIT ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( column_name [, ... ] [, column_name WITHOUT OVERLAPS ] ) index_parameters |\n  PRIMARY KEY ( column_name [, ... ] [, column_name WITHOUT OVERLAPS ] ) index_parameters |\n  EXCLUDE [ USING index_method ] ( exclude_element WITH operator [, ... ] ) index_parameters [ WHERE ( predicate ) ] |\n  FOREIGN KEY ( column_name [, ... ] [, PERIOD column_name ] ) REFERENCES reftable [ ( refcolumn [, ... ]  [, PERIOD refcolumn ] ) ]\n    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE referential_action ] [ ON UPDATE referential_action ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n\nand table_constraint_using_index is:\n\n    [ CONSTRAINT constraint_name ]\n    { UNIQUE | PRIMARY KEY } USING INDEX index_name\n    [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\nindex_parameters in UNIQUE, PRIMARY KEY, and EXCLUDE constraints are:\n\n[ INCLUDE ( column_name [, ... ] ) ]\n[ WITH ( storage_parameter [= value] [, ... ] ) ]\n[ USING INDEX TABLESPACE tablespace_name ]\n\nexclude_element in an EXCLUDE constraint is:\n\n{ column_name | ( expression ) } [ COLLATE collation ] [ opclass [ ( opclass_parameter = value [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n\nreferential_action in a FOREIGN KEY/REFERENCES constraint is:\n\n{ NO ACTION | RESTRICT | CASCADE | SET NULL [ ( column_name [, ... ] ) ] | SET DEFAULT [ ( column_name [, ... ] ) ] }"],
-  ["ALTER TABLESPACE", "change the definition of a tablespace", "sql-altertablespace", "ALTER TABLESPACE name RENAME TO new_name\nALTER TABLESPACE name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER TABLESPACE name SET ( tablespace_option = value [, ... ] )\nALTER TABLESPACE name RESET ( tablespace_option [, ... ] )"],
-  ["ALTER TEXT SEARCH CONFIGURATION", "change the definition of a text search configuration", "sql-altertsconfig", "ALTER TEXT SEARCH CONFIGURATION name\n    ADD MAPPING FOR token_type [, ... ] WITH dictionary_name [, ... ]\nALTER TEXT SEARCH CONFIGURATION name\n    ALTER MAPPING FOR token_type [, ... ] WITH dictionary_name [, ... ]\nALTER TEXT SEARCH CONFIGURATION name\n    ALTER MAPPING REPLACE old_dictionary WITH new_dictionary\nALTER TEXT SEARCH CONFIGURATION name\n    ALTER MAPPING FOR token_type [, ... ] REPLACE old_dictionary WITH new_dictionary\nALTER TEXT SEARCH CONFIGURATION name\n    DROP MAPPING [ IF EXISTS ] FOR token_type [, ... ]\nALTER TEXT SEARCH CONFIGURATION name RENAME TO new_name\nALTER TEXT SEARCH CONFIGURATION name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER TEXT SEARCH CONFIGURATION name SET SCHEMA new_schema"],
-  ["ALTER TEXT SEARCH DICTIONARY", "change the definition of a text search dictionary", "sql-altertsdictionary", "ALTER TEXT SEARCH DICTIONARY name (\n    option [ = value ] [, ... ]\n)\nALTER TEXT SEARCH DICTIONARY name RENAME TO new_name\nALTER TEXT SEARCH DICTIONARY name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER TEXT SEARCH DICTIONARY name SET SCHEMA new_schema"],
-  ["ALTER TEXT SEARCH PARSER", "change the definition of a text search parser", "sql-altertsparser", "ALTER TEXT SEARCH PARSER name RENAME TO new_name\nALTER TEXT SEARCH PARSER name SET SCHEMA new_schema"],
-  ["ALTER TEXT SEARCH TEMPLATE", "change the definition of a text search template", "sql-altertstemplate", "ALTER TEXT SEARCH TEMPLATE name RENAME TO new_name\nALTER TEXT SEARCH TEMPLATE name SET SCHEMA new_schema"],
-  ["ALTER TRIGGER", "change the definition of a trigger", "sql-altertrigger", "ALTER TRIGGER name ON table_name RENAME TO new_name\nALTER TRIGGER name ON table_name [ NO ] DEPENDS ON EXTENSION extension_name"],
-  ["ALTER TYPE", "change the definition of a type", "sql-altertype", "ALTER TYPE name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER TYPE name RENAME TO new_name\nALTER TYPE name SET SCHEMA new_schema\nALTER TYPE name RENAME ATTRIBUTE attribute_name TO new_attribute_name [ CASCADE | RESTRICT ]\nALTER TYPE name action [, ... ]\nALTER TYPE name ADD VALUE [ IF NOT EXISTS ] new_enum_value [ { BEFORE | AFTER } neighbor_enum_value ]\nALTER TYPE name RENAME VALUE existing_enum_value TO new_enum_value\nALTER TYPE name SET ( property = value [, ... ] )\n\nwhere action is one of:\n\n    ADD ATTRIBUTE attribute_name data_type [ COLLATE collation ] [ CASCADE | RESTRICT ]\n    DROP ATTRIBUTE [ IF EXISTS ] attribute_name [ CASCADE | RESTRICT ]\n    ALTER ATTRIBUTE attribute_name [ SET DATA ] TYPE data_type [ COLLATE collation ] [ CASCADE | RESTRICT ]"],
-  ["ALTER USER", "change a database role", "sql-alteruser", "ALTER USER role_specification [ WITH ] option [ ... ]\n\nwhere option can be:\n\n      SUPERUSER | NOSUPERUSER\n    | CREATEDB | NOCREATEDB\n    | CREATEROLE | NOCREATEROLE\n    | INHERIT | NOINHERIT\n    | LOGIN | NOLOGIN\n    | REPLICATION | NOREPLICATION\n    | BYPASSRLS | NOBYPASSRLS\n    | CONNECTION LIMIT connlimit\n    | [ ENCRYPTED ] PASSWORD 'password' | PASSWORD NULL\n    | VALID UNTIL 'timestamp'\n\nALTER USER name RENAME TO new_name\n\nALTER USER { role_specification | ALL } [ IN DATABASE database_name ] SET configuration_parameter { TO | = } { value | DEFAULT }\nALTER USER { role_specification | ALL } [ IN DATABASE database_name ] SET configuration_parameter FROM CURRENT\nALTER USER { role_specification | ALL } [ IN DATABASE database_name ] RESET configuration_parameter\nALTER USER { role_specification | ALL } [ IN DATABASE database_name ] RESET ALL\n\nwhere role_specification can be:\n\n    role_name\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER"],
-  ["ALTER USER MAPPING", "change the definition of a user mapping", "sql-alterusermapping", "ALTER USER MAPPING FOR { user_name | USER | CURRENT_ROLE | CURRENT_USER | SESSION_USER | PUBLIC }\n    SERVER server_name\n    OPTIONS ( [ ADD | SET | DROP ] option ['value'] [, ... ] )"],
-  ["ALTER VIEW", "change the definition of a view", "sql-alterview", "ALTER VIEW [ IF EXISTS ] name ALTER [ COLUMN ] column_name SET DEFAULT expression\nALTER VIEW [ IF EXISTS ] name ALTER [ COLUMN ] column_name DROP DEFAULT\nALTER VIEW [ IF EXISTS ] name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER VIEW [ IF EXISTS ] name RENAME [ COLUMN ] column_name TO new_column_name\nALTER VIEW [ IF EXISTS ] name RENAME TO new_name\nALTER VIEW [ IF EXISTS ] name SET SCHEMA new_schema\nALTER VIEW [ IF EXISTS ] name SET ( view_option_name [= view_option_value] [, ... ] )\nALTER VIEW [ IF EXISTS ] name RESET ( view_option_name [, ... ] )"],
-  ["ANALYZE", "collect statistics about a database", "sql-analyze", "ANALYZE [ ( option [, ...] ) ] [ table_and_columns [, ...] ]\n\nwhere option can be one of:\n\n    VERBOSE [ boolean ]\n    SKIP_LOCKED [ boolean ]\n    BUFFER_USAGE_LIMIT size\n\nand table_and_columns is:\n\n    [ ONLY ] table_name [ * ] [ ( column_name [, ...] ) ]"],
-  ["BEGIN", "start a transaction block", "sql-begin", "BEGIN [ WORK | TRANSACTION ] [ transaction_mode [, ...] ]\n\nwhere transaction_mode is one of:\n\n    ISOLATION LEVEL { SERIALIZABLE | REPEATABLE READ | READ COMMITTED | READ UNCOMMITTED }\n    READ WRITE | READ ONLY\n    [ NOT ] DEFERRABLE"],
-  ["CALL", "invoke a procedure", "sql-call", "CALL name ( [ argument ] [, ...] )"],
-  ["CHECKPOINT", "force a write-ahead log checkpoint", "sql-checkpoint", "CHECKPOINT [ ( option [, ...] ) ]\n\nwhere option can be one of:\n\n    FLUSH_UNLOGGED [ boolean ]\n    MODE { FAST | SPREAD }"],
-  ["CLOSE", "close a cursor", "sql-close", "CLOSE { name | ALL }"],
-  ["CLUSTER", "cluster a table according to an index", "sql-cluster", "CLUSTER [ ( option [, ...] ) ] [ table_name [ USING index_name ] ]\n\nwhere option can be one of:\n\n    VERBOSE [ boolean ]"],
-  ["COMMENT", "define or change the comment of an object", "sql-comment", "COMMENT ON\n{\n  ACCESS METHOD object_name |\n  AGGREGATE aggregate_name ( aggregate_signature ) |\n  CAST (source_type AS target_type) |\n  COLLATION object_name |\n  COLUMN relation_name.column_name |\n  CONSTRAINT constraint_name ON table_name |\n  CONSTRAINT constraint_name ON DOMAIN domain_name |\n  CONVERSION object_name |\n  DATABASE object_name |\n  DOMAIN object_name |\n  EXTENSION object_name |\n  EVENT TRIGGER object_name |\n  FOREIGN DATA WRAPPER object_name |\n  FOREIGN TABLE object_name |\n  FUNCTION function_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  INDEX object_name |\n  LARGE OBJECT large_object_oid |\n  MATERIALIZED VIEW object_name |\n  OPERATOR operator_name (left_type, right_type) |\n  OPERATOR CLASS object_name USING index_method |\n  OPERATOR FAMILY object_name USING index_method |\n  POLICY policy_name ON table_name |\n  [ PROCEDURAL ] LANGUAGE object_name |\n  PROCEDURE procedure_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  PUBLICATION object_name |\n  ROLE object_name |\n  ROUTINE routine_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  RULE rule_name ON table_name |\n  SCHEMA object_name |\n  SEQUENCE object_name |\n  SERVER object_name |\n  STATISTICS object_name |\n  SUBSCRIPTION object_name |\n  TABLE object_name |\n  TABLESPACE object_name |\n  TEXT SEARCH CONFIGURATION object_name |\n  TEXT SEARCH DICTIONARY object_name |\n  TEXT SEARCH PARSER object_name |\n  TEXT SEARCH TEMPLATE object_name |\n  TRANSFORM FOR type_name LANGUAGE lang_name |\n  TRIGGER trigger_name ON table_name |\n  TYPE object_name |\n  VIEW object_name\n} IS { string_literal | NULL }\n\nwhere aggregate_signature is:\n\n* |\n[ argmode ] [ argname ] argtype [ , ... ] |\n[ [ argmode ] [ argname ] argtype [ , ... ] ] ORDER BY [ argmode ] [ argname ] argtype [ , ... ]"],
-  ["COMMIT", "commit the current transaction", "sql-commit", "COMMIT [ WORK | TRANSACTION ] [ AND [ NO ] CHAIN ]"],
-  ["COMMIT PREPARED", "commit a transaction that was earlier prepared for two-phase commit", "sql-commit-prepared", "COMMIT PREPARED transaction_id"],
-  ["COPY", "copy data between a file and a table", "sql-copy", "COPY table_name [ ( column_name [, ...] ) ]\n    FROM { 'filename' | PROGRAM 'command' | STDIN }\n    [ [ WITH ] ( option [, ...] ) ]\n    [ WHERE condition ]\n\nCOPY { table_name [ ( column_name [, ...] ) ] | ( query ) }\n    TO { 'filename' | PROGRAM 'command' | STDOUT }\n    [ [ WITH ] ( option [, ...] ) ]\n\nwhere option can be one of:\n\n    FORMAT format_name\n    FREEZE [ boolean ]\n    DELIMITER 'delimiter_character'\n    NULL 'null_string'\n    DEFAULT 'default_string'\n    HEADER [ boolean | integer | MATCH ]\n    QUOTE 'quote_character'\n    ESCAPE 'escape_character'\n    FORCE_ARRAY [ boolean ]\n    FORCE_QUOTE { ( column_name [, ...] ) | * }\n    FORCE_NOT_NULL { ( column_name [, ...] ) | * }\n    FORCE_NULL { ( column_name [, ...] ) | * }\n    ON_ERROR error_action\n    REJECT_LIMIT maxerror\n    ENCODING 'encoding_name'\n    LOG_VERBOSITY verbosity"],
-  ["CREATE ACCESS METHOD", "define a new access method", "sql-create-access-method", "CREATE ACCESS METHOD name\n    TYPE access_method_type\n    HANDLER handler_function"],
-  ["CREATE AGGREGATE", "define a new aggregate function", "sql-createaggregate", "CREATE [ OR REPLACE ] AGGREGATE name ( [ argmode ] [ argname ] arg_data_type [ , ... ] ) (\n    SFUNC = sfunc,\n    STYPE = state_data_type\n    [ , SSPACE = state_data_size ]\n    [ , FINALFUNC = ffunc ]\n    [ , FINALFUNC_EXTRA ]\n    [ , FINALFUNC_MODIFY = { READ_ONLY | SHAREABLE | READ_WRITE } ]\n    [ , COMBINEFUNC = combinefunc ]\n    [ , SERIALFUNC = serialfunc ]\n    [ , DESERIALFUNC = deserialfunc ]\n    [ , INITCOND = initial_condition ]\n    [ , MSFUNC = msfunc ]\n    [ , MINVFUNC = minvfunc ]\n    [ , MSTYPE = mstate_data_type ]\n    [ , MSSPACE = mstate_data_size ]\n    [ , MFINALFUNC = mffunc ]\n    [ , MFINALFUNC_EXTRA ]\n    [ , MFINALFUNC_MODIFY = { READ_ONLY | SHAREABLE | READ_WRITE } ]\n    [ , MINITCOND = minitial_condition ]\n    [ , SORTOP = sort_operator ]\n    [ , SUPPORT = support_function ]\n    [ , PARALLEL = { SAFE | RESTRICTED | UNSAFE } ]\n)\n\nCREATE [ OR REPLACE ] AGGREGATE name ( [ [ argmode ] [ argname ] arg_data_type [ , ... ] ]\n                        ORDER BY [ argmode ] [ argname ] arg_data_type [ , ... ] ) (\n    SFUNC = sfunc,\n    STYPE = state_data_type\n    [ , SSPACE = state_data_size ]\n    [ , FINALFUNC = ffunc ]\n    [ , FINALFUNC_EXTRA ]\n    [ , FINALFUNC_MODIFY = { READ_ONLY | SHAREABLE | READ_WRITE } ]\n    [ , INITCOND = initial_condition ]\n    [ , SUPPORT = support_function ]\n    [ , PARALLEL = { SAFE | RESTRICTED | UNSAFE } ]\n    [ , HYPOTHETICAL ]\n)\n\nor the old syntax\n\nCREATE [ OR REPLACE ] AGGREGATE name (\n    BASETYPE = base_type,\n    SFUNC = sfunc,\n    STYPE = state_data_type\n    [ , SSPACE = state_data_size ]\n    [ , FINALFUNC = ffunc ]\n    [ , FINALFUNC_EXTRA ]\n    [ , FINALFUNC_MODIFY = { READ_ONLY | SHAREABLE | READ_WRITE } ]\n    [ , COMBINEFUNC = combinefunc ]\n    [ , SERIALFUNC = serialfunc ]\n    [ , DESERIALFUNC = deserialfunc ]\n    [ , INITCOND = initial_condition ]\n    [ , MSFUNC = msfunc ]\n    [ , MINVFUNC = minvfunc ]\n    [ , MSTYPE = mstate_data_type ]\n    [ , MSSPACE = mstate_data_size ]\n    [ , MFINALFUNC = mffunc ]\n    [ , MFINALFUNC_EXTRA ]\n    [ , MFINALFUNC_MODIFY = { READ_ONLY | SHAREABLE | READ_WRITE } ]\n    [ , MINITCOND = minitial_condition ]\n    [ , SORTOP = sort_operator ]\n    [ , SUPPORT = support_function ]\n)"],
-  ["CREATE CAST", "define a new cast", "sql-createcast", "CREATE CAST (source_type AS target_type)\n    WITH FUNCTION function_name [ (argument_type [, ...]) ]\n    [ AS ASSIGNMENT | AS IMPLICIT ]\n\nCREATE CAST (source_type AS target_type)\n    WITHOUT FUNCTION\n    [ AS ASSIGNMENT | AS IMPLICIT ]\n\nCREATE CAST (source_type AS target_type)\n    WITH INOUT\n    [ AS ASSIGNMENT | AS IMPLICIT ]"],
-  ["CREATE COLLATION", "define a new collation", "sql-createcollation", "CREATE COLLATION [ IF NOT EXISTS ] name (\n    [ LOCALE = locale, ]\n    [ LC_COLLATE = lc_collate, ]\n    [ LC_CTYPE = lc_ctype, ]\n    [ PROVIDER = provider, ]\n    [ DETERMINISTIC = boolean, ]\n    [ RULES = rules, ]\n    [ VERSION = version ]\n)\nCREATE COLLATION [ IF NOT EXISTS ] name FROM existing_collation"],
-  ["CREATE CONVERSION", "define a new encoding conversion", "sql-createconversion", "CREATE [ DEFAULT ] CONVERSION name\n    FOR source_encoding TO dest_encoding FROM function_name"],
-  ["CREATE DATABASE", "create a new database", "sql-createdatabase", "CREATE DATABASE name\n    [ WITH ] [ OWNER [=] user_name ]\n           [ TEMPLATE [=] template ]\n           [ ENCODING [=] encoding ]\n           [ STRATEGY [=] strategy ]\n           [ LOCALE [=] locale ]\n           [ LC_COLLATE [=] lc_collate ]\n           [ LC_CTYPE [=] lc_ctype ]\n           [ BUILTIN_LOCALE [=] builtin_locale ]\n           [ ICU_LOCALE [=] icu_locale ]\n           [ ICU_RULES [=] icu_rules ]\n           [ LOCALE_PROVIDER [=] locale_provider ]\n           [ COLLATION_VERSION = collation_version ]\n           [ TABLESPACE [=] tablespace_name ]\n           [ ALLOW_CONNECTIONS [=] allowconn ]\n           [ CONNECTION LIMIT [=] connlimit ]\n           [ IS_TEMPLATE [=] istemplate ]\n           [ OID [=] oid ]"],
-  ["CREATE DOMAIN", "define a new domain", "sql-createdomain", "CREATE DOMAIN name [ AS ] data_type\n    [ COLLATE collation ]\n    [ DEFAULT expression ]\n    [ domain_constraint [ ... ] ]\n\nwhere domain_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ NOT NULL | NULL | CHECK (expression) }"],
-  ["CREATE EVENT TRIGGER", "define a new event trigger", "sql-createeventtrigger", "CREATE EVENT TRIGGER name\n    ON event\n    [ WHEN filter_variable IN (filter_value [, ... ]) [ AND ... ] ]\n    EXECUTE { FUNCTION | PROCEDURE } function_name()"],
-  ["CREATE EXTENSION", "install an extension", "sql-createextension", "CREATE EXTENSION [ IF NOT EXISTS ] extension_name\n    [ WITH ] [ SCHEMA schema_name ]\n             [ VERSION version ]\n             [ CASCADE ]"],
-  ["CREATE FOREIGN DATA WRAPPER", "define a new foreign-data wrapper", "sql-createforeigndatawrapper", "CREATE FOREIGN DATA WRAPPER name\n    [ HANDLER handler_function | NO HANDLER ]\n    [ VALIDATOR validator_function | NO VALIDATOR ]\n    [ CONNECTION connection_function | NO CONNECTION ]\n    [ OPTIONS ( option 'value' [, ... ] ) ]"],
-  ["CREATE FOREIGN TABLE", "define a new foreign table", "sql-createforeigntable", "CREATE FOREIGN TABLE [ IF NOT EXISTS ] table_name ( [\n  { column_name data_type [ OPTIONS ( option 'value' [, ... ] ) ] [ COLLATE collation ] [ column_constraint [ ... ] ]\n    | table_constraint\n    | LIKE source_table [ like_option ... ] }\n    [, ... ]\n] )\n[ INHERITS ( parent_table [, ... ] ) ]\n  SERVER server_name\n[ OPTIONS ( option 'value' [, ... ] ) ]\n\nCREATE FOREIGN TABLE [ IF NOT EXISTS ] table_name\n  PARTITION OF parent_table [ (\n  { column_name [ WITH OPTIONS ] [ column_constraint [ ... ] ]\n    | table_constraint }\n    [, ... ]\n) ]\n{ FOR VALUES partition_bound_spec | DEFAULT }\n  SERVER server_name\n[ OPTIONS ( option 'value' [, ... ] ) ]\n\nwhere column_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ NOT NULL [ NO INHERIT ] |\n  NULL |\n  CHECK ( expression ) [ NO INHERIT ] |\n  DEFAULT default_expr |\n  GENERATED ALWAYS AS ( generation_expr ) [ STORED | VIRTUAL ] }\n[ ENFORCED | NOT ENFORCED ]\n\nand table_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{  NOT NULL column_name [ NO INHERIT ] |\n   CHECK ( expression ) [ NO INHERIT ] }\n[ ENFORCED | NOT ENFORCED ]\n\nand like_option is:\n\n{ INCLUDING | EXCLUDING } { COMMENTS | CONSTRAINTS | DEFAULTS | GENERATED | STATISTICS | ALL }\n\nand partition_bound_spec is:\n\nIN ( partition_bound_expr [, ...] ) |\nFROM ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS numeric_literal, REMAINDER numeric_literal )"],
-  ["CREATE FUNCTION", "define a new function", "sql-createfunction", "CREATE [ OR REPLACE ] FUNCTION\n    name ( [ [ argmode ] [ argname ] argtype [ { DEFAULT | = } default_expr ] [, ...] ] )\n    [ RETURNS rettype\n      | RETURNS TABLE ( column_name column_type [, ...] ) ]\n  { LANGUAGE lang_name\n    | TRANSFORM { FOR TYPE type_name } [, ... ]\n    | WINDOW\n    | { IMMUTABLE | STABLE | VOLATILE }\n    | [ NOT ] LEAKPROOF\n    | { CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT }\n    | { [ EXTERNAL ] SECURITY INVOKER | [ EXTERNAL ] SECURITY DEFINER }\n    | PARALLEL { UNSAFE | RESTRICTED | SAFE }\n    | COST execution_cost\n    | ROWS result_rows\n    | SUPPORT support_function\n    | SET configuration_parameter { TO value | = value | FROM CURRENT }\n    | AS 'definition'\n    | AS 'obj_file', 'link_symbol'\n    | sql_body\n  } ..."],
-  ["CREATE GROUP", "define a new database role", "sql-creategroup", "CREATE GROUP name [ [ WITH ] option [ ... ] ]\n\nwhere option can be:\n\n      SUPERUSER | NOSUPERUSER\n    | CREATEDB | NOCREATEDB\n    | CREATEROLE | NOCREATEROLE\n    | INHERIT | NOINHERIT\n    | LOGIN | NOLOGIN\n    | REPLICATION | NOREPLICATION\n    | BYPASSRLS | NOBYPASSRLS\n    | CONNECTION LIMIT connlimit\n    | [ ENCRYPTED ] PASSWORD 'password' | PASSWORD NULL\n    | VALID UNTIL 'timestamp'\n    | IN ROLE role_name [, ...]\n    | ROLE role_name [, ...]\n    | ADMIN role_name [, ...]\n    | SYSID uid"],
-  ["CREATE INDEX", "define a new index", "sql-createindex", "CREATE [ UNIQUE ] INDEX [ CONCURRENTLY ] [ [ IF NOT EXISTS ] name ] ON [ ONLY ] table_name [ USING method ]\n    ( { column_name | ( expression ) } [ COLLATE collation ] [ opclass [ ( opclass_parameter = value [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] )\n    [ INCLUDE ( column_name [, ...] ) ]\n    [ NULLS [ NOT ] DISTINCT ]\n    [ WITH ( storage_parameter [= value] [, ... ] ) ]\n    [ TABLESPACE tablespace_name ]\n    [ WHERE predicate ]"],
-  ["CREATE LANGUAGE", "define a new procedural language", "sql-createlanguage", "CREATE [ OR REPLACE ] [ TRUSTED ] [ PROCEDURAL ] LANGUAGE name\n    HANDLER call_handler [ INLINE inline_handler ] [ VALIDATOR valfunction ]\nCREATE [ OR REPLACE ] [ TRUSTED ] [ PROCEDURAL ] LANGUAGE name"],
-  ["CREATE MATERIALIZED VIEW", "define a new materialized view", "sql-creatematerializedview", "CREATE MATERIALIZED VIEW [ IF NOT EXISTS ] table_name\n    [ (column_name [, ...] ) ]\n    [ USING method ]\n    [ WITH ( storage_parameter [= value] [, ... ] ) ]\n    [ TABLESPACE tablespace_name ]\n    AS query\n    [ WITH [ NO ] DATA ]"],
-  ["CREATE OPERATOR", "define a new operator", "sql-createoperator", "CREATE OPERATOR name (\n    {FUNCTION|PROCEDURE} = function_name\n    [, LEFTARG = left_type ] , RIGHTARG = right_type\n    [, COMMUTATOR = com_op ] [, NEGATOR = neg_op ]\n    [, RESTRICT = res_proc ] [, JOIN = join_proc ]\n    [, HASHES ] [, MERGES ]\n)"],
-  ["CREATE OPERATOR CLASS", "define a new operator class", "sql-createopclass", "CREATE OPERATOR CLASS name [ DEFAULT ] FOR TYPE data_type\n  USING index_method [ FAMILY family_name ] AS\n  {  OPERATOR strategy_number operator_name [ ( op_type, op_type ) ] [ FOR SEARCH | FOR ORDER BY sort_family_name ]\n   | FUNCTION support_number [ ( op_type [ , op_type ] ) ] function_name ( argument_type [, ...] )\n   | STORAGE storage_type\n  } [, ... ]"],
-  ["CREATE OPERATOR FAMILY", "define a new operator family", "sql-createopfamily", "CREATE OPERATOR FAMILY name USING index_method"],
-  ["CREATE POLICY", "define a new row-level security policy for a table", "sql-createpolicy", "CREATE POLICY name ON table_name\n    [ AS { PERMISSIVE | RESTRICTIVE } ]\n    [ FOR { ALL | SELECT | INSERT | UPDATE | DELETE } ]\n    [ TO { role_name | PUBLIC | CURRENT_ROLE | CURRENT_USER | SESSION_USER } [, ...] ]\n    [ USING ( using_expression ) ]\n    [ WITH CHECK ( check_expression ) ]"],
-  ["CREATE PROCEDURE", "define a new procedure", "sql-createprocedure", "CREATE [ OR REPLACE ] PROCEDURE\n    name ( [ [ argmode ] [ argname ] argtype [ { DEFAULT | = } default_expr ] [, ...] ] )\n  { LANGUAGE lang_name\n    | TRANSFORM { FOR TYPE type_name } [, ... ]\n    | [ EXTERNAL ] SECURITY INVOKER | [ EXTERNAL ] SECURITY DEFINER\n    | SET configuration_parameter { TO value | = value | FROM CURRENT }\n    | AS 'definition'\n    | AS 'obj_file', 'link_symbol'\n    | sql_body\n  } ..."],
-  ["CREATE PUBLICATION", "define a new publication", "sql-createpublication", "CREATE PUBLICATION name\n    [ FOR { publication_object [, ... ] | publication_all_object [, ... ] } ]\n    [ WITH ( publication_parameter [= value] [, ... ] ) ]\n\nwhere publication_object is one of:\n\n    TABLE table_and_columns [, ... ]\n    TABLES IN SCHEMA { schema_name | CURRENT_SCHEMA } [, ... ]\n\nand publication_all_object is one of:\n\n    ALL TABLES [ EXCEPT ( except_table_object [, ... ] ) ]\n    ALL SEQUENCES\n\nand table_and_columns is:\n\n    table_object [ ( column_name [, ... ] ) ] [ WHERE ( expression ) ]\n\nand except_table_object is:\n\n    TABLE table_object [, ... ]\n\nand table_object is:\n\n   [ ONLY ] table_name [ * ]"],
-  ["CREATE ROLE", "define a new database role", "sql-createrole", "CREATE ROLE name [ [ WITH ] option [ ... ] ]\n\nwhere option can be:\n\n      SUPERUSER | NOSUPERUSER\n    | CREATEDB | NOCREATEDB\n    | CREATEROLE | NOCREATEROLE\n    | INHERIT | NOINHERIT\n    | LOGIN | NOLOGIN\n    | REPLICATION | NOREPLICATION\n    | BYPASSRLS | NOBYPASSRLS\n    | CONNECTION LIMIT connlimit\n    | [ ENCRYPTED ] PASSWORD 'password' | PASSWORD NULL\n    | VALID UNTIL 'timestamp'\n    | IN ROLE role_name [, ...]\n    | ROLE role_name [, ...]\n    | ADMIN role_name [, ...]\n    | SYSID uid"],
-  ["CREATE RULE", "define a new rewrite rule", "sql-createrule", "CREATE [ OR REPLACE ] RULE name AS ON event\n    TO table_name [ WHERE condition ]\n    DO [ ALSO | INSTEAD ] { NOTHING | command | ( command ; command ... ) }\n\nwhere event can be one of:\n\n    SELECT | INSERT | UPDATE | DELETE"],
-  ["CREATE SCHEMA", "define a new schema", "sql-createschema", "CREATE SCHEMA schema_name [ AUTHORIZATION role_specification ] [ schema_element [ ... ] ]\nCREATE SCHEMA AUTHORIZATION role_specification [ schema_element [ ... ] ]\nCREATE SCHEMA IF NOT EXISTS schema_name [ AUTHORIZATION role_specification ]\nCREATE SCHEMA IF NOT EXISTS AUTHORIZATION role_specification\n\nwhere role_specification can be:\n\n    user_name\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER"],
-  ["CREATE SEQUENCE", "define a new sequence generator", "sql-createsequence", "CREATE [ { TEMPORARY | TEMP } | UNLOGGED ] SEQUENCE [ IF NOT EXISTS ] name\n    [ AS data_type ]\n    [ INCREMENT [ BY ] increment ]\n    [ MINVALUE minvalue | NO MINVALUE ] [ MAXVALUE maxvalue | NO MAXVALUE ]\n    [ [ NO ] CYCLE ]\n    [ START [ WITH ] start ]\n    [ CACHE cache ]\n    [ OWNED BY { table_name.column_name | NONE } ]"],
-  ["CREATE SERVER", "define a new foreign server", "sql-createserver", "CREATE SERVER [ IF NOT EXISTS ] server_name [ TYPE 'server_type' ] [ VERSION 'server_version' ]\n    FOREIGN DATA WRAPPER fdw_name\n    [ OPTIONS ( option 'value' [, ... ] ) ]"],
-  ["CREATE STATISTICS", "define extended statistics", "sql-createstatistics", "CREATE STATISTICS [ [ IF NOT EXISTS ] statistics_name ]\n    ON { column_name | ( expression ) }\n    FROM table_name\n\nCREATE STATISTICS [ [ IF NOT EXISTS ] statistics_name ]\n    [ ( statistics_kind [, ... ] ) ]\n    ON { column_name | ( expression ) }, { column_name | ( expression ) } [, ...]\n    FROM table_name"],
-  ["CREATE SUBSCRIPTION", "define a new subscription", "sql-createsubscription", "CREATE SUBSCRIPTION subscription_name\n    { SERVER server_name | CONNECTION 'conninfo' }\n    PUBLICATION publication_name [, ...]\n    [ WITH ( subscription_parameter [= value] [, ... ] ) ]"],
-  ["CREATE TABLE", "define a new table", "sql-createtable", "CREATE [ persistence_mode ] TABLE [ IF NOT EXISTS ] table_name ( [\n  { column_name data_type [ column_storage ] [ column_compression ] [ COLLATE collation ] [ column_constraint [ ... ] ]\n    | table_constraint\n    | LIKE source_table [ like_option ... ] }\n    [, ... ]\n] )\n[ INHERITS ( parent_table [, ... ] ) ]\n[ PARTITION BY { RANGE | LIST | HASH } ( { column_name | ( expression ) } [ COLLATE collation ] [ opclass ] [, ... ] ) ]\n[ USING method ]\n[ WITH ( storage_parameter [= value] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE tablespace_name ]\n\nCREATE [ persistence_mode ] TABLE [ IF NOT EXISTS ] table_name\n    OF type_name [ (\n  { column_name [ WITH OPTIONS ] [ column_constraint [ ... ] ]\n    | table_constraint }\n    [, ... ]\n) ]\n[ PARTITION BY { RANGE | LIST | HASH } ( { column_name | ( expression ) } [ COLLATE collation ] [ opclass ] [, ... ] ) ]\n[ USING method ]\n[ WITH ( storage_parameter [= value] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE tablespace_name ]\n\nCREATE [ persistence_mode ] TABLE [ IF NOT EXISTS ] table_name\n    PARTITION OF parent_table [ (\n  { column_name [ WITH OPTIONS ] [ column_constraint [ ... ] ]\n    | table_constraint }\n    [, ... ]\n) ] { FOR VALUES partition_bound_spec | DEFAULT }\n[ PARTITION BY { RANGE | LIST | HASH } ( { column_name | ( expression ) } [ COLLATE collation ] [ opclass ] [, ... ] ) ]\n[ USING method ]\n[ WITH ( storage_parameter [= value] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE tablespace_name ]\n\nwhere persistence_mode is:\n\n{ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } } | UNLOGGED\n\nand column_storage is:\n\nSTORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }\n\nand column_compression is:\n\nCOMPRESSION compression_method\n\nand column_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ NOT NULL [ NO INHERIT ]  |\n  NULL |\n  CHECK ( expression ) [ NO INHERIT ] |\n  DEFAULT default_expr |\n  GENERATED ALWAYS AS ( generation_expr ) [ STORED | VIRTUAL ] |\n  GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( sequence_options ) ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] index_parameters |\n  PRIMARY KEY index_parameters |\n  REFERENCES reftable [ ( refcolumn ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]\n    [ ON DELETE referential_action ] [ ON UPDATE referential_action ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n\nand table_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ CHECK ( expression ) [ NO INHERIT ] |\n  NOT NULL column_name [ NO INHERIT ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( column_name [, ... ] [, column_name WITHOUT OVERLAPS ] ) index_parameters |\n  PRIMARY KEY ( column_name [, ... ] [, column_name WITHOUT OVERLAPS ] ) index_parameters |\n  EXCLUDE [ USING index_method ] ( exclude_element WITH operator [, ... ] ) index_parameters [ WHERE ( predicate ) ] |\n  FOREIGN KEY ( column_name [, ... ] [, PERIOD column_name ] ) REFERENCES reftable [ ( refcolumn [, ... ] [, PERIOD refcolumn ] ) ]\n    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE referential_action ] [ ON UPDATE referential_action ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n\nand like_option is:\n\n{ INCLUDING | EXCLUDING } { COMMENTS | COMPRESSION | CONSTRAINTS | DEFAULTS | GENERATED | IDENTITY | INDEXES | STATISTICS | STORAGE | ALL }\n\nand partition_bound_spec is:\n\nIN ( partition_bound_expr [, ...] ) |\nFROM ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS numeric_literal, REMAINDER numeric_literal )\n\nand index_parameters in UNIQUE, PRIMARY KEY, and EXCLUDE constraints are:\n\n[ INCLUDE ( column_name [, ... ] ) ]\n[ WITH ( storage_parameter [= value] [, ... ] ) ]\n[ USING INDEX TABLESPACE tablespace_name ]\n\nand exclude_element in an EXCLUDE constraint is:\n\n{ column_name | ( expression ) } [ COLLATE collation ] [ opclass [ ( opclass_parameter = value [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n\nand referential_action in a FOREIGN KEY/REFERENCES constraint is:\n\n{ NO ACTION | RESTRICT | CASCADE | SET NULL [ ( column_name [, ... ] ) ] | SET DEFAULT [ ( column_name [, ... ] ) ] }"],
-  ["CREATE TABLE AS", "define a new table from the results of a query", "sql-createtableas", "CREATE [ persistence_mode ] TABLE [ IF NOT EXISTS ] table_name\n    [ ( column_name [, ...] ) ]\n    [ USING method ]\n    [ WITH ( storage_parameter [= value] [, ... ] ) | WITHOUT OIDS ]\n    [ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n    [ TABLESPACE tablespace_name ]\n    AS query\n    [ WITH [ NO ] DATA ]\n\nwhere persistence_mode is:\n\n{ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } } | UNLOGGED"],
-  ["CREATE TABLESPACE", "define a new tablespace", "sql-createtablespace", "CREATE TABLESPACE tablespace_name\n    [ OWNER { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER } ]\n    LOCATION 'directory'\n    [ WITH ( tablespace_option = value [, ... ] ) ]"],
-  ["CREATE TEXT SEARCH CONFIGURATION", "define a new text search configuration", "sql-createtsconfig", "CREATE TEXT SEARCH CONFIGURATION name (\n    PARSER = parser_name |\n    COPY = source_config\n)"],
-  ["CREATE TEXT SEARCH DICTIONARY", "define a new text search dictionary", "sql-createtsdictionary", "CREATE TEXT SEARCH DICTIONARY name (\n    TEMPLATE = template\n    [, option = value [, ... ]]\n)"],
-  ["CREATE TEXT SEARCH PARSER", "define a new text search parser", "sql-createtsparser", "CREATE TEXT SEARCH PARSER name (\n    START = start_function ,\n    GETTOKEN = gettoken_function ,\n    END = end_function ,\n    LEXTYPES = lextypes_function\n    [, HEADLINE = headline_function ]\n)"],
-  ["CREATE TEXT SEARCH TEMPLATE", "define a new text search template", "sql-createtstemplate", "CREATE TEXT SEARCH TEMPLATE name (\n    [ INIT = init_function , ]\n    LEXIZE = lexize_function\n)"],
-  ["CREATE TRANSFORM", "define a new transform", "sql-createtransform", "CREATE [ OR REPLACE ] TRANSFORM FOR type_name LANGUAGE lang_name (\n    FROM SQL WITH FUNCTION from_sql_function_name [ (argument_type [, ...]) ],\n    TO SQL WITH FUNCTION to_sql_function_name [ (argument_type [, ...]) ]\n);"],
-  ["CREATE TRIGGER", "define a new trigger", "sql-createtrigger", "CREATE [ OR REPLACE ] [ CONSTRAINT ] TRIGGER name { BEFORE | AFTER | INSTEAD OF } { event [ OR ... ] }\n    ON table_name\n    [ FROM referenced_table_name ]\n    [ NOT DEFERRABLE | [ DEFERRABLE ] [ INITIALLY IMMEDIATE | INITIALLY DEFERRED ] ] [ ENFORCED ]\n    [ REFERENCING { { OLD | NEW } TABLE [ AS ] transition_relation_name } [ ... ] ]\n    [ FOR [ EACH ] { ROW | STATEMENT } ]\n    [ WHEN ( condition ) ]\n    EXECUTE { FUNCTION | PROCEDURE } function_name ( arguments )\n\nwhere event can be one of:\n\n    INSERT\n    UPDATE [ OF column_name [, ... ] ]\n    DELETE\n    TRUNCATE"],
-  ["CREATE TYPE", "define a new data type", "sql-createtype", "CREATE TYPE name AS\n    ( [ attribute_name data_type [ COLLATE collation ] [, ... ] ] )\n\nCREATE TYPE name AS ENUM\n    ( [ 'label' [, ... ] ] )\n\nCREATE TYPE name AS RANGE (\n    SUBTYPE = subtype\n    [ , SUBTYPE_OPCLASS = subtype_operator_class ]\n    [ , COLLATION = collation ]\n    [ , CANONICAL = canonical_function ]\n    [ , SUBTYPE_DIFF = subtype_diff_function ]\n    [ , MULTIRANGE_TYPE_NAME = multirange_type_name ]\n)\n\nCREATE TYPE name (\n    INPUT = input_function,\n    OUTPUT = output_function\n    [ , RECEIVE = receive_function ]\n    [ , SEND = send_function ]\n    [ , TYPMOD_IN = type_modifier_input_function ]\n    [ , TYPMOD_OUT = type_modifier_output_function ]\n    [ , ANALYZE = analyze_function ]\n    [ , SUBSCRIPT = subscript_function ]\n    [ , INTERNALLENGTH = { internallength | VARIABLE } ]\n    [ , PASSEDBYVALUE ]\n    [ , ALIGNMENT = alignment ]\n    [ , STORAGE = storage ]\n    [ , LIKE = like_type ]\n    [ , CATEGORY = category ]\n    [ , PREFERRED = preferred ]\n    [ , DEFAULT = default ]\n    [ , ELEMENT = element ]\n    [ , DELIMITER = delimiter ]\n    [ , COLLATABLE = collatable ]\n)\n\nCREATE TYPE name"],
-  ["CREATE USER", "define a new database role", "sql-createuser", "CREATE USER name [ [ WITH ] option [ ... ] ]\n\nwhere option can be:\n\n      SUPERUSER | NOSUPERUSER\n    | CREATEDB | NOCREATEDB\n    | CREATEROLE | NOCREATEROLE\n    | INHERIT | NOINHERIT\n    | LOGIN | NOLOGIN\n    | REPLICATION | NOREPLICATION\n    | BYPASSRLS | NOBYPASSRLS\n    | CONNECTION LIMIT connlimit\n    | [ ENCRYPTED ] PASSWORD 'password' | PASSWORD NULL\n    | VALID UNTIL 'timestamp'\n    | IN ROLE role_name [, ...]\n    | ROLE role_name [, ...]\n    | ADMIN role_name [, ...]\n    | SYSID uid"],
-  ["CREATE USER MAPPING", "define a new mapping of a user to a foreign server", "sql-createusermapping", "CREATE USER MAPPING [ IF NOT EXISTS ] FOR { user_name | USER | CURRENT_ROLE | CURRENT_USER | PUBLIC }\n    SERVER server_name\n    [ OPTIONS ( option 'value' [ , ... ] ) ]"],
-  ["CREATE VIEW", "define a new view", "sql-createview", "CREATE [ OR REPLACE ] [ TEMP | TEMPORARY ] [ RECURSIVE ] VIEW name [ ( column_name [, ...] ) ]\n    [ WITH ( view_option_name [= view_option_value] [, ... ] ) ]\n    AS query\n    [ WITH [ CASCADED | LOCAL ] CHECK OPTION ]"],
-  ["DEALLOCATE", "deallocate a prepared statement", "sql-deallocate", "DEALLOCATE [ PREPARE ] { name | ALL }"],
-  ["DECLARE", "define a cursor", "sql-declare", "DECLARE name [ BINARY ] [ ASENSITIVE | INSENSITIVE ] [ [ NO ] SCROLL ]\n    CURSOR [ { WITH | WITHOUT } HOLD ] FOR query"],
-  ["DELETE", "delete rows of a table", "sql-delete", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nDELETE FROM [ ONLY ] table_name [ * ] [ [ AS ] alias ]\n    [ USING from_item [, ...] ]\n    [ WHERE condition | WHERE CURRENT OF cursor_name ]\n    [ RETURNING [ WITH ( { OLD | NEW } AS output_alias [, ...] ) ]\n                { * | output_expression [ [ AS ] output_name ] } [, ...] ]"],
-  ["DISCARD", "discard session state", "sql-discard", "DISCARD { ALL | PLANS | SEQUENCES | TEMPORARY | TEMP }"],
-  ["DO", "execute an anonymous code block", "sql-do", "DO [ LANGUAGE lang_name ] code"],
-  ["DROP ACCESS METHOD", "remove an access method", "sql-drop-access-method", "DROP ACCESS METHOD [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
-  ["DROP AGGREGATE", "remove an aggregate function", "sql-dropaggregate", "DROP AGGREGATE [ IF EXISTS ] name ( aggregate_signature ) [, ...] [ CASCADE | RESTRICT ]\n\nwhere aggregate_signature is:\n\n* |\n[ argmode ] [ argname ] argtype [ , ... ] |\n[ [ argmode ] [ argname ] argtype [ , ... ] ] ORDER BY [ argmode ] [ argname ] argtype [ , ... ]"],
-  ["DROP CAST", "remove a cast", "sql-dropcast", "DROP CAST [ IF EXISTS ] (source_type AS target_type) [ CASCADE | RESTRICT ]"],
-  ["DROP COLLATION", "remove a collation", "sql-dropcollation", "DROP COLLATION [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
-  ["DROP CONVERSION", "remove a conversion", "sql-dropconversion", "DROP CONVERSION [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
-  ["DROP DATABASE", "remove a database", "sql-dropdatabase", "DROP DATABASE [ IF EXISTS ] name [ [ WITH ] ( option [, ...] ) ]\n\nwhere option can be:\n\n    FORCE"],
-  ["DROP DOMAIN", "remove a domain", "sql-dropdomain", "DROP DOMAIN [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP EVENT TRIGGER", "remove an event trigger", "sql-dropeventtrigger", "DROP EVENT TRIGGER [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
-  ["DROP EXTENSION", "remove an extension", "sql-dropextension", "DROP EXTENSION [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP FOREIGN DATA WRAPPER", "remove a foreign-data wrapper", "sql-dropforeigndatawrapper", "DROP FOREIGN DATA WRAPPER [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP FOREIGN TABLE", "remove a foreign table", "sql-dropforeigntable", "DROP FOREIGN TABLE [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP FUNCTION", "remove a function", "sql-dropfunction", "DROP FUNCTION [ IF EXISTS ] name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] [, ...]\n    [ CASCADE | RESTRICT ]"],
-  ["DROP GROUP", "remove a database role", "sql-dropgroup", "DROP GROUP [ IF EXISTS ] name [, ...]"],
-  ["DROP INDEX", "remove an index", "sql-dropindex", "DROP INDEX [ CONCURRENTLY ] [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP LANGUAGE", "remove a procedural language", "sql-droplanguage", "DROP [ PROCEDURAL ] LANGUAGE [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
-  ["DROP MATERIALIZED VIEW", "remove a materialized view", "sql-dropmaterializedview", "DROP MATERIALIZED VIEW [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP OPERATOR", "remove an operator", "sql-dropoperator", "DROP OPERATOR [ IF EXISTS ] name ( { left_type | NONE } , right_type ) [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP OPERATOR CLASS", "remove an operator class", "sql-dropopclass", "DROP OPERATOR CLASS [ IF EXISTS ] name USING index_method [ CASCADE | RESTRICT ]"],
-  ["DROP OPERATOR FAMILY", "remove an operator family", "sql-dropopfamily", "DROP OPERATOR FAMILY [ IF EXISTS ] name USING index_method [ CASCADE | RESTRICT ]"],
-  ["DROP OWNED", "remove database objects owned by a database role", "sql-drop-owned", "DROP OWNED BY { name | CURRENT_ROLE | CURRENT_USER | SESSION_USER } [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP POLICY", "remove a row-level security policy from a table", "sql-droppolicy", "DROP POLICY [ IF EXISTS ] name ON table_name [ CASCADE | RESTRICT ]"],
-  ["DROP PROCEDURE", "remove a procedure", "sql-dropprocedure", "DROP PROCEDURE [ IF EXISTS ] name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] [, ...]\n    [ CASCADE | RESTRICT ]"],
-  ["DROP PUBLICATION", "remove a publication", "sql-droppublication", "DROP PUBLICATION [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP ROLE", "remove a database role", "sql-droprole", "DROP ROLE [ IF EXISTS ] name [, ...]"],
-  ["DROP ROUTINE", "remove a routine", "sql-droproutine", "DROP ROUTINE [ IF EXISTS ] name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] [, ...]\n    [ CASCADE | RESTRICT ]"],
-  ["DROP RULE", "remove a rewrite rule", "sql-droprule", "DROP RULE [ IF EXISTS ] name ON table_name [ CASCADE | RESTRICT ]"],
-  ["DROP SCHEMA", "remove a schema", "sql-dropschema", "DROP SCHEMA [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP SEQUENCE", "remove a sequence", "sql-dropsequence", "DROP SEQUENCE [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP SERVER", "remove a foreign server descriptor", "sql-dropserver", "DROP SERVER [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP STATISTICS", "remove extended statistics", "sql-dropstatistics", "DROP STATISTICS [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP SUBSCRIPTION", "remove a subscription", "sql-dropsubscription", "DROP SUBSCRIPTION [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
-  ["DROP TABLE", "remove a table", "sql-droptable", "DROP TABLE [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP TABLESPACE", "remove a tablespace", "sql-droptablespace", "DROP TABLESPACE [ IF EXISTS ] name"],
-  ["DROP TEXT SEARCH CONFIGURATION", "remove a text search configuration", "sql-droptsconfig", "DROP TEXT SEARCH CONFIGURATION [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
-  ["DROP TEXT SEARCH DICTIONARY", "remove a text search dictionary", "sql-droptsdictionary", "DROP TEXT SEARCH DICTIONARY [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
-  ["DROP TEXT SEARCH PARSER", "remove a text search parser", "sql-droptsparser", "DROP TEXT SEARCH PARSER [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
-  ["DROP TEXT SEARCH TEMPLATE", "remove a text search template", "sql-droptstemplate", "DROP TEXT SEARCH TEMPLATE [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
-  ["DROP TRANSFORM", "remove a transform", "sql-droptransform", "DROP TRANSFORM [ IF EXISTS ] FOR type_name LANGUAGE lang_name [ CASCADE | RESTRICT ]"],
-  ["DROP TRIGGER", "remove a trigger", "sql-droptrigger", "DROP TRIGGER [ IF EXISTS ] name ON table_name [ CASCADE | RESTRICT ]"],
-  ["DROP TYPE", "remove a data type", "sql-droptype", "DROP TYPE [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["DROP USER", "remove a database role", "sql-dropuser", "DROP USER [ IF EXISTS ] name [, ...]"],
-  ["DROP USER MAPPING", "remove a user mapping for a foreign server", "sql-dropusermapping", "DROP USER MAPPING [ IF EXISTS ] FOR { user_name | USER | CURRENT_ROLE | CURRENT_USER | PUBLIC } SERVER server_name"],
-  ["DROP VIEW", "remove a view", "sql-dropview", "DROP VIEW [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
-  ["END", "commit the current transaction", "sql-end", "END [ WORK | TRANSACTION ] [ AND [ NO ] CHAIN ]"],
-  ["EXECUTE", "execute a prepared statement", "sql-execute", "EXECUTE name [ ( parameter [, ...] ) ]"],
-  ["EXPLAIN", "show the execution plan of a statement", "sql-explain", "EXPLAIN [ ( option [, ...] ) ] statement\n\nwhere option can be one of:\n\n    ANALYZE [ boolean ]\n    VERBOSE [ boolean ]\n    COSTS [ boolean ]\n    SETTINGS [ boolean ]\n    GENERIC_PLAN [ boolean ]\n    BUFFERS [ boolean ]\n    SERIALIZE [ { NONE | TEXT | BINARY } ]\n    WAL [ boolean ]\n    TIMING [ boolean ]\n    SUMMARY [ boolean ]\n    MEMORY [ boolean ]\n    IO [ boolean ]\n    FORMAT { TEXT | XML | JSON | YAML }"],
-  ["FETCH", "retrieve rows from a query using a cursor", "sql-fetch", "FETCH [ direction ] [ FROM | IN ] cursor_name\n\nwhere direction can be one of:\n\n    NEXT\n    PRIOR\n    FIRST\n    LAST\n    ABSOLUTE count\n    RELATIVE count\n    count\n    ALL\n    FORWARD\n    FORWARD count\n    FORWARD ALL\n    BACKWARD\n    BACKWARD count\n    BACKWARD ALL"],
-  ["GRANT", "define access privileges", "sql-grant", "GRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { [ TABLE ] table_name [, ...]\n         | ALL TABLES IN SCHEMA schema_name [, ...] }\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { { SELECT | INSERT | UPDATE | REFERENCES } ( column_name [, ...] )\n    [, ...] | ALL [ PRIVILEGES ] ( column_name [, ...] ) }\n    ON [ TABLE ] table_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { SEQUENCE sequence_name [, ...]\n         | ALL SEQUENCES IN SCHEMA schema_name [, ...] }\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { { CREATE | CONNECT | TEMPORARY | TEMP } [, ...] | ALL [ PRIVILEGES ] }\n    ON DATABASE database_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON DOMAIN domain_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN DATA WRAPPER fdw_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN SERVER server_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { { FUNCTION | PROCEDURE | ROUTINE } routine_name [ ( [ [ argmode ] [ arg_name ] arg_type [, ...] ] ) ] [, ...]\n         | ALL { FUNCTIONS | PROCEDURES | ROUTINES } IN SCHEMA schema_name [, ...] }\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON LANGUAGE lang_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { { SELECT | UPDATE } [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECT loid [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { { SET | ALTER SYSTEM } [, ... ] | ALL [ PRIVILEGES ] }\n    ON PARAMETER configuration_parameter [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { { CREATE | USAGE } [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMA schema_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { CREATE | ALL [ PRIVILEGES ] }\n    ON TABLESPACE tablespace_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPE type_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT role_name [, ...] TO role_specification [, ...]\n    [ WITH { ADMIN | INHERIT | SET } { OPTION | TRUE | FALSE } ]\n    [ GRANTED BY role_specification ]\n\nwhere role_specification can be:\n\n    [ GROUP ] role_name\n  | PUBLIC\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER"],
-  ["IMPORT FOREIGN SCHEMA", "import table definitions from a foreign server", "sql-importforeignschema", "IMPORT FOREIGN SCHEMA remote_schema\n    [ { LIMIT TO | EXCEPT } ( table_name [, ...] ) ]\n    FROM SERVER server_name\n    INTO local_schema\n    [ OPTIONS ( option 'value' [, ... ] ) ]"],
-  ["INSERT", "create new rows in a table", "sql-insert", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nINSERT INTO table_name [ AS alias ] [ ( column_name [, ...] ) ]\n    [ OVERRIDING { SYSTEM | USER } VALUE ]\n    { DEFAULT VALUES | VALUES ( { expression | DEFAULT } [, ...] ) [, ...] | query }\n    [ ON CONFLICT [ conflict_target ] conflict_action ]\n    [ RETURNING [ WITH ( { OLD | NEW } AS output_alias [, ...] ) ]\n                { * | output_expression [ [ AS ] output_name ] } [, ...] ]\n\nwhere conflict_target can be one of:\n\n    ( { index_column_name | ( index_expression ) } [ COLLATE collation ] [ opclass ] [, ...] ) [ WHERE index_predicate ]\n    ON CONSTRAINT constraint_name\n\nand conflict_action is one of:\n\n    DO NOTHING\n    DO SELECT [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } ] [ WHERE condition ]\n    DO UPDATE SET { column_name = { expression | DEFAULT } |\n                    ( column_name [, ...] ) = [ ROW ] ( { expression | DEFAULT } [, ...] ) |\n                    ( column_name [, ...] ) = ( sub-SELECT )\n                  } [, ...]\n              [ WHERE condition ]"],
-  ["LISTEN", "listen for a notification", "sql-listen", "LISTEN channel"],
-  ["LOAD", "load a shared library file", "sql-load", "LOAD 'filename'"],
-  ["LOCK", "lock a table", "sql-lock", "LOCK [ TABLE ] [ ONLY ] name [ * ] [, ...] [ IN lockmode MODE ] [ NOWAIT ]\n\nwhere lockmode is one of:\n\n    ACCESS SHARE | ROW SHARE | ROW EXCLUSIVE | SHARE UPDATE EXCLUSIVE\n    | SHARE | SHARE ROW EXCLUSIVE | EXCLUSIVE | ACCESS EXCLUSIVE"],
-  ["MERGE", "conditionally insert, update, or delete rows of a table", "sql-merge", "[ WITH with_query [, ...] ]\nMERGE INTO [ ONLY ] target_table_name [ * ] [ [ AS ] target_alias ]\n    USING data_source ON join_condition\n    when_clause [...]\n    [ RETURNING [ WITH ( { OLD | NEW } AS output_alias [, ...] ) ]\n                { * | output_expression [ [ AS ] output_name ] } [, ...] ]\n\nwhere data_source is:\n\n    { [ ONLY ] source_table_name [ * ] | ( source_query ) } [ [ AS ] source_alias ]\n\nand when_clause is:\n\n    { WHEN MATCHED [ AND condition ] THEN { merge_update | merge_delete | DO NOTHING } |\n      WHEN NOT MATCHED BY SOURCE [ AND condition ] THEN { merge_update | merge_delete | DO NOTHING } |\n      WHEN NOT MATCHED [ BY TARGET ] [ AND condition ] THEN { merge_insert | DO NOTHING } }\n\nand merge_insert is:\n\n    INSERT [( column_name [, ...] )]\n        [ OVERRIDING { SYSTEM | USER } VALUE ]\n        { VALUES ( { expression | DEFAULT } [, ...] ) | DEFAULT VALUES }\n\nand merge_update is:\n\n    UPDATE SET { column_name = { expression | DEFAULT } |\n                 ( column_name [, ...] ) = [ ROW ] ( { expression | DEFAULT } [, ...] ) |\n                 ( column_name [, ...] ) = ( sub-SELECT )\n               } [, ...]\n\nand merge_delete is:\n\n    DELETE"],
-  ["MOVE", "position a cursor", "sql-move", "MOVE [ direction ] [ FROM | IN ] cursor_name\n\nwhere direction can be one of:\n\n    NEXT\n    PRIOR\n    FIRST\n    LAST\n    ABSOLUTE count\n    RELATIVE count\n    count\n    ALL\n    FORWARD\n    FORWARD count\n    FORWARD ALL\n    BACKWARD\n    BACKWARD count\n    BACKWARD ALL"],
-  ["NOTIFY", "generate a notification", "sql-notify", "NOTIFY channel [ , payload ]"],
-  ["PREPARE", "prepare a statement for execution", "sql-prepare", "PREPARE name [ ( data_type [, ...] ) ] AS statement"],
-  ["PREPARE TRANSACTION", "prepare the current transaction for two-phase commit", "sql-prepare-transaction", "PREPARE TRANSACTION transaction_id"],
-  ["REASSIGN OWNED", "change the ownership of database objects owned by a database role", "sql-reassign-owned", "REASSIGN OWNED BY { old_role | CURRENT_ROLE | CURRENT_USER | SESSION_USER } [, ...]\n               TO { new_role | CURRENT_ROLE | CURRENT_USER | SESSION_USER }"],
-  ["REFRESH MATERIALIZED VIEW", "replace the contents of a materialized view", "sql-refreshmaterializedview", "REFRESH MATERIALIZED VIEW [ CONCURRENTLY ] name\n    [ WITH [ NO ] DATA ]"],
-  ["REINDEX", "rebuild indexes", "sql-reindex", "REINDEX [ ( option [, ...] ) ] { INDEX | TABLE | SCHEMA } [ CONCURRENTLY ] name\nREINDEX [ ( option [, ...] ) ] { DATABASE | SYSTEM } [ CONCURRENTLY ] [ name ]\n\nwhere option can be one of:\n\n    CONCURRENTLY [ boolean ]\n    TABLESPACE new_tablespace\n    VERBOSE [ boolean ]"],
-  ["RELEASE SAVEPOINT", "release a previously defined savepoint", "sql-release-savepoint", "RELEASE [ SAVEPOINT ] savepoint_name"],
-  ["REPACK", "rewrite a table to reclaim disk space", "sql-repack", "REPACK [ ( option [, ...] ) ] [ table_and_columns [ USING INDEX [ index_name ] ] ]\nREPACK [ ( option [, ...] ) ] USING INDEX\n\nwhere option can be one of:\n\n    VERBOSE [ boolean ]\n    ANALYZE [ boolean ]\n    CONCURRENTLY [ boolean ]\n\nand table_and_columns is:\n\n    table_name [ ( column_name [, ...] ) ]"],
-  ["RESET", "restore the value of a run-time parameter to the default value", "sql-reset", "RESET configuration_parameter\nRESET ALL"],
-  ["REVOKE", "remove access privileges", "sql-revoke", "REVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { [ TABLE ] table_name [, ...]\n         | ALL TABLES IN SCHEMA schema_name [, ...] }\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | REFERENCES } ( column_name [, ...] )\n    [, ...] | ALL [ PRIVILEGES ] ( column_name [, ...] ) }\n    ON [ TABLE ] table_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { SEQUENCE sequence_name [, ...]\n         | ALL SEQUENCES IN SCHEMA schema_name [, ...] }\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { CREATE | CONNECT | TEMPORARY | TEMP } [, ...] | ALL [ PRIVILEGES ] }\n    ON DATABASE database_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON DOMAIN domain_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN DATA WRAPPER fdw_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN SERVER server_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { { FUNCTION | PROCEDURE | ROUTINE } function_name [ ( [ [ argmode ] [ arg_name ] arg_type [, ...] ] ) ] [, ...]\n         | ALL { FUNCTIONS | PROCEDURES | ROUTINES } IN SCHEMA schema_name [, ...] }\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON LANGUAGE lang_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | UPDATE } [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECT loid [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SET | ALTER SYSTEM } [, ...] | ALL [ PRIVILEGES ] }\n    ON PARAMETER configuration_parameter [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { CREATE | USAGE } [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMA schema_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { CREATE | ALL [ PRIVILEGES ] }\n    ON TABLESPACE tablespace_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPE type_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ { ADMIN | INHERIT | SET } OPTION FOR ]\n    role_name [, ...] FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nwhere role_specification can be:\n\n    [ GROUP ] role_name\n  | PUBLIC\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER"],
-  ["ROLLBACK", "abort the current transaction", "sql-rollback", "ROLLBACK [ WORK | TRANSACTION ] [ AND [ NO ] CHAIN ]"],
-  ["ROLLBACK PREPARED", "cancel a transaction that was earlier prepared for two-phase commit", "sql-rollback-prepared", "ROLLBACK PREPARED transaction_id"],
-  ["ROLLBACK TO SAVEPOINT", "roll back to a savepoint", "sql-rollback-to", "ROLLBACK [ WORK | TRANSACTION ] TO [ SAVEPOINT ] savepoint_name"],
-  ["SAVEPOINT", "define a new savepoint within the current transaction", "sql-savepoint", "SAVEPOINT savepoint_name"],
-  ["SECURITY LABEL", "define or change a security label applied to an object", "sql-security-label", "SECURITY LABEL [ FOR provider ] ON\n{\n  TABLE object_name |\n  COLUMN table_name.column_name |\n  AGGREGATE aggregate_name ( aggregate_signature ) |\n  DATABASE object_name |\n  DOMAIN object_name |\n  EVENT TRIGGER object_name |\n  FOREIGN TABLE object_name |\n  FUNCTION function_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  LARGE OBJECT large_object_oid |\n  MATERIALIZED VIEW object_name |\n  [ PROCEDURAL ] LANGUAGE object_name |\n  PROCEDURE procedure_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  PUBLICATION object_name |\n  ROLE object_name |\n  ROUTINE routine_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  SCHEMA object_name |\n  SEQUENCE object_name |\n  SUBSCRIPTION object_name |\n  TABLESPACE object_name |\n  TYPE object_name |\n  VIEW object_name\n} IS { string_literal | NULL }\n\nwhere aggregate_signature is:\n\n* |\n[ argmode ] [ argname ] argtype [ , ... ] |\n[ [ argmode ] [ argname ] argtype [ , ... ] ] ORDER BY [ argmode ] [ argname ] argtype [ , ... ]"],
-  ["SELECT", "retrieve rows from a table or view", "sql-select", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]\n    [ { * | expression [ [ AS ] output_name ] } [, ...] ]\n    [ FROM from_item [, ...] ]\n    [ WHERE condition ]\n    [ GROUP BY [ ALL | DISTINCT ] grouping_element [, ...] ]\n    [ HAVING condition ]\n    [ WINDOW window_name AS ( window_definition ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] select ]\n    [ ORDER BY expression [ ASC | DESC | USING operator ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { count | ALL } ]\n    [ OFFSET start [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF from_reference [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]\n\nwhere from_item can be one of:\n\n    [ ONLY ] table_name [ * ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n                [ TABLESAMPLE sampling_method ( argument [, ...] ) [ REPEATABLE ( seed ) ] ]\n    [ LATERAL ] ( select ) [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    with_query_name [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    [ LATERAL ] function_name ( [ argument [, ...] ] )\n                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    [ LATERAL ] function_name ( [ argument [, ...] ] ) [ AS ] alias ( column_definition [, ...] )\n    [ LATERAL ] function_name ( [ argument [, ...] ] ) AS ( column_definition [, ...] )\n    [ LATERAL ] ROWS FROM( function_name ( [ argument [, ...] ] ) [ AS ( column_definition [, ...] ) ] [, ...] )\n                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    from_item join_type from_item { ON join_condition | USING ( join_column [, ...] ) [ AS join_using_alias ] }\n    from_item NATURAL join_type from_item\n    from_item CROSS JOIN from_item\n\nand grouping_element can be one of:\n\n    ( )\n    expression\n    ( expression [, ...] )\n    ROLLUP ( { expression | ( expression [, ...] ) } [, ...] )\n    CUBE ( { expression | ( expression [, ...] ) } [, ...] )\n    GROUPING SETS ( grouping_element [, ...] )\n\nand with_query is:\n\n    with_query_name [ ( column_name [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( select | values | insert | update | delete | merge )\n        [ SEARCH { BREADTH | DEPTH } FIRST BY column_name [, ...] SET search_seq_col_name ]\n        [ CYCLE column_name [, ...] SET cycle_mark_col_name [ TO cycle_mark_value DEFAULT cycle_mark_default ] USING cycle_path_col_name ]\n\nTABLE [ ONLY ] table_name [ * ]"],
-  ["SELECT INTO", "define a new table from the results of a query", "sql-selectinto", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]\n    [ { * | expression [ [ AS ] output_name ] } [, ...] ]\n    INTO [ TEMPORARY | TEMP | UNLOGGED ] [ TABLE ] new_table\n    [ FROM from_item [, ...] ]\n    [ WHERE condition ]\n    [ GROUP BY [ ALL | DISTINCT ] grouping_element [, ...] ]\n    [ HAVING condition ]\n    [ WINDOW window_name AS ( window_definition ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] select ]\n    [ ORDER BY expression [ ASC | DESC | USING operator ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { count | ALL } ]\n    [ OFFSET start [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF from_reference [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]"],
-  ["SET", "change a run-time parameter", "sql-set", "SET [ SESSION | LOCAL ] configuration_parameter { TO | = } { value [, ...] | DEFAULT }\nSET [ SESSION | LOCAL ] TIME ZONE { value | LOCAL | DEFAULT }"],
-  ["SET CONSTRAINTS", "set constraint check timing for the current transaction", "sql-set-constraints", "SET CONSTRAINTS { ALL | name [, ...] } { DEFERRED | IMMEDIATE }"],
-  ["SET ROLE", "set the current user identifier of the current session", "sql-set-role", "SET [ SESSION | LOCAL ] ROLE role_name\nSET [ SESSION | LOCAL ] ROLE NONE\nRESET ROLE"],
-  ["SET SESSION AUTHORIZATION", "set the session user identifier and the current user identifier of the current session", "sql-set-session-authorization", "SET [ SESSION | LOCAL ] SESSION AUTHORIZATION user_name\nSET [ SESSION | LOCAL ] SESSION AUTHORIZATION DEFAULT\nRESET SESSION AUTHORIZATION"],
-  ["SET TRANSACTION", "set the characteristics of the current transaction", "sql-set-transaction", "SET TRANSACTION transaction_mode [, ...]\nSET TRANSACTION SNAPSHOT snapshot_id\nSET SESSION CHARACTERISTICS AS TRANSACTION transaction_mode [, ...]\n\nwhere transaction_mode is one of:\n\n    ISOLATION LEVEL { SERIALIZABLE | REPEATABLE READ | READ COMMITTED | READ UNCOMMITTED }\n    READ WRITE | READ ONLY\n    [ NOT ] DEFERRABLE"],
-  ["SHOW", "show the value of a run-time parameter", "sql-show", "SHOW name\nSHOW ALL"],
-  ["START TRANSACTION", "start a transaction block", "sql-start-transaction", "START TRANSACTION [ transaction_mode [, ...] ]\n\nwhere transaction_mode is one of:\n\n    ISOLATION LEVEL { SERIALIZABLE | REPEATABLE READ | READ COMMITTED | READ UNCOMMITTED }\n    READ WRITE | READ ONLY\n    [ NOT ] DEFERRABLE"],
-  ["TABLE", "retrieve rows from a table or view", "sql-select", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]\n    [ { * | expression [ [ AS ] output_name ] } [, ...] ]\n    [ FROM from_item [, ...] ]\n    [ WHERE condition ]\n    [ GROUP BY [ ALL | DISTINCT ] grouping_element [, ...] ]\n    [ HAVING condition ]\n    [ WINDOW window_name AS ( window_definition ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] select ]\n    [ ORDER BY expression [ ASC | DESC | USING operator ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { count | ALL } ]\n    [ OFFSET start [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF from_reference [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]\n\nwhere from_item can be one of:\n\n    [ ONLY ] table_name [ * ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n                [ TABLESAMPLE sampling_method ( argument [, ...] ) [ REPEATABLE ( seed ) ] ]\n    [ LATERAL ] ( select ) [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    with_query_name [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    [ LATERAL ] function_name ( [ argument [, ...] ] )\n                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    [ LATERAL ] function_name ( [ argument [, ...] ] ) [ AS ] alias ( column_definition [, ...] )\n    [ LATERAL ] function_name ( [ argument [, ...] ] ) AS ( column_definition [, ...] )\n    [ LATERAL ] ROWS FROM( function_name ( [ argument [, ...] ] ) [ AS ( column_definition [, ...] ) ] [, ...] )\n                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    from_item join_type from_item { ON join_condition | USING ( join_column [, ...] ) [ AS join_using_alias ] }\n    from_item NATURAL join_type from_item\n    from_item CROSS JOIN from_item\n\nand grouping_element can be one of:\n\n    ( )\n    expression\n    ( expression [, ...] )\n    ROLLUP ( { expression | ( expression [, ...] ) } [, ...] )\n    CUBE ( { expression | ( expression [, ...] ) } [, ...] )\n    GROUPING SETS ( grouping_element [, ...] )\n\nand with_query is:\n\n    with_query_name [ ( column_name [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( select | values | insert | update | delete | merge )\n        [ SEARCH { BREADTH | DEPTH } FIRST BY column_name [, ...] SET search_seq_col_name ]\n        [ CYCLE column_name [, ...] SET cycle_mark_col_name [ TO cycle_mark_value DEFAULT cycle_mark_default ] USING cycle_path_col_name ]\n\nTABLE [ ONLY ] table_name [ * ]"],
-  ["TRUNCATE", "empty a table or set of tables", "sql-truncate", "TRUNCATE [ TABLE ] [ ONLY ] name [ * ] [, ... ]\n    [ RESTART IDENTITY | CONTINUE IDENTITY ] [ CASCADE | RESTRICT ]"],
-  ["UNLISTEN", "stop listening for a notification", "sql-unlisten", "UNLISTEN { channel | * }"],
-  ["UPDATE", "update rows of a table", "sql-update", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nUPDATE [ ONLY ] table_name [ * ] [ [ AS ] alias ]\n    SET { column_name = { expression | DEFAULT } |\n          ( column_name [, ...] ) = [ ROW ] ( { expression | DEFAULT } [, ...] ) |\n          ( column_name [, ...] ) = ( sub-SELECT )\n        } [, ...]\n    [ FROM from_item [, ...] ]\n    [ WHERE condition | WHERE CURRENT OF cursor_name ]\n    [ RETURNING [ WITH ( { OLD | NEW } AS output_alias [, ...] ) ]\n                { * | output_expression [ [ AS ] output_name ] } [, ...] ]"],
-  ["VACUUM", "garbage-collect and optionally analyze a database", "sql-vacuum", "VACUUM [ ( option [, ...] ) ] [ table_and_columns [, ...] ]\n\nwhere option can be one of:\n\n    FREEZE [ boolean ]\n    VERBOSE [ boolean ]\n    ANALYZE [ boolean ]\n    DISABLE_PAGE_SKIPPING [ boolean ]\n    SKIP_LOCKED [ boolean ]\n    INDEX_CLEANUP { AUTO | ON | OFF }\n    PROCESS_MAIN [ boolean ]\n    PROCESS_TOAST [ boolean ]\n    TRUNCATE [ boolean ]\n    PARALLEL integer\n    SKIP_DATABASE_STATS [ boolean ]\n    ONLY_DATABASE_STATS [ boolean ]\n    BUFFER_USAGE_LIMIT size\n    FULL [ boolean ]\n\nand table_and_columns is:\n\n    [ ONLY ] table_name [ * ] [ ( column_name [, ...] ) ]"],
-  ["VALUES", "compute a set of rows", "sql-values", "VALUES ( expression [, ...] ) [, ...]\n    [ ORDER BY sort_expression [ ASC | DESC | USING operator ] [, ...] ]\n    [ LIMIT { count | ALL } ]\n    [ OFFSET start [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]"],
-  ["WAIT", "wait for WAL to reach a target LSN", "sql-wait", "WAIT FOR LSN 'lsn'\n    [ WITH ( option [, ...] ) ]\n\nwhere option can be:\n\n    MODE 'mode'\n    TIMEOUT 'timeout'\n    NO_THROW\n\nand mode can be:\n\n    standby_replay | standby_write | standby_flush | primary_flush"],
-  ["WITH", "retrieve rows from a table or view", "sql-select", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]\n    [ { * | expression [ [ AS ] output_name ] } [, ...] ]\n    [ FROM from_item [, ...] ]\n    [ WHERE condition ]\n    [ GROUP BY [ ALL | DISTINCT ] grouping_element [, ...] ]\n    [ HAVING condition ]\n    [ WINDOW window_name AS ( window_definition ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] select ]\n    [ ORDER BY expression [ ASC | DESC | USING operator ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { count | ALL } ]\n    [ OFFSET start [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF from_reference [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]\n\nwhere from_item can be one of:\n\n    [ ONLY ] table_name [ * ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n                [ TABLESAMPLE sampling_method ( argument [, ...] ) [ REPEATABLE ( seed ) ] ]\n    [ LATERAL ] ( select ) [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    with_query_name [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    [ LATERAL ] function_name ( [ argument [, ...] ] )\n                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    [ LATERAL ] function_name ( [ argument [, ...] ] ) [ AS ] alias ( column_definition [, ...] )\n    [ LATERAL ] function_name ( [ argument [, ...] ] ) AS ( column_definition [, ...] )\n    [ LATERAL ] ROWS FROM( function_name ( [ argument [, ...] ] ) [ AS ( column_definition [, ...] ) ] [, ...] )\n                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    from_item join_type from_item { ON join_condition | USING ( join_column [, ...] ) [ AS join_using_alias ] }\n    from_item NATURAL join_type from_item\n    from_item CROSS JOIN from_item\n\nand grouping_element can be one of:\n\n    ( )\n    expression\n    ( expression [, ...] )\n    ROLLUP ( { expression | ( expression [, ...] ) } [, ...] )\n    CUBE ( { expression | ( expression [, ...] ) } [, ...] )\n    GROUPING SETS ( grouping_element [, ...] )\n\nand with_query is:\n\n    with_query_name [ ( column_name [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( select | values | insert | update | delete | merge )\n        [ SEARCH { BREADTH | DEPTH } FIRST BY column_name [, ...] SET search_seq_col_name ]\n        [ CYCLE column_name [, ...] SET cycle_mark_col_name [ TO cycle_mark_value DEFAULT cycle_mark_default ] USING cycle_path_col_name ]\n\nTABLE [ ONLY ] table_name [ * ]"]
-];
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __esm = (fn, res, err) => function __init() {
+  if (err) throw err[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err = [e], e;
+  }
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 
-// src/describe.mjs
-var quote_all_identifiers = 0;
+// generated/sql-help.generated.mjs
+var sql_help_generated_exports = {};
+__export(sql_help_generated_exports, {
+  helpIndex: () => helpIndex
+});
+var helpIndex;
+var init_sql_help_generated = __esm({
+  "generated/sql-help.generated.mjs"() {
+    helpIndex = [
+      ["ABORT", "abort the current transaction", "sql-abort", "ABORT [ WORK | TRANSACTION ] [ AND [ NO ] CHAIN ]"],
+      ["ALTER AGGREGATE", "change the definition of an aggregate function", "sql-alteraggregate", "ALTER AGGREGATE name ( aggregate_signature ) RENAME TO new_name\nALTER AGGREGATE name ( aggregate_signature )\n                OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER AGGREGATE name ( aggregate_signature ) SET SCHEMA new_schema\n\nwhere aggregate_signature is:\n\n* |\n[ argmode ] [ argname ] argtype [ , ... ] |\n[ [ argmode ] [ argname ] argtype [ , ... ] ] ORDER BY [ argmode ] [ argname ] argtype [ , ... ]"],
+      ["ALTER COLLATION", "change the definition of a collation", "sql-altercollation", "ALTER COLLATION name REFRESH VERSION\n\nALTER COLLATION name RENAME TO new_name\nALTER COLLATION name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER COLLATION name SET SCHEMA new_schema"],
+      ["ALTER CONVERSION", "change the definition of a conversion", "sql-alterconversion", "ALTER CONVERSION name RENAME TO new_name\nALTER CONVERSION name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER CONVERSION name SET SCHEMA new_schema"],
+      ["ALTER DATABASE", "change a database", "sql-alterdatabase", "ALTER DATABASE name [ [ WITH ] option [ ... ] ]\n\nwhere option can be:\n\n    ALLOW_CONNECTIONS allowconn\n    CONNECTION LIMIT connlimit\n    IS_TEMPLATE istemplate\n\nALTER DATABASE name RENAME TO new_name\n\nALTER DATABASE name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n\nALTER DATABASE name SET TABLESPACE new_tablespace\n\nALTER DATABASE name REFRESH COLLATION VERSION\n\nALTER DATABASE name SET configuration_parameter { TO | = } { value | DEFAULT }\nALTER DATABASE name SET configuration_parameter FROM CURRENT\nALTER DATABASE name RESET configuration_parameter\nALTER DATABASE name RESET ALL"],
+      ["ALTER DEFAULT PRIVILEGES", "define default access privileges", "sql-alterdefaultprivileges", "ALTER DEFAULT PRIVILEGES\n    [ FOR { ROLE | USER } target_role [, ...] ]\n    [ IN SCHEMA schema_name [, ...] ]\n    abbreviated_grant_or_revoke\n\nwhere abbreviated_grant_or_revoke is one of:\n\nGRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON TABLES\n    TO { [ GROUP ] role_name | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SEQUENCES\n    TO { [ GROUP ] role_name | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { FUNCTIONS | ROUTINES }\n    TO { [ GROUP ] role_name | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPES\n    TO { [ GROUP ] role_name | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { USAGE | CREATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMAS\n    TO { [ GROUP ] role_name | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nGRANT { { SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECTS\n    TO { [ GROUP ] role_name | PUBLIC } [, ...] [ WITH GRANT OPTION ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON TABLES\n    FROM { [ GROUP ] role_name | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SEQUENCES\n    FROM { [ GROUP ] role_name | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { FUNCTIONS | ROUTINES }\n    FROM { [ GROUP ] role_name | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPES\n    FROM { [ GROUP ] role_name | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | CREATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMAS\n    FROM { [ GROUP ] role_name | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECTS\n    FROM { [ GROUP ] role_name | PUBLIC } [, ...]\n    [ CASCADE | RESTRICT ]"],
+      ["ALTER DOMAIN", "change the definition of a domain", "sql-alterdomain", "ALTER DOMAIN name\n    { SET DEFAULT expression | DROP DEFAULT }\nALTER DOMAIN name\n    { SET | DROP } NOT NULL\nALTER DOMAIN name\n    ADD domain_constraint [ NOT VALID ]\nALTER DOMAIN name\n    DROP CONSTRAINT [ IF EXISTS ] constraint_name [ RESTRICT | CASCADE ]\nALTER DOMAIN name\n     RENAME CONSTRAINT constraint_name TO new_constraint_name\nALTER DOMAIN name\n    VALIDATE CONSTRAINT constraint_name\nALTER DOMAIN name\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER DOMAIN name\n    RENAME TO new_name\nALTER DOMAIN name\n    SET SCHEMA new_schema\n\nwhere domain_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ NOT NULL | CHECK (expression) }"],
+      ["ALTER EVENT TRIGGER", "change the definition of an event trigger", "sql-altereventtrigger", "ALTER EVENT TRIGGER name DISABLE\nALTER EVENT TRIGGER name ENABLE [ REPLICA | ALWAYS ]\nALTER EVENT TRIGGER name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER EVENT TRIGGER name RENAME TO new_name"],
+      ["ALTER EXTENSION", "change the definition of an extension", "sql-alterextension", "ALTER EXTENSION name UPDATE [ TO new_version ]\nALTER EXTENSION name SET SCHEMA new_schema\nALTER EXTENSION name ADD member_object\nALTER EXTENSION name DROP member_object\n\nwhere member_object is:\n\n  ACCESS METHOD object_name |\n  AGGREGATE aggregate_name ( aggregate_signature ) |\n  CAST (source_type AS target_type) |\n  COLLATION object_name |\n  CONVERSION object_name |\n  DOMAIN object_name |\n  EVENT TRIGGER object_name |\n  FOREIGN DATA WRAPPER object_name |\n  FOREIGN TABLE object_name |\n  FUNCTION function_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  MATERIALIZED VIEW object_name |\n  OPERATOR operator_name (left_type, right_type) |\n  OPERATOR CLASS object_name USING index_method |\n  OPERATOR FAMILY object_name USING index_method |\n  [ PROCEDURAL ] LANGUAGE object_name |\n  PROCEDURE procedure_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  ROUTINE routine_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  SCHEMA object_name |\n  SEQUENCE object_name |\n  SERVER object_name |\n  TABLE object_name |\n  TEXT SEARCH CONFIGURATION object_name |\n  TEXT SEARCH DICTIONARY object_name |\n  TEXT SEARCH PARSER object_name |\n  TEXT SEARCH TEMPLATE object_name |\n  TRANSFORM FOR type_name LANGUAGE lang_name |\n  TYPE object_name |\n  VIEW object_name\n\nand aggregate_signature is:\n\n* |\n[ argmode ] [ argname ] argtype [ , ... ] |\n[ [ argmode ] [ argname ] argtype [ , ... ] ] ORDER BY [ argmode ] [ argname ] argtype [ , ... ]"],
+      ["ALTER FOREIGN DATA WRAPPER", "change the definition of a foreign-data wrapper", "sql-alterforeigndatawrapper", "ALTER FOREIGN DATA WRAPPER name\n    [ HANDLER handler_function | NO HANDLER ]\n    [ VALIDATOR validator_function | NO VALIDATOR ]\n    [ CONNECTION connection_function | NO CONNECTION ]\n    [ OPTIONS ( [ ADD | SET | DROP ] option ['value'] [, ... ]) ]\nALTER FOREIGN DATA WRAPPER name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER FOREIGN DATA WRAPPER name RENAME TO new_name"],
+      ["ALTER FOREIGN TABLE", "change the definition of a foreign table", "sql-alterforeigntable", "ALTER FOREIGN TABLE [ IF EXISTS ] [ ONLY ] name [ * ]\n    action [, ... ]\nALTER FOREIGN TABLE [ IF EXISTS ] [ ONLY ] name [ * ]\n    RENAME [ COLUMN ] column_name TO new_column_name\nALTER FOREIGN TABLE [ IF EXISTS ] name\n    RENAME TO new_name\nALTER FOREIGN TABLE [ IF EXISTS ] name\n    SET SCHEMA new_schema\n\nwhere action is one of:\n\n    ADD [ COLUMN ] [ IF NOT EXISTS ] column_name data_type [ COLLATE collation ] [ column_constraint [ ... ] ]\n    DROP [ COLUMN ] [ IF EXISTS ] column_name [ RESTRICT | CASCADE ]\n    ALTER [ COLUMN ] column_name [ SET DATA ] TYPE data_type [ COLLATE collation ]\n    ALTER [ COLUMN ] column_name SET DEFAULT expression\n    ALTER [ COLUMN ] column_name DROP DEFAULT\n    ALTER [ COLUMN ] column_name { SET | DROP } NOT NULL\n    ALTER [ COLUMN ] column_name SET STATISTICS integer\n    ALTER [ COLUMN ] column_name SET ( attribute_option = value [, ... ] )\n    ALTER [ COLUMN ] column_name RESET ( attribute_option [, ... ] )\n    ALTER [ COLUMN ] column_name SET STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }\n    ALTER [ COLUMN ] column_name OPTIONS ( [ ADD | SET | DROP ] option ['value'] [, ... ])\n    ADD table_constraint [ NOT VALID ]\n    VALIDATE CONSTRAINT constraint_name\n    DROP CONSTRAINT [ IF EXISTS ]  constraint_name [ RESTRICT | CASCADE ]\n    DISABLE TRIGGER [ trigger_name | ALL | USER ]\n    ENABLE TRIGGER [ trigger_name | ALL | USER ]\n    ENABLE REPLICA TRIGGER trigger_name\n    ENABLE ALWAYS TRIGGER trigger_name\n    SET WITHOUT OIDS\n    INHERIT parent_table\n    NO INHERIT parent_table\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n    OPTIONS ( [ ADD | SET | DROP ] option ['value'] [, ... ])"],
+      ["ALTER FUNCTION", "change the definition of a function", "sql-alterfunction", "ALTER FUNCTION name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    action [ ... ] [ RESTRICT ]\nALTER FUNCTION name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    RENAME TO new_name\nALTER FUNCTION name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER FUNCTION name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    SET SCHEMA new_schema\nALTER FUNCTION name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    [ NO ] DEPENDS ON EXTENSION extension_name\n\nwhere action is one of:\n\n    CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT\n    IMMUTABLE | STABLE | VOLATILE\n    [ NOT ] LEAKPROOF\n    [ EXTERNAL ] SECURITY INVOKER | [ EXTERNAL ] SECURITY DEFINER\n    PARALLEL { UNSAFE | RESTRICTED | SAFE }\n    COST execution_cost\n    ROWS result_rows\n    SUPPORT support_function\n    SET configuration_parameter { TO | = } { value | DEFAULT }\n    SET configuration_parameter FROM CURRENT\n    RESET configuration_parameter\n    RESET ALL"],
+      ["ALTER GROUP", "change role name or membership", "sql-altergroup", "ALTER GROUP role_specification ADD USER user_name [, ... ]\nALTER GROUP role_specification DROP USER user_name [, ... ]\n\nwhere role_specification can be:\n\n    role_name\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER\n\nALTER GROUP group_name RENAME TO new_name"],
+      ["ALTER INDEX", "change the definition of an index", "sql-alterindex", "ALTER INDEX [ IF EXISTS ] name RENAME TO new_name\nALTER INDEX [ IF EXISTS ] name SET TABLESPACE tablespace_name\nALTER INDEX name ATTACH PARTITION index_name\nALTER INDEX name [ NO ] DEPENDS ON EXTENSION extension_name\nALTER INDEX [ IF EXISTS ] name SET ( storage_parameter [= value] [, ... ] )\nALTER INDEX [ IF EXISTS ] name RESET ( storage_parameter [, ... ] )\nALTER INDEX [ IF EXISTS ] name ALTER [ COLUMN ] column_number\n    SET STATISTICS integer\nALTER INDEX ALL IN TABLESPACE name [ OWNED BY role_name [, ... ] ]\n    SET TABLESPACE new_tablespace [ NOWAIT ]"],
+      ["ALTER LANGUAGE", "change the definition of a procedural language", "sql-alterlanguage", "ALTER [ PROCEDURAL ] LANGUAGE name RENAME TO new_name\nALTER [ PROCEDURAL ] LANGUAGE name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }"],
+      ["ALTER LARGE OBJECT", "change the definition of a large object", "sql-alterlargeobject", "ALTER LARGE OBJECT large_object_oid OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }"],
+      ["ALTER MATERIALIZED VIEW", "change the definition of a materialized view", "sql-altermaterializedview", "ALTER MATERIALIZED VIEW [ IF EXISTS ] name\n    action [, ... ]\nALTER MATERIALIZED VIEW name\n    [ NO ] DEPENDS ON EXTENSION extension_name\nALTER MATERIALIZED VIEW [ IF EXISTS ] name\n    RENAME [ COLUMN ] column_name TO new_column_name\nALTER MATERIALIZED VIEW [ IF EXISTS ] name\n    RENAME TO new_name\nALTER MATERIALIZED VIEW [ IF EXISTS ] name\n    SET SCHEMA new_schema\nALTER MATERIALIZED VIEW ALL IN TABLESPACE name [ OWNED BY role_name [, ... ] ]\n    SET TABLESPACE new_tablespace [ NOWAIT ]\n\nwhere action is one of:\n\n    ALTER [ COLUMN ] column_name SET STATISTICS integer\n    ALTER [ COLUMN ] column_name SET ( attribute_option = value [, ... ] )\n    ALTER [ COLUMN ] column_name RESET ( attribute_option [, ... ] )\n    ALTER [ COLUMN ] column_name SET STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }\n    ALTER [ COLUMN ] column_name SET COMPRESSION compression_method\n    CLUSTER ON index_name\n    SET WITHOUT CLUSTER\n    SET ACCESS METHOD new_access_method\n    SET TABLESPACE new_tablespace\n    SET ( storage_parameter [= value] [, ... ] )\n    RESET ( storage_parameter [, ... ] )\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }"],
+      ["ALTER OPERATOR", "change the definition of an operator", "sql-alteroperator", "ALTER OPERATOR name ( { left_type | NONE } , right_type )\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n\nALTER OPERATOR name ( { left_type | NONE } , right_type )\n    SET SCHEMA new_schema\n\nALTER OPERATOR name ( { left_type | NONE } , right_type )\n    SET ( {  RESTRICT = { res_proc | NONE }\n           | JOIN = { join_proc | NONE }\n           | COMMUTATOR = com_op\n           | NEGATOR = neg_op\n           | HASHES\n           | MERGES\n          } [, ... ] )"],
+      ["ALTER OPERATOR CLASS", "change the definition of an operator class", "sql-alteropclass", "ALTER OPERATOR CLASS name USING index_method\n    RENAME TO new_name\n\nALTER OPERATOR CLASS name USING index_method\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n\nALTER OPERATOR CLASS name USING index_method\n    SET SCHEMA new_schema"],
+      ["ALTER OPERATOR FAMILY", "change the definition of an operator family", "sql-alteropfamily", "ALTER OPERATOR FAMILY name USING index_method ADD\n  {  OPERATOR strategy_number operator_name ( op_type, op_type )\n              [ FOR SEARCH | FOR ORDER BY sort_family_name ]\n   | FUNCTION support_number [ ( op_type [ , op_type ] ) ]\n              function_name [ ( argument_type [, ...] ) ]\n  } [, ... ]\n\nALTER OPERATOR FAMILY name USING index_method DROP\n  {  OPERATOR strategy_number ( op_type [ , op_type ] )\n   | FUNCTION support_number ( op_type [ , op_type ] )\n  } [, ... ]\n\nALTER OPERATOR FAMILY name USING index_method\n    RENAME TO new_name\n\nALTER OPERATOR FAMILY name USING index_method\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n\nALTER OPERATOR FAMILY name USING index_method\n    SET SCHEMA new_schema"],
+      ["ALTER POLICY", "change the definition of a row-level security policy", "sql-alterpolicy", "ALTER POLICY name ON table_name RENAME TO new_name\n\nALTER POLICY name ON table_name\n    [ TO { role_name | PUBLIC | CURRENT_ROLE | CURRENT_USER | SESSION_USER } [, ...] ]\n    [ USING ( using_expression ) ]\n    [ WITH CHECK ( check_expression ) ]"],
+      ["ALTER PROCEDURE", "change the definition of a procedure", "sql-alterprocedure", "ALTER PROCEDURE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    action [ ... ] [ RESTRICT ]\nALTER PROCEDURE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    RENAME TO new_name\nALTER PROCEDURE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER PROCEDURE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    SET SCHEMA new_schema\nALTER PROCEDURE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    [ NO ] DEPENDS ON EXTENSION extension_name\n\nwhere action is one of:\n\n    [ EXTERNAL ] SECURITY INVOKER | [ EXTERNAL ] SECURITY DEFINER\n    SET configuration_parameter { TO | = } { value | DEFAULT }\n    SET configuration_parameter FROM CURRENT\n    RESET configuration_parameter\n    RESET ALL"],
+      ["ALTER PUBLICATION", "change the definition of a publication", "sql-alterpublication", "ALTER PUBLICATION name ADD publication_object [, ...]\nALTER PUBLICATION name DROP publication_drop_object [, ...]\nALTER PUBLICATION name SET { publication_object [, ...] | publication_all_object [, ... ] }\nALTER PUBLICATION name SET ( publication_parameter [= value] [, ... ] )\nALTER PUBLICATION name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER PUBLICATION name RENAME TO new_name\n\nwhere publication_object is one of:\n\n    TABLE table_and_columns [, ... ]\n    TABLES IN SCHEMA { schema_name | CURRENT_SCHEMA } [, ... ]\n\nand publication_all_object is one of:\n\n    ALL TABLES [ EXCEPT ( except_table_object [, ... ] ) ]\n    ALL SEQUENCES\n\nand publication_drop_object is one of:\n\n    TABLE table_object [, ... ]\n    TABLES IN SCHEMA { schema_name | CURRENT_SCHEMA } [, ... ]\n\nand table_and_columns is:\n\n    table_object [ ( column_name [, ... ] ) ] [ WHERE ( expression ) ]\n\nand except_table_object is:\n\n    TABLE table_object [, ... ]\n\nand table_object is:\n\n   [ ONLY ] table_name [ * ]"],
+      ["ALTER ROLE", "change a database role", "sql-alterrole", "ALTER ROLE role_specification [ WITH ] option [ ... ]\n\nwhere option can be:\n\n      SUPERUSER | NOSUPERUSER\n    | CREATEDB | NOCREATEDB\n    | CREATEROLE | NOCREATEROLE\n    | INHERIT | NOINHERIT\n    | LOGIN | NOLOGIN\n    | REPLICATION | NOREPLICATION\n    | BYPASSRLS | NOBYPASSRLS\n    | CONNECTION LIMIT connlimit\n    | [ ENCRYPTED ] PASSWORD 'password' | PASSWORD NULL\n    | VALID UNTIL 'timestamp'\n\nALTER ROLE name RENAME TO new_name\n\nALTER ROLE { role_specification | ALL } [ IN DATABASE database_name ] SET configuration_parameter { TO | = } { value | DEFAULT }\nALTER ROLE { role_specification | ALL } [ IN DATABASE database_name ] SET configuration_parameter FROM CURRENT\nALTER ROLE { role_specification | ALL } [ IN DATABASE database_name ] RESET configuration_parameter\nALTER ROLE { role_specification | ALL } [ IN DATABASE database_name ] RESET ALL\n\nwhere role_specification can be:\n\n    role_name\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER"],
+      ["ALTER ROUTINE", "change the definition of a routine", "sql-alterroutine", "ALTER ROUTINE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    action [ ... ] [ RESTRICT ]\nALTER ROUTINE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    RENAME TO new_name\nALTER ROUTINE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER ROUTINE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    SET SCHEMA new_schema\nALTER ROUTINE name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ]\n    [ NO ] DEPENDS ON EXTENSION extension_name\n\nwhere action is one of:\n\n    IMMUTABLE | STABLE | VOLATILE\n    [ NOT ] LEAKPROOF\n    [ EXTERNAL ] SECURITY INVOKER | [ EXTERNAL ] SECURITY DEFINER\n    PARALLEL { UNSAFE | RESTRICTED | SAFE }\n    COST execution_cost\n    ROWS result_rows\n    SET configuration_parameter { TO | = } { value | DEFAULT }\n    SET configuration_parameter FROM CURRENT\n    RESET configuration_parameter\n    RESET ALL"],
+      ["ALTER RULE", "change the definition of a rule", "sql-alterrule", "ALTER RULE name ON table_name RENAME TO new_name"],
+      ["ALTER SCHEMA", "change the definition of a schema", "sql-alterschema", "ALTER SCHEMA name RENAME TO new_name\nALTER SCHEMA name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }"],
+      ["ALTER SEQUENCE", "change the definition of a sequence generator", "sql-altersequence", "ALTER SEQUENCE [ IF EXISTS ] name\n    [ AS data_type ]\n    [ INCREMENT [ BY ] increment ]\n    [ MINVALUE minvalue | NO MINVALUE ] [ MAXVALUE maxvalue | NO MAXVALUE ]\n    [ [ NO ] CYCLE ]\n    [ START [ WITH ] start ]\n    [ RESTART [ [ WITH ] restart ] ]\n    [ CACHE cache ]\n    [ OWNED BY { table_name.column_name | NONE } ]\nALTER SEQUENCE [ IF EXISTS ] name SET { LOGGED | UNLOGGED }\nALTER SEQUENCE [ IF EXISTS ] name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER SEQUENCE [ IF EXISTS ] name RENAME TO new_name\nALTER SEQUENCE [ IF EXISTS ] name SET SCHEMA new_schema"],
+      ["ALTER SERVER", "change the definition of a foreign server", "sql-alterserver", "ALTER SERVER name [ VERSION 'new_version' ]\n    [ OPTIONS ( [ ADD | SET | DROP ] option ['value'] [, ... ] ) ]\nALTER SERVER name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER SERVER name RENAME TO new_name"],
+      ["ALTER STATISTICS", "change the definition of an extended statistics object", "sql-alterstatistics", "ALTER STATISTICS name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER STATISTICS name RENAME TO new_name\nALTER STATISTICS name SET SCHEMA new_schema\nALTER STATISTICS name SET STATISTICS { new_target | DEFAULT }"],
+      ["ALTER SUBSCRIPTION", "change the definition of a subscription", "sql-altersubscription", "ALTER SUBSCRIPTION name SERVER server_name\nALTER SUBSCRIPTION name CONNECTION 'conninfo'\nALTER SUBSCRIPTION name SET PUBLICATION publication_name [, ...] [ WITH ( publication_option [= value] [, ... ] ) ]\nALTER SUBSCRIPTION name ADD PUBLICATION publication_name [, ...] [ WITH ( publication_option [= value] [, ... ] ) ]\nALTER SUBSCRIPTION name DROP PUBLICATION publication_name [, ...] [ WITH ( publication_option [= value] [, ... ] ) ]\nALTER SUBSCRIPTION name REFRESH PUBLICATION [ WITH ( refresh_option [= value] [, ... ] ) ]\nALTER SUBSCRIPTION name REFRESH SEQUENCES\nALTER SUBSCRIPTION name ENABLE\nALTER SUBSCRIPTION name DISABLE\nALTER SUBSCRIPTION name SET ( subscription_parameter [= value] [, ... ] )\nALTER SUBSCRIPTION name SKIP ( skip_option = value )\nALTER SUBSCRIPTION name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER SUBSCRIPTION name RENAME TO new_name"],
+      ["ALTER SYSTEM", "change a server configuration parameter", "sql-altersystem", "ALTER SYSTEM SET configuration_parameter { TO | = } { value [, ...] | DEFAULT }\n\nALTER SYSTEM RESET configuration_parameter\nALTER SYSTEM RESET ALL"],
+      ["ALTER TABLE", "change the definition of a table", "sql-altertable", "ALTER TABLE [ IF EXISTS ] [ ONLY ] name [ * ]\n    action [, ... ]\nALTER TABLE [ IF EXISTS ] [ ONLY ] name [ * ]\n    RENAME [ COLUMN ] column_name TO new_column_name\nALTER TABLE [ IF EXISTS ] [ ONLY ] name [ * ]\n    RENAME CONSTRAINT constraint_name TO new_constraint_name\nALTER TABLE [ IF EXISTS ] name\n    RENAME TO new_name\nALTER TABLE [ IF EXISTS ] name\n    SET SCHEMA new_schema\nALTER TABLE ALL IN TABLESPACE name [ OWNED BY role_name [, ... ] ]\n    SET TABLESPACE new_tablespace [ NOWAIT ]\nALTER TABLE [ IF EXISTS ] name\n    ATTACH PARTITION partition_name { FOR VALUES partition_bound_spec | DEFAULT }\nALTER TABLE [ IF EXISTS ] name\n    DETACH PARTITION partition_name [ CONCURRENTLY | FINALIZE ]\n\nwhere action is one of:\n\n    ADD [ COLUMN ] [ IF NOT EXISTS ] column_name data_type [ COLLATE collation ] [ column_constraint [ ... ] ]\n    DROP [ COLUMN ] [ IF EXISTS ] column_name [ RESTRICT | CASCADE ]\n    ALTER [ COLUMN ] column_name [ SET DATA ] TYPE data_type [ COLLATE collation ] [ USING expression ]\n    ALTER [ COLUMN ] column_name SET DEFAULT expression\n    ALTER [ COLUMN ] column_name DROP DEFAULT\n    ALTER [ COLUMN ] column_name { SET | DROP } NOT NULL\n    ALTER [ COLUMN ] column_name SET EXPRESSION AS ( expression )\n    ALTER [ COLUMN ] column_name DROP EXPRESSION [ IF EXISTS ]\n    ALTER [ COLUMN ] column_name ADD GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( sequence_options ) ]\n    ALTER [ COLUMN ] column_name { SET GENERATED { ALWAYS | BY DEFAULT } | SET sequence_option | RESTART [ [ WITH ] restart ] } [...]\n    ALTER [ COLUMN ] column_name DROP IDENTITY [ IF EXISTS ]\n    ALTER [ COLUMN ] column_name SET STATISTICS { integer | DEFAULT }\n    ALTER [ COLUMN ] column_name SET ( attribute_option = value [, ... ] )\n    ALTER [ COLUMN ] column_name RESET ( attribute_option [, ... ] )\n    ALTER [ COLUMN ] column_name SET STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }\n    ALTER [ COLUMN ] column_name SET COMPRESSION compression_method\n    ADD table_constraint [ NOT VALID ]\n    ADD table_constraint_using_index\n    ALTER CONSTRAINT constraint_name [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n    ALTER CONSTRAINT constraint_name [ INHERIT | NO INHERIT ]\n    VALIDATE CONSTRAINT constraint_name\n    DROP CONSTRAINT [ IF EXISTS ]  constraint_name [ RESTRICT | CASCADE ]\n    DISABLE TRIGGER [ trigger_name | ALL | USER ]\n    ENABLE TRIGGER [ trigger_name | ALL | USER ]\n    ENABLE REPLICA TRIGGER trigger_name\n    ENABLE ALWAYS TRIGGER trigger_name\n    DISABLE RULE rewrite_rule_name\n    ENABLE RULE rewrite_rule_name\n    ENABLE REPLICA RULE rewrite_rule_name\n    ENABLE ALWAYS RULE rewrite_rule_name\n    DISABLE ROW LEVEL SECURITY\n    ENABLE ROW LEVEL SECURITY\n    FORCE ROW LEVEL SECURITY\n    NO FORCE ROW LEVEL SECURITY\n    CLUSTER ON index_name\n    SET WITHOUT CLUSTER\n    SET WITHOUT OIDS\n    SET ACCESS METHOD { new_access_method | DEFAULT }\n    SET TABLESPACE new_tablespace\n    SET { LOGGED | UNLOGGED }\n    SET ( storage_parameter [= value] [, ... ] )\n    RESET ( storage_parameter [, ... ] )\n    INHERIT parent_table\n    NO INHERIT parent_table\n    OF type_name\n    NOT OF\n    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\n    REPLICA IDENTITY { DEFAULT | USING INDEX index_name | FULL | NOTHING }\n\nand partition_bound_spec is:\n\nIN ( partition_bound_expr [, ...] ) |\nFROM ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS numeric_literal, REMAINDER numeric_literal )\n\nand column_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ NOT NULL [ NO INHERIT ] |\n  NULL |\n  CHECK ( expression ) [ NO INHERIT ] |\n  DEFAULT default_expr |\n  GENERATED ALWAYS AS ( generation_expr ) [ STORED | VIRTUAL ] |\n  GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( sequence_options ) ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] index_parameters |\n  PRIMARY KEY index_parameters |\n  REFERENCES reftable [ ( refcolumn ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]\n    [ ON DELETE referential_action ] [ ON UPDATE referential_action ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n\nand table_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ CHECK ( expression ) [ NO INHERIT ] |\n  NOT NULL column_name [ NO INHERIT ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( column_name [, ... ] [, column_name WITHOUT OVERLAPS ] ) index_parameters |\n  PRIMARY KEY ( column_name [, ... ] [, column_name WITHOUT OVERLAPS ] ) index_parameters |\n  EXCLUDE [ USING index_method ] ( exclude_element WITH operator [, ... ] ) index_parameters [ WHERE ( predicate ) ] |\n  FOREIGN KEY ( column_name [, ... ] [, PERIOD column_name ] ) REFERENCES reftable [ ( refcolumn [, ... ]  [, PERIOD refcolumn ] ) ]\n    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE referential_action ] [ ON UPDATE referential_action ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n\nand table_constraint_using_index is:\n\n    [ CONSTRAINT constraint_name ]\n    { UNIQUE | PRIMARY KEY } USING INDEX index_name\n    [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]\n\nindex_parameters in UNIQUE, PRIMARY KEY, and EXCLUDE constraints are:\n\n[ INCLUDE ( column_name [, ... ] ) ]\n[ WITH ( storage_parameter [= value] [, ... ] ) ]\n[ USING INDEX TABLESPACE tablespace_name ]\n\nexclude_element in an EXCLUDE constraint is:\n\n{ column_name | ( expression ) } [ COLLATE collation ] [ opclass [ ( opclass_parameter = value [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n\nreferential_action in a FOREIGN KEY/REFERENCES constraint is:\n\n{ NO ACTION | RESTRICT | CASCADE | SET NULL [ ( column_name [, ... ] ) ] | SET DEFAULT [ ( column_name [, ... ] ) ] }"],
+      ["ALTER TABLESPACE", "change the definition of a tablespace", "sql-altertablespace", "ALTER TABLESPACE name RENAME TO new_name\nALTER TABLESPACE name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER TABLESPACE name SET ( tablespace_option = value [, ... ] )\nALTER TABLESPACE name RESET ( tablespace_option [, ... ] )"],
+      ["ALTER TEXT SEARCH CONFIGURATION", "change the definition of a text search configuration", "sql-altertsconfig", "ALTER TEXT SEARCH CONFIGURATION name\n    ADD MAPPING FOR token_type [, ... ] WITH dictionary_name [, ... ]\nALTER TEXT SEARCH CONFIGURATION name\n    ALTER MAPPING FOR token_type [, ... ] WITH dictionary_name [, ... ]\nALTER TEXT SEARCH CONFIGURATION name\n    ALTER MAPPING REPLACE old_dictionary WITH new_dictionary\nALTER TEXT SEARCH CONFIGURATION name\n    ALTER MAPPING FOR token_type [, ... ] REPLACE old_dictionary WITH new_dictionary\nALTER TEXT SEARCH CONFIGURATION name\n    DROP MAPPING [ IF EXISTS ] FOR token_type [, ... ]\nALTER TEXT SEARCH CONFIGURATION name RENAME TO new_name\nALTER TEXT SEARCH CONFIGURATION name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER TEXT SEARCH CONFIGURATION name SET SCHEMA new_schema"],
+      ["ALTER TEXT SEARCH DICTIONARY", "change the definition of a text search dictionary", "sql-altertsdictionary", "ALTER TEXT SEARCH DICTIONARY name (\n    option [ = value ] [, ... ]\n)\nALTER TEXT SEARCH DICTIONARY name RENAME TO new_name\nALTER TEXT SEARCH DICTIONARY name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER TEXT SEARCH DICTIONARY name SET SCHEMA new_schema"],
+      ["ALTER TEXT SEARCH PARSER", "change the definition of a text search parser", "sql-altertsparser", "ALTER TEXT SEARCH PARSER name RENAME TO new_name\nALTER TEXT SEARCH PARSER name SET SCHEMA new_schema"],
+      ["ALTER TEXT SEARCH TEMPLATE", "change the definition of a text search template", "sql-altertstemplate", "ALTER TEXT SEARCH TEMPLATE name RENAME TO new_name\nALTER TEXT SEARCH TEMPLATE name SET SCHEMA new_schema"],
+      ["ALTER TRIGGER", "change the definition of a trigger", "sql-altertrigger", "ALTER TRIGGER name ON table_name RENAME TO new_name\nALTER TRIGGER name ON table_name [ NO ] DEPENDS ON EXTENSION extension_name"],
+      ["ALTER TYPE", "change the definition of a type", "sql-altertype", "ALTER TYPE name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER TYPE name RENAME TO new_name\nALTER TYPE name SET SCHEMA new_schema\nALTER TYPE name RENAME ATTRIBUTE attribute_name TO new_attribute_name [ CASCADE | RESTRICT ]\nALTER TYPE name action [, ... ]\nALTER TYPE name ADD VALUE [ IF NOT EXISTS ] new_enum_value [ { BEFORE | AFTER } neighbor_enum_value ]\nALTER TYPE name RENAME VALUE existing_enum_value TO new_enum_value\nALTER TYPE name SET ( property = value [, ... ] )\n\nwhere action is one of:\n\n    ADD ATTRIBUTE attribute_name data_type [ COLLATE collation ] [ CASCADE | RESTRICT ]\n    DROP ATTRIBUTE [ IF EXISTS ] attribute_name [ CASCADE | RESTRICT ]\n    ALTER ATTRIBUTE attribute_name [ SET DATA ] TYPE data_type [ COLLATE collation ] [ CASCADE | RESTRICT ]"],
+      ["ALTER USER", "change a database role", "sql-alteruser", "ALTER USER role_specification [ WITH ] option [ ... ]\n\nwhere option can be:\n\n      SUPERUSER | NOSUPERUSER\n    | CREATEDB | NOCREATEDB\n    | CREATEROLE | NOCREATEROLE\n    | INHERIT | NOINHERIT\n    | LOGIN | NOLOGIN\n    | REPLICATION | NOREPLICATION\n    | BYPASSRLS | NOBYPASSRLS\n    | CONNECTION LIMIT connlimit\n    | [ ENCRYPTED ] PASSWORD 'password' | PASSWORD NULL\n    | VALID UNTIL 'timestamp'\n\nALTER USER name RENAME TO new_name\n\nALTER USER { role_specification | ALL } [ IN DATABASE database_name ] SET configuration_parameter { TO | = } { value | DEFAULT }\nALTER USER { role_specification | ALL } [ IN DATABASE database_name ] SET configuration_parameter FROM CURRENT\nALTER USER { role_specification | ALL } [ IN DATABASE database_name ] RESET configuration_parameter\nALTER USER { role_specification | ALL } [ IN DATABASE database_name ] RESET ALL\n\nwhere role_specification can be:\n\n    role_name\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER"],
+      ["ALTER USER MAPPING", "change the definition of a user mapping", "sql-alterusermapping", "ALTER USER MAPPING FOR { user_name | USER | CURRENT_ROLE | CURRENT_USER | SESSION_USER | PUBLIC }\n    SERVER server_name\n    OPTIONS ( [ ADD | SET | DROP ] option ['value'] [, ... ] )"],
+      ["ALTER VIEW", "change the definition of a view", "sql-alterview", "ALTER VIEW [ IF EXISTS ] name ALTER [ COLUMN ] column_name SET DEFAULT expression\nALTER VIEW [ IF EXISTS ] name ALTER [ COLUMN ] column_name DROP DEFAULT\nALTER VIEW [ IF EXISTS ] name OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }\nALTER VIEW [ IF EXISTS ] name RENAME [ COLUMN ] column_name TO new_column_name\nALTER VIEW [ IF EXISTS ] name RENAME TO new_name\nALTER VIEW [ IF EXISTS ] name SET SCHEMA new_schema\nALTER VIEW [ IF EXISTS ] name SET ( view_option_name [= view_option_value] [, ... ] )\nALTER VIEW [ IF EXISTS ] name RESET ( view_option_name [, ... ] )"],
+      ["ANALYZE", "collect statistics about a database", "sql-analyze", "ANALYZE [ ( option [, ...] ) ] [ table_and_columns [, ...] ]\n\nwhere option can be one of:\n\n    VERBOSE [ boolean ]\n    SKIP_LOCKED [ boolean ]\n    BUFFER_USAGE_LIMIT size\n\nand table_and_columns is:\n\n    [ ONLY ] table_name [ * ] [ ( column_name [, ...] ) ]"],
+      ["BEGIN", "start a transaction block", "sql-begin", "BEGIN [ WORK | TRANSACTION ] [ transaction_mode [, ...] ]\n\nwhere transaction_mode is one of:\n\n    ISOLATION LEVEL { SERIALIZABLE | REPEATABLE READ | READ COMMITTED | READ UNCOMMITTED }\n    READ WRITE | READ ONLY\n    [ NOT ] DEFERRABLE"],
+      ["CALL", "invoke a procedure", "sql-call", "CALL name ( [ argument ] [, ...] )"],
+      ["CHECKPOINT", "force a write-ahead log checkpoint", "sql-checkpoint", "CHECKPOINT [ ( option [, ...] ) ]\n\nwhere option can be one of:\n\n    FLUSH_UNLOGGED [ boolean ]\n    MODE { FAST | SPREAD }"],
+      ["CLOSE", "close a cursor", "sql-close", "CLOSE { name | ALL }"],
+      ["CLUSTER", "cluster a table according to an index", "sql-cluster", "CLUSTER [ ( option [, ...] ) ] [ table_name [ USING index_name ] ]\n\nwhere option can be one of:\n\n    VERBOSE [ boolean ]"],
+      ["COMMENT", "define or change the comment of an object", "sql-comment", "COMMENT ON\n{\n  ACCESS METHOD object_name |\n  AGGREGATE aggregate_name ( aggregate_signature ) |\n  CAST (source_type AS target_type) |\n  COLLATION object_name |\n  COLUMN relation_name.column_name |\n  CONSTRAINT constraint_name ON table_name |\n  CONSTRAINT constraint_name ON DOMAIN domain_name |\n  CONVERSION object_name |\n  DATABASE object_name |\n  DOMAIN object_name |\n  EXTENSION object_name |\n  EVENT TRIGGER object_name |\n  FOREIGN DATA WRAPPER object_name |\n  FOREIGN TABLE object_name |\n  FUNCTION function_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  INDEX object_name |\n  LARGE OBJECT large_object_oid |\n  MATERIALIZED VIEW object_name |\n  OPERATOR operator_name (left_type, right_type) |\n  OPERATOR CLASS object_name USING index_method |\n  OPERATOR FAMILY object_name USING index_method |\n  POLICY policy_name ON table_name |\n  [ PROCEDURAL ] LANGUAGE object_name |\n  PROCEDURE procedure_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  PUBLICATION object_name |\n  ROLE object_name |\n  ROUTINE routine_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  RULE rule_name ON table_name |\n  SCHEMA object_name |\n  SEQUENCE object_name |\n  SERVER object_name |\n  STATISTICS object_name |\n  SUBSCRIPTION object_name |\n  TABLE object_name |\n  TABLESPACE object_name |\n  TEXT SEARCH CONFIGURATION object_name |\n  TEXT SEARCH DICTIONARY object_name |\n  TEXT SEARCH PARSER object_name |\n  TEXT SEARCH TEMPLATE object_name |\n  TRANSFORM FOR type_name LANGUAGE lang_name |\n  TRIGGER trigger_name ON table_name |\n  TYPE object_name |\n  VIEW object_name\n} IS { string_literal | NULL }\n\nwhere aggregate_signature is:\n\n* |\n[ argmode ] [ argname ] argtype [ , ... ] |\n[ [ argmode ] [ argname ] argtype [ , ... ] ] ORDER BY [ argmode ] [ argname ] argtype [ , ... ]"],
+      ["COMMIT", "commit the current transaction", "sql-commit", "COMMIT [ WORK | TRANSACTION ] [ AND [ NO ] CHAIN ]"],
+      ["COMMIT PREPARED", "commit a transaction that was earlier prepared for two-phase commit", "sql-commit-prepared", "COMMIT PREPARED transaction_id"],
+      ["COPY", "copy data between a file and a table", "sql-copy", "COPY table_name [ ( column_name [, ...] ) ]\n    FROM { 'filename' | PROGRAM 'command' | STDIN }\n    [ [ WITH ] ( option [, ...] ) ]\n    [ WHERE condition ]\n\nCOPY { table_name [ ( column_name [, ...] ) ] | ( query ) }\n    TO { 'filename' | PROGRAM 'command' | STDOUT }\n    [ [ WITH ] ( option [, ...] ) ]\n\nwhere option can be one of:\n\n    FORMAT format_name\n    FREEZE [ boolean ]\n    DELIMITER 'delimiter_character'\n    NULL 'null_string'\n    DEFAULT 'default_string'\n    HEADER [ boolean | integer | MATCH ]\n    QUOTE 'quote_character'\n    ESCAPE 'escape_character'\n    FORCE_ARRAY [ boolean ]\n    FORCE_QUOTE { ( column_name [, ...] ) | * }\n    FORCE_NOT_NULL { ( column_name [, ...] ) | * }\n    FORCE_NULL { ( column_name [, ...] ) | * }\n    ON_ERROR error_action\n    REJECT_LIMIT maxerror\n    ENCODING 'encoding_name'\n    LOG_VERBOSITY verbosity"],
+      ["CREATE ACCESS METHOD", "define a new access method", "sql-create-access-method", "CREATE ACCESS METHOD name\n    TYPE access_method_type\n    HANDLER handler_function"],
+      ["CREATE AGGREGATE", "define a new aggregate function", "sql-createaggregate", "CREATE [ OR REPLACE ] AGGREGATE name ( [ argmode ] [ argname ] arg_data_type [ , ... ] ) (\n    SFUNC = sfunc,\n    STYPE = state_data_type\n    [ , SSPACE = state_data_size ]\n    [ , FINALFUNC = ffunc ]\n    [ , FINALFUNC_EXTRA ]\n    [ , FINALFUNC_MODIFY = { READ_ONLY | SHAREABLE | READ_WRITE } ]\n    [ , COMBINEFUNC = combinefunc ]\n    [ , SERIALFUNC = serialfunc ]\n    [ , DESERIALFUNC = deserialfunc ]\n    [ , INITCOND = initial_condition ]\n    [ , MSFUNC = msfunc ]\n    [ , MINVFUNC = minvfunc ]\n    [ , MSTYPE = mstate_data_type ]\n    [ , MSSPACE = mstate_data_size ]\n    [ , MFINALFUNC = mffunc ]\n    [ , MFINALFUNC_EXTRA ]\n    [ , MFINALFUNC_MODIFY = { READ_ONLY | SHAREABLE | READ_WRITE } ]\n    [ , MINITCOND = minitial_condition ]\n    [ , SORTOP = sort_operator ]\n    [ , SUPPORT = support_function ]\n    [ , PARALLEL = { SAFE | RESTRICTED | UNSAFE } ]\n)\n\nCREATE [ OR REPLACE ] AGGREGATE name ( [ [ argmode ] [ argname ] arg_data_type [ , ... ] ]\n                        ORDER BY [ argmode ] [ argname ] arg_data_type [ , ... ] ) (\n    SFUNC = sfunc,\n    STYPE = state_data_type\n    [ , SSPACE = state_data_size ]\n    [ , FINALFUNC = ffunc ]\n    [ , FINALFUNC_EXTRA ]\n    [ , FINALFUNC_MODIFY = { READ_ONLY | SHAREABLE | READ_WRITE } ]\n    [ , INITCOND = initial_condition ]\n    [ , SUPPORT = support_function ]\n    [ , PARALLEL = { SAFE | RESTRICTED | UNSAFE } ]\n    [ , HYPOTHETICAL ]\n)\n\nor the old syntax\n\nCREATE [ OR REPLACE ] AGGREGATE name (\n    BASETYPE = base_type,\n    SFUNC = sfunc,\n    STYPE = state_data_type\n    [ , SSPACE = state_data_size ]\n    [ , FINALFUNC = ffunc ]\n    [ , FINALFUNC_EXTRA ]\n    [ , FINALFUNC_MODIFY = { READ_ONLY | SHAREABLE | READ_WRITE } ]\n    [ , COMBINEFUNC = combinefunc ]\n    [ , SERIALFUNC = serialfunc ]\n    [ , DESERIALFUNC = deserialfunc ]\n    [ , INITCOND = initial_condition ]\n    [ , MSFUNC = msfunc ]\n    [ , MINVFUNC = minvfunc ]\n    [ , MSTYPE = mstate_data_type ]\n    [ , MSSPACE = mstate_data_size ]\n    [ , MFINALFUNC = mffunc ]\n    [ , MFINALFUNC_EXTRA ]\n    [ , MFINALFUNC_MODIFY = { READ_ONLY | SHAREABLE | READ_WRITE } ]\n    [ , MINITCOND = minitial_condition ]\n    [ , SORTOP = sort_operator ]\n    [ , SUPPORT = support_function ]\n)"],
+      ["CREATE CAST", "define a new cast", "sql-createcast", "CREATE CAST (source_type AS target_type)\n    WITH FUNCTION function_name [ (argument_type [, ...]) ]\n    [ AS ASSIGNMENT | AS IMPLICIT ]\n\nCREATE CAST (source_type AS target_type)\n    WITHOUT FUNCTION\n    [ AS ASSIGNMENT | AS IMPLICIT ]\n\nCREATE CAST (source_type AS target_type)\n    WITH INOUT\n    [ AS ASSIGNMENT | AS IMPLICIT ]"],
+      ["CREATE COLLATION", "define a new collation", "sql-createcollation", "CREATE COLLATION [ IF NOT EXISTS ] name (\n    [ LOCALE = locale, ]\n    [ LC_COLLATE = lc_collate, ]\n    [ LC_CTYPE = lc_ctype, ]\n    [ PROVIDER = provider, ]\n    [ DETERMINISTIC = boolean, ]\n    [ RULES = rules, ]\n    [ VERSION = version ]\n)\nCREATE COLLATION [ IF NOT EXISTS ] name FROM existing_collation"],
+      ["CREATE CONVERSION", "define a new encoding conversion", "sql-createconversion", "CREATE [ DEFAULT ] CONVERSION name\n    FOR source_encoding TO dest_encoding FROM function_name"],
+      ["CREATE DATABASE", "create a new database", "sql-createdatabase", "CREATE DATABASE name\n    [ WITH ] [ OWNER [=] user_name ]\n           [ TEMPLATE [=] template ]\n           [ ENCODING [=] encoding ]\n           [ STRATEGY [=] strategy ]\n           [ LOCALE [=] locale ]\n           [ LC_COLLATE [=] lc_collate ]\n           [ LC_CTYPE [=] lc_ctype ]\n           [ BUILTIN_LOCALE [=] builtin_locale ]\n           [ ICU_LOCALE [=] icu_locale ]\n           [ ICU_RULES [=] icu_rules ]\n           [ LOCALE_PROVIDER [=] locale_provider ]\n           [ COLLATION_VERSION = collation_version ]\n           [ TABLESPACE [=] tablespace_name ]\n           [ ALLOW_CONNECTIONS [=] allowconn ]\n           [ CONNECTION LIMIT [=] connlimit ]\n           [ IS_TEMPLATE [=] istemplate ]\n           [ OID [=] oid ]"],
+      ["CREATE DOMAIN", "define a new domain", "sql-createdomain", "CREATE DOMAIN name [ AS ] data_type\n    [ COLLATE collation ]\n    [ DEFAULT expression ]\n    [ domain_constraint [ ... ] ]\n\nwhere domain_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ NOT NULL | NULL | CHECK (expression) }"],
+      ["CREATE EVENT TRIGGER", "define a new event trigger", "sql-createeventtrigger", "CREATE EVENT TRIGGER name\n    ON event\n    [ WHEN filter_variable IN (filter_value [, ... ]) [ AND ... ] ]\n    EXECUTE { FUNCTION | PROCEDURE } function_name()"],
+      ["CREATE EXTENSION", "install an extension", "sql-createextension", "CREATE EXTENSION [ IF NOT EXISTS ] extension_name\n    [ WITH ] [ SCHEMA schema_name ]\n             [ VERSION version ]\n             [ CASCADE ]"],
+      ["CREATE FOREIGN DATA WRAPPER", "define a new foreign-data wrapper", "sql-createforeigndatawrapper", "CREATE FOREIGN DATA WRAPPER name\n    [ HANDLER handler_function | NO HANDLER ]\n    [ VALIDATOR validator_function | NO VALIDATOR ]\n    [ CONNECTION connection_function | NO CONNECTION ]\n    [ OPTIONS ( option 'value' [, ... ] ) ]"],
+      ["CREATE FOREIGN TABLE", "define a new foreign table", "sql-createforeigntable", "CREATE FOREIGN TABLE [ IF NOT EXISTS ] table_name ( [\n  { column_name data_type [ OPTIONS ( option 'value' [, ... ] ) ] [ COLLATE collation ] [ column_constraint [ ... ] ]\n    | table_constraint\n    | LIKE source_table [ like_option ... ] }\n    [, ... ]\n] )\n[ INHERITS ( parent_table [, ... ] ) ]\n  SERVER server_name\n[ OPTIONS ( option 'value' [, ... ] ) ]\n\nCREATE FOREIGN TABLE [ IF NOT EXISTS ] table_name\n  PARTITION OF parent_table [ (\n  { column_name [ WITH OPTIONS ] [ column_constraint [ ... ] ]\n    | table_constraint }\n    [, ... ]\n) ]\n{ FOR VALUES partition_bound_spec | DEFAULT }\n  SERVER server_name\n[ OPTIONS ( option 'value' [, ... ] ) ]\n\nwhere column_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ NOT NULL [ NO INHERIT ] |\n  NULL |\n  CHECK ( expression ) [ NO INHERIT ] |\n  DEFAULT default_expr |\n  GENERATED ALWAYS AS ( generation_expr ) [ STORED | VIRTUAL ] }\n[ ENFORCED | NOT ENFORCED ]\n\nand table_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{  NOT NULL column_name [ NO INHERIT ] |\n   CHECK ( expression ) [ NO INHERIT ] }\n[ ENFORCED | NOT ENFORCED ]\n\nand like_option is:\n\n{ INCLUDING | EXCLUDING } { COMMENTS | CONSTRAINTS | DEFAULTS | GENERATED | STATISTICS | ALL }\n\nand partition_bound_spec is:\n\nIN ( partition_bound_expr [, ...] ) |\nFROM ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS numeric_literal, REMAINDER numeric_literal )"],
+      ["CREATE FUNCTION", "define a new function", "sql-createfunction", "CREATE [ OR REPLACE ] FUNCTION\n    name ( [ [ argmode ] [ argname ] argtype [ { DEFAULT | = } default_expr ] [, ...] ] )\n    [ RETURNS rettype\n      | RETURNS TABLE ( column_name column_type [, ...] ) ]\n  { LANGUAGE lang_name\n    | TRANSFORM { FOR TYPE type_name } [, ... ]\n    | WINDOW\n    | { IMMUTABLE | STABLE | VOLATILE }\n    | [ NOT ] LEAKPROOF\n    | { CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT }\n    | { [ EXTERNAL ] SECURITY INVOKER | [ EXTERNAL ] SECURITY DEFINER }\n    | PARALLEL { UNSAFE | RESTRICTED | SAFE }\n    | COST execution_cost\n    | ROWS result_rows\n    | SUPPORT support_function\n    | SET configuration_parameter { TO value | = value | FROM CURRENT }\n    | AS 'definition'\n    | AS 'obj_file', 'link_symbol'\n    | sql_body\n  } ..."],
+      ["CREATE GROUP", "define a new database role", "sql-creategroup", "CREATE GROUP name [ [ WITH ] option [ ... ] ]\n\nwhere option can be:\n\n      SUPERUSER | NOSUPERUSER\n    | CREATEDB | NOCREATEDB\n    | CREATEROLE | NOCREATEROLE\n    | INHERIT | NOINHERIT\n    | LOGIN | NOLOGIN\n    | REPLICATION | NOREPLICATION\n    | BYPASSRLS | NOBYPASSRLS\n    | CONNECTION LIMIT connlimit\n    | [ ENCRYPTED ] PASSWORD 'password' | PASSWORD NULL\n    | VALID UNTIL 'timestamp'\n    | IN ROLE role_name [, ...]\n    | ROLE role_name [, ...]\n    | ADMIN role_name [, ...]\n    | SYSID uid"],
+      ["CREATE INDEX", "define a new index", "sql-createindex", "CREATE [ UNIQUE ] INDEX [ CONCURRENTLY ] [ [ IF NOT EXISTS ] name ] ON [ ONLY ] table_name [ USING method ]\n    ( { column_name | ( expression ) } [ COLLATE collation ] [ opclass [ ( opclass_parameter = value [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] )\n    [ INCLUDE ( column_name [, ...] ) ]\n    [ NULLS [ NOT ] DISTINCT ]\n    [ WITH ( storage_parameter [= value] [, ... ] ) ]\n    [ TABLESPACE tablespace_name ]\n    [ WHERE predicate ]"],
+      ["CREATE LANGUAGE", "define a new procedural language", "sql-createlanguage", "CREATE [ OR REPLACE ] [ TRUSTED ] [ PROCEDURAL ] LANGUAGE name\n    HANDLER call_handler [ INLINE inline_handler ] [ VALIDATOR valfunction ]\nCREATE [ OR REPLACE ] [ TRUSTED ] [ PROCEDURAL ] LANGUAGE name"],
+      ["CREATE MATERIALIZED VIEW", "define a new materialized view", "sql-creatematerializedview", "CREATE MATERIALIZED VIEW [ IF NOT EXISTS ] table_name\n    [ (column_name [, ...] ) ]\n    [ USING method ]\n    [ WITH ( storage_parameter [= value] [, ... ] ) ]\n    [ TABLESPACE tablespace_name ]\n    AS query\n    [ WITH [ NO ] DATA ]"],
+      ["CREATE OPERATOR", "define a new operator", "sql-createoperator", "CREATE OPERATOR name (\n    {FUNCTION|PROCEDURE} = function_name\n    [, LEFTARG = left_type ] , RIGHTARG = right_type\n    [, COMMUTATOR = com_op ] [, NEGATOR = neg_op ]\n    [, RESTRICT = res_proc ] [, JOIN = join_proc ]\n    [, HASHES ] [, MERGES ]\n)"],
+      ["CREATE OPERATOR CLASS", "define a new operator class", "sql-createopclass", "CREATE OPERATOR CLASS name [ DEFAULT ] FOR TYPE data_type\n  USING index_method [ FAMILY family_name ] AS\n  {  OPERATOR strategy_number operator_name [ ( op_type, op_type ) ] [ FOR SEARCH | FOR ORDER BY sort_family_name ]\n   | FUNCTION support_number [ ( op_type [ , op_type ] ) ] function_name ( argument_type [, ...] )\n   | STORAGE storage_type\n  } [, ... ]"],
+      ["CREATE OPERATOR FAMILY", "define a new operator family", "sql-createopfamily", "CREATE OPERATOR FAMILY name USING index_method"],
+      ["CREATE POLICY", "define a new row-level security policy for a table", "sql-createpolicy", "CREATE POLICY name ON table_name\n    [ AS { PERMISSIVE | RESTRICTIVE } ]\n    [ FOR { ALL | SELECT | INSERT | UPDATE | DELETE } ]\n    [ TO { role_name | PUBLIC | CURRENT_ROLE | CURRENT_USER | SESSION_USER } [, ...] ]\n    [ USING ( using_expression ) ]\n    [ WITH CHECK ( check_expression ) ]"],
+      ["CREATE PROCEDURE", "define a new procedure", "sql-createprocedure", "CREATE [ OR REPLACE ] PROCEDURE\n    name ( [ [ argmode ] [ argname ] argtype [ { DEFAULT | = } default_expr ] [, ...] ] )\n  { LANGUAGE lang_name\n    | TRANSFORM { FOR TYPE type_name } [, ... ]\n    | [ EXTERNAL ] SECURITY INVOKER | [ EXTERNAL ] SECURITY DEFINER\n    | SET configuration_parameter { TO value | = value | FROM CURRENT }\n    | AS 'definition'\n    | AS 'obj_file', 'link_symbol'\n    | sql_body\n  } ..."],
+      ["CREATE PUBLICATION", "define a new publication", "sql-createpublication", "CREATE PUBLICATION name\n    [ FOR { publication_object [, ... ] | publication_all_object [, ... ] } ]\n    [ WITH ( publication_parameter [= value] [, ... ] ) ]\n\nwhere publication_object is one of:\n\n    TABLE table_and_columns [, ... ]\n    TABLES IN SCHEMA { schema_name | CURRENT_SCHEMA } [, ... ]\n\nand publication_all_object is one of:\n\n    ALL TABLES [ EXCEPT ( except_table_object [, ... ] ) ]\n    ALL SEQUENCES\n\nand table_and_columns is:\n\n    table_object [ ( column_name [, ... ] ) ] [ WHERE ( expression ) ]\n\nand except_table_object is:\n\n    TABLE table_object [, ... ]\n\nand table_object is:\n\n   [ ONLY ] table_name [ * ]"],
+      ["CREATE ROLE", "define a new database role", "sql-createrole", "CREATE ROLE name [ [ WITH ] option [ ... ] ]\n\nwhere option can be:\n\n      SUPERUSER | NOSUPERUSER\n    | CREATEDB | NOCREATEDB\n    | CREATEROLE | NOCREATEROLE\n    | INHERIT | NOINHERIT\n    | LOGIN | NOLOGIN\n    | REPLICATION | NOREPLICATION\n    | BYPASSRLS | NOBYPASSRLS\n    | CONNECTION LIMIT connlimit\n    | [ ENCRYPTED ] PASSWORD 'password' | PASSWORD NULL\n    | VALID UNTIL 'timestamp'\n    | IN ROLE role_name [, ...]\n    | ROLE role_name [, ...]\n    | ADMIN role_name [, ...]\n    | SYSID uid"],
+      ["CREATE RULE", "define a new rewrite rule", "sql-createrule", "CREATE [ OR REPLACE ] RULE name AS ON event\n    TO table_name [ WHERE condition ]\n    DO [ ALSO | INSTEAD ] { NOTHING | command | ( command ; command ... ) }\n\nwhere event can be one of:\n\n    SELECT | INSERT | UPDATE | DELETE"],
+      ["CREATE SCHEMA", "define a new schema", "sql-createschema", "CREATE SCHEMA schema_name [ AUTHORIZATION role_specification ] [ schema_element [ ... ] ]\nCREATE SCHEMA AUTHORIZATION role_specification [ schema_element [ ... ] ]\nCREATE SCHEMA IF NOT EXISTS schema_name [ AUTHORIZATION role_specification ]\nCREATE SCHEMA IF NOT EXISTS AUTHORIZATION role_specification\n\nwhere role_specification can be:\n\n    user_name\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER"],
+      ["CREATE SEQUENCE", "define a new sequence generator", "sql-createsequence", "CREATE [ { TEMPORARY | TEMP } | UNLOGGED ] SEQUENCE [ IF NOT EXISTS ] name\n    [ AS data_type ]\n    [ INCREMENT [ BY ] increment ]\n    [ MINVALUE minvalue | NO MINVALUE ] [ MAXVALUE maxvalue | NO MAXVALUE ]\n    [ [ NO ] CYCLE ]\n    [ START [ WITH ] start ]\n    [ CACHE cache ]\n    [ OWNED BY { table_name.column_name | NONE } ]"],
+      ["CREATE SERVER", "define a new foreign server", "sql-createserver", "CREATE SERVER [ IF NOT EXISTS ] server_name [ TYPE 'server_type' ] [ VERSION 'server_version' ]\n    FOREIGN DATA WRAPPER fdw_name\n    [ OPTIONS ( option 'value' [, ... ] ) ]"],
+      ["CREATE STATISTICS", "define extended statistics", "sql-createstatistics", "CREATE STATISTICS [ [ IF NOT EXISTS ] statistics_name ]\n    ON { column_name | ( expression ) }\n    FROM table_name\n\nCREATE STATISTICS [ [ IF NOT EXISTS ] statistics_name ]\n    [ ( statistics_kind [, ... ] ) ]\n    ON { column_name | ( expression ) }, { column_name | ( expression ) } [, ...]\n    FROM table_name"],
+      ["CREATE SUBSCRIPTION", "define a new subscription", "sql-createsubscription", "CREATE SUBSCRIPTION subscription_name\n    { SERVER server_name | CONNECTION 'conninfo' }\n    PUBLICATION publication_name [, ...]\n    [ WITH ( subscription_parameter [= value] [, ... ] ) ]"],
+      ["CREATE TABLE", "define a new table", "sql-createtable", "CREATE [ persistence_mode ] TABLE [ IF NOT EXISTS ] table_name ( [\n  { column_name data_type [ column_storage ] [ column_compression ] [ COLLATE collation ] [ column_constraint [ ... ] ]\n    | table_constraint\n    | LIKE source_table [ like_option ... ] }\n    [, ... ]\n] )\n[ INHERITS ( parent_table [, ... ] ) ]\n[ PARTITION BY { RANGE | LIST | HASH } ( { column_name | ( expression ) } [ COLLATE collation ] [ opclass ] [, ... ] ) ]\n[ USING method ]\n[ WITH ( storage_parameter [= value] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE tablespace_name ]\n\nCREATE [ persistence_mode ] TABLE [ IF NOT EXISTS ] table_name\n    OF type_name [ (\n  { column_name [ WITH OPTIONS ] [ column_constraint [ ... ] ]\n    | table_constraint }\n    [, ... ]\n) ]\n[ PARTITION BY { RANGE | LIST | HASH } ( { column_name | ( expression ) } [ COLLATE collation ] [ opclass ] [, ... ] ) ]\n[ USING method ]\n[ WITH ( storage_parameter [= value] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE tablespace_name ]\n\nCREATE [ persistence_mode ] TABLE [ IF NOT EXISTS ] table_name\n    PARTITION OF parent_table [ (\n  { column_name [ WITH OPTIONS ] [ column_constraint [ ... ] ]\n    | table_constraint }\n    [, ... ]\n) ] { FOR VALUES partition_bound_spec | DEFAULT }\n[ PARTITION BY { RANGE | LIST | HASH } ( { column_name | ( expression ) } [ COLLATE collation ] [ opclass ] [, ... ] ) ]\n[ USING method ]\n[ WITH ( storage_parameter [= value] [, ... ] ) | WITHOUT OIDS ]\n[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n[ TABLESPACE tablespace_name ]\n\nwhere persistence_mode is:\n\n{ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } } | UNLOGGED\n\nand column_storage is:\n\nSTORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }\n\nand column_compression is:\n\nCOMPRESSION compression_method\n\nand column_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ NOT NULL [ NO INHERIT ]  |\n  NULL |\n  CHECK ( expression ) [ NO INHERIT ] |\n  DEFAULT default_expr |\n  GENERATED ALWAYS AS ( generation_expr ) [ STORED | VIRTUAL ] |\n  GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( sequence_options ) ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] index_parameters |\n  PRIMARY KEY index_parameters |\n  REFERENCES reftable [ ( refcolumn ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]\n    [ ON DELETE referential_action ] [ ON UPDATE referential_action ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n\nand table_constraint is:\n\n[ CONSTRAINT constraint_name ]\n{ CHECK ( expression ) [ NO INHERIT ] |\n  NOT NULL column_name [ NO INHERIT ] |\n  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( column_name [, ... ] [, column_name WITHOUT OVERLAPS ] ) index_parameters |\n  PRIMARY KEY ( column_name [, ... ] [, column_name WITHOUT OVERLAPS ] ) index_parameters |\n  EXCLUDE [ USING index_method ] ( exclude_element WITH operator [, ... ] ) index_parameters [ WHERE ( predicate ) ] |\n  FOREIGN KEY ( column_name [, ... ] [, PERIOD column_name ] ) REFERENCES reftable [ ( refcolumn [, ... ] [, PERIOD refcolumn ] ) ]\n    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE referential_action ] [ ON UPDATE referential_action ] }\n[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]\n\nand like_option is:\n\n{ INCLUDING | EXCLUDING } { COMMENTS | COMPRESSION | CONSTRAINTS | DEFAULTS | GENERATED | IDENTITY | INDEXES | STATISTICS | STORAGE | ALL }\n\nand partition_bound_spec is:\n\nIN ( partition_bound_expr [, ...] ) |\nFROM ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] )\n  TO ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] ) |\nWITH ( MODULUS numeric_literal, REMAINDER numeric_literal )\n\nand index_parameters in UNIQUE, PRIMARY KEY, and EXCLUDE constraints are:\n\n[ INCLUDE ( column_name [, ... ] ) ]\n[ WITH ( storage_parameter [= value] [, ... ] ) ]\n[ USING INDEX TABLESPACE tablespace_name ]\n\nand exclude_element in an EXCLUDE constraint is:\n\n{ column_name | ( expression ) } [ COLLATE collation ] [ opclass [ ( opclass_parameter = value [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]\n\nand referential_action in a FOREIGN KEY/REFERENCES constraint is:\n\n{ NO ACTION | RESTRICT | CASCADE | SET NULL [ ( column_name [, ... ] ) ] | SET DEFAULT [ ( column_name [, ... ] ) ] }"],
+      ["CREATE TABLE AS", "define a new table from the results of a query", "sql-createtableas", "CREATE [ persistence_mode ] TABLE [ IF NOT EXISTS ] table_name\n    [ ( column_name [, ...] ) ]\n    [ USING method ]\n    [ WITH ( storage_parameter [= value] [, ... ] ) | WITHOUT OIDS ]\n    [ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]\n    [ TABLESPACE tablespace_name ]\n    AS query\n    [ WITH [ NO ] DATA ]\n\nwhere persistence_mode is:\n\n{ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } } | UNLOGGED"],
+      ["CREATE TABLESPACE", "define a new tablespace", "sql-createtablespace", "CREATE TABLESPACE tablespace_name\n    [ OWNER { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER } ]\n    LOCATION 'directory'\n    [ WITH ( tablespace_option = value [, ... ] ) ]"],
+      ["CREATE TEXT SEARCH CONFIGURATION", "define a new text search configuration", "sql-createtsconfig", "CREATE TEXT SEARCH CONFIGURATION name (\n    PARSER = parser_name |\n    COPY = source_config\n)"],
+      ["CREATE TEXT SEARCH DICTIONARY", "define a new text search dictionary", "sql-createtsdictionary", "CREATE TEXT SEARCH DICTIONARY name (\n    TEMPLATE = template\n    [, option = value [, ... ]]\n)"],
+      ["CREATE TEXT SEARCH PARSER", "define a new text search parser", "sql-createtsparser", "CREATE TEXT SEARCH PARSER name (\n    START = start_function ,\n    GETTOKEN = gettoken_function ,\n    END = end_function ,\n    LEXTYPES = lextypes_function\n    [, HEADLINE = headline_function ]\n)"],
+      ["CREATE TEXT SEARCH TEMPLATE", "define a new text search template", "sql-createtstemplate", "CREATE TEXT SEARCH TEMPLATE name (\n    [ INIT = init_function , ]\n    LEXIZE = lexize_function\n)"],
+      ["CREATE TRANSFORM", "define a new transform", "sql-createtransform", "CREATE [ OR REPLACE ] TRANSFORM FOR type_name LANGUAGE lang_name (\n    FROM SQL WITH FUNCTION from_sql_function_name [ (argument_type [, ...]) ],\n    TO SQL WITH FUNCTION to_sql_function_name [ (argument_type [, ...]) ]\n);"],
+      ["CREATE TRIGGER", "define a new trigger", "sql-createtrigger", "CREATE [ OR REPLACE ] [ CONSTRAINT ] TRIGGER name { BEFORE | AFTER | INSTEAD OF } { event [ OR ... ] }\n    ON table_name\n    [ FROM referenced_table_name ]\n    [ NOT DEFERRABLE | [ DEFERRABLE ] [ INITIALLY IMMEDIATE | INITIALLY DEFERRED ] ] [ ENFORCED ]\n    [ REFERENCING { { OLD | NEW } TABLE [ AS ] transition_relation_name } [ ... ] ]\n    [ FOR [ EACH ] { ROW | STATEMENT } ]\n    [ WHEN ( condition ) ]\n    EXECUTE { FUNCTION | PROCEDURE } function_name ( arguments )\n\nwhere event can be one of:\n\n    INSERT\n    UPDATE [ OF column_name [, ... ] ]\n    DELETE\n    TRUNCATE"],
+      ["CREATE TYPE", "define a new data type", "sql-createtype", "CREATE TYPE name AS\n    ( [ attribute_name data_type [ COLLATE collation ] [, ... ] ] )\n\nCREATE TYPE name AS ENUM\n    ( [ 'label' [, ... ] ] )\n\nCREATE TYPE name AS RANGE (\n    SUBTYPE = subtype\n    [ , SUBTYPE_OPCLASS = subtype_operator_class ]\n    [ , COLLATION = collation ]\n    [ , CANONICAL = canonical_function ]\n    [ , SUBTYPE_DIFF = subtype_diff_function ]\n    [ , MULTIRANGE_TYPE_NAME = multirange_type_name ]\n)\n\nCREATE TYPE name (\n    INPUT = input_function,\n    OUTPUT = output_function\n    [ , RECEIVE = receive_function ]\n    [ , SEND = send_function ]\n    [ , TYPMOD_IN = type_modifier_input_function ]\n    [ , TYPMOD_OUT = type_modifier_output_function ]\n    [ , ANALYZE = analyze_function ]\n    [ , SUBSCRIPT = subscript_function ]\n    [ , INTERNALLENGTH = { internallength | VARIABLE } ]\n    [ , PASSEDBYVALUE ]\n    [ , ALIGNMENT = alignment ]\n    [ , STORAGE = storage ]\n    [ , LIKE = like_type ]\n    [ , CATEGORY = category ]\n    [ , PREFERRED = preferred ]\n    [ , DEFAULT = default ]\n    [ , ELEMENT = element ]\n    [ , DELIMITER = delimiter ]\n    [ , COLLATABLE = collatable ]\n)\n\nCREATE TYPE name"],
+      ["CREATE USER", "define a new database role", "sql-createuser", "CREATE USER name [ [ WITH ] option [ ... ] ]\n\nwhere option can be:\n\n      SUPERUSER | NOSUPERUSER\n    | CREATEDB | NOCREATEDB\n    | CREATEROLE | NOCREATEROLE\n    | INHERIT | NOINHERIT\n    | LOGIN | NOLOGIN\n    | REPLICATION | NOREPLICATION\n    | BYPASSRLS | NOBYPASSRLS\n    | CONNECTION LIMIT connlimit\n    | [ ENCRYPTED ] PASSWORD 'password' | PASSWORD NULL\n    | VALID UNTIL 'timestamp'\n    | IN ROLE role_name [, ...]\n    | ROLE role_name [, ...]\n    | ADMIN role_name [, ...]\n    | SYSID uid"],
+      ["CREATE USER MAPPING", "define a new mapping of a user to a foreign server", "sql-createusermapping", "CREATE USER MAPPING [ IF NOT EXISTS ] FOR { user_name | USER | CURRENT_ROLE | CURRENT_USER | PUBLIC }\n    SERVER server_name\n    [ OPTIONS ( option 'value' [ , ... ] ) ]"],
+      ["CREATE VIEW", "define a new view", "sql-createview", "CREATE [ OR REPLACE ] [ TEMP | TEMPORARY ] [ RECURSIVE ] VIEW name [ ( column_name [, ...] ) ]\n    [ WITH ( view_option_name [= view_option_value] [, ... ] ) ]\n    AS query\n    [ WITH [ CASCADED | LOCAL ] CHECK OPTION ]"],
+      ["DEALLOCATE", "deallocate a prepared statement", "sql-deallocate", "DEALLOCATE [ PREPARE ] { name | ALL }"],
+      ["DECLARE", "define a cursor", "sql-declare", "DECLARE name [ BINARY ] [ ASENSITIVE | INSENSITIVE ] [ [ NO ] SCROLL ]\n    CURSOR [ { WITH | WITHOUT } HOLD ] FOR query"],
+      ["DELETE", "delete rows of a table", "sql-delete", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nDELETE FROM [ ONLY ] table_name [ * ] [ [ AS ] alias ]\n    [ USING from_item [, ...] ]\n    [ WHERE condition | WHERE CURRENT OF cursor_name ]\n    [ RETURNING [ WITH ( { OLD | NEW } AS output_alias [, ...] ) ]\n                { * | output_expression [ [ AS ] output_name ] } [, ...] ]"],
+      ["DISCARD", "discard session state", "sql-discard", "DISCARD { ALL | PLANS | SEQUENCES | TEMPORARY | TEMP }"],
+      ["DO", "execute an anonymous code block", "sql-do", "DO [ LANGUAGE lang_name ] code"],
+      ["DROP ACCESS METHOD", "remove an access method", "sql-drop-access-method", "DROP ACCESS METHOD [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
+      ["DROP AGGREGATE", "remove an aggregate function", "sql-dropaggregate", "DROP AGGREGATE [ IF EXISTS ] name ( aggregate_signature ) [, ...] [ CASCADE | RESTRICT ]\n\nwhere aggregate_signature is:\n\n* |\n[ argmode ] [ argname ] argtype [ , ... ] |\n[ [ argmode ] [ argname ] argtype [ , ... ] ] ORDER BY [ argmode ] [ argname ] argtype [ , ... ]"],
+      ["DROP CAST", "remove a cast", "sql-dropcast", "DROP CAST [ IF EXISTS ] (source_type AS target_type) [ CASCADE | RESTRICT ]"],
+      ["DROP COLLATION", "remove a collation", "sql-dropcollation", "DROP COLLATION [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
+      ["DROP CONVERSION", "remove a conversion", "sql-dropconversion", "DROP CONVERSION [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
+      ["DROP DATABASE", "remove a database", "sql-dropdatabase", "DROP DATABASE [ IF EXISTS ] name [ [ WITH ] ( option [, ...] ) ]\n\nwhere option can be:\n\n    FORCE"],
+      ["DROP DOMAIN", "remove a domain", "sql-dropdomain", "DROP DOMAIN [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP EVENT TRIGGER", "remove an event trigger", "sql-dropeventtrigger", "DROP EVENT TRIGGER [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
+      ["DROP EXTENSION", "remove an extension", "sql-dropextension", "DROP EXTENSION [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP FOREIGN DATA WRAPPER", "remove a foreign-data wrapper", "sql-dropforeigndatawrapper", "DROP FOREIGN DATA WRAPPER [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP FOREIGN TABLE", "remove a foreign table", "sql-dropforeigntable", "DROP FOREIGN TABLE [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP FUNCTION", "remove a function", "sql-dropfunction", "DROP FUNCTION [ IF EXISTS ] name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] [, ...]\n    [ CASCADE | RESTRICT ]"],
+      ["DROP GROUP", "remove a database role", "sql-dropgroup", "DROP GROUP [ IF EXISTS ] name [, ...]"],
+      ["DROP INDEX", "remove an index", "sql-dropindex", "DROP INDEX [ CONCURRENTLY ] [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP LANGUAGE", "remove a procedural language", "sql-droplanguage", "DROP [ PROCEDURAL ] LANGUAGE [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
+      ["DROP MATERIALIZED VIEW", "remove a materialized view", "sql-dropmaterializedview", "DROP MATERIALIZED VIEW [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP OPERATOR", "remove an operator", "sql-dropoperator", "DROP OPERATOR [ IF EXISTS ] name ( { left_type | NONE } , right_type ) [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP OPERATOR CLASS", "remove an operator class", "sql-dropopclass", "DROP OPERATOR CLASS [ IF EXISTS ] name USING index_method [ CASCADE | RESTRICT ]"],
+      ["DROP OPERATOR FAMILY", "remove an operator family", "sql-dropopfamily", "DROP OPERATOR FAMILY [ IF EXISTS ] name USING index_method [ CASCADE | RESTRICT ]"],
+      ["DROP OWNED", "remove database objects owned by a database role", "sql-drop-owned", "DROP OWNED BY { name | CURRENT_ROLE | CURRENT_USER | SESSION_USER } [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP POLICY", "remove a row-level security policy from a table", "sql-droppolicy", "DROP POLICY [ IF EXISTS ] name ON table_name [ CASCADE | RESTRICT ]"],
+      ["DROP PROCEDURE", "remove a procedure", "sql-dropprocedure", "DROP PROCEDURE [ IF EXISTS ] name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] [, ...]\n    [ CASCADE | RESTRICT ]"],
+      ["DROP PUBLICATION", "remove a publication", "sql-droppublication", "DROP PUBLICATION [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP ROLE", "remove a database role", "sql-droprole", "DROP ROLE [ IF EXISTS ] name [, ...]"],
+      ["DROP ROUTINE", "remove a routine", "sql-droproutine", "DROP ROUTINE [ IF EXISTS ] name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] [, ...]\n    [ CASCADE | RESTRICT ]"],
+      ["DROP RULE", "remove a rewrite rule", "sql-droprule", "DROP RULE [ IF EXISTS ] name ON table_name [ CASCADE | RESTRICT ]"],
+      ["DROP SCHEMA", "remove a schema", "sql-dropschema", "DROP SCHEMA [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP SEQUENCE", "remove a sequence", "sql-dropsequence", "DROP SEQUENCE [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP SERVER", "remove a foreign server descriptor", "sql-dropserver", "DROP SERVER [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP STATISTICS", "remove extended statistics", "sql-dropstatistics", "DROP STATISTICS [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP SUBSCRIPTION", "remove a subscription", "sql-dropsubscription", "DROP SUBSCRIPTION [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
+      ["DROP TABLE", "remove a table", "sql-droptable", "DROP TABLE [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP TABLESPACE", "remove a tablespace", "sql-droptablespace", "DROP TABLESPACE [ IF EXISTS ] name"],
+      ["DROP TEXT SEARCH CONFIGURATION", "remove a text search configuration", "sql-droptsconfig", "DROP TEXT SEARCH CONFIGURATION [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
+      ["DROP TEXT SEARCH DICTIONARY", "remove a text search dictionary", "sql-droptsdictionary", "DROP TEXT SEARCH DICTIONARY [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
+      ["DROP TEXT SEARCH PARSER", "remove a text search parser", "sql-droptsparser", "DROP TEXT SEARCH PARSER [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
+      ["DROP TEXT SEARCH TEMPLATE", "remove a text search template", "sql-droptstemplate", "DROP TEXT SEARCH TEMPLATE [ IF EXISTS ] name [ CASCADE | RESTRICT ]"],
+      ["DROP TRANSFORM", "remove a transform", "sql-droptransform", "DROP TRANSFORM [ IF EXISTS ] FOR type_name LANGUAGE lang_name [ CASCADE | RESTRICT ]"],
+      ["DROP TRIGGER", "remove a trigger", "sql-droptrigger", "DROP TRIGGER [ IF EXISTS ] name ON table_name [ CASCADE | RESTRICT ]"],
+      ["DROP TYPE", "remove a data type", "sql-droptype", "DROP TYPE [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["DROP USER", "remove a database role", "sql-dropuser", "DROP USER [ IF EXISTS ] name [, ...]"],
+      ["DROP USER MAPPING", "remove a user mapping for a foreign server", "sql-dropusermapping", "DROP USER MAPPING [ IF EXISTS ] FOR { user_name | USER | CURRENT_ROLE | CURRENT_USER | PUBLIC } SERVER server_name"],
+      ["DROP VIEW", "remove a view", "sql-dropview", "DROP VIEW [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]"],
+      ["END", "commit the current transaction", "sql-end", "END [ WORK | TRANSACTION ] [ AND [ NO ] CHAIN ]"],
+      ["EXECUTE", "execute a prepared statement", "sql-execute", "EXECUTE name [ ( parameter [, ...] ) ]"],
+      ["EXPLAIN", "show the execution plan of a statement", "sql-explain", "EXPLAIN [ ( option [, ...] ) ] statement\n\nwhere option can be one of:\n\n    ANALYZE [ boolean ]\n    VERBOSE [ boolean ]\n    COSTS [ boolean ]\n    SETTINGS [ boolean ]\n    GENERIC_PLAN [ boolean ]\n    BUFFERS [ boolean ]\n    SERIALIZE [ { NONE | TEXT | BINARY } ]\n    WAL [ boolean ]\n    TIMING [ boolean ]\n    SUMMARY [ boolean ]\n    MEMORY [ boolean ]\n    IO [ boolean ]\n    FORMAT { TEXT | XML | JSON | YAML }"],
+      ["FETCH", "retrieve rows from a query using a cursor", "sql-fetch", "FETCH [ direction ] [ FROM | IN ] cursor_name\n\nwhere direction can be one of:\n\n    NEXT\n    PRIOR\n    FIRST\n    LAST\n    ABSOLUTE count\n    RELATIVE count\n    count\n    ALL\n    FORWARD\n    FORWARD count\n    FORWARD ALL\n    BACKWARD\n    BACKWARD count\n    BACKWARD ALL"],
+      ["GRANT", "define access privileges", "sql-grant", "GRANT { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { [ TABLE ] table_name [, ...]\n         | ALL TABLES IN SCHEMA schema_name [, ...] }\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { { SELECT | INSERT | UPDATE | REFERENCES } ( column_name [, ...] )\n    [, ...] | ALL [ PRIVILEGES ] ( column_name [, ...] ) }\n    ON [ TABLE ] table_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { SEQUENCE sequence_name [, ...]\n         | ALL SEQUENCES IN SCHEMA schema_name [, ...] }\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { { CREATE | CONNECT | TEMPORARY | TEMP } [, ...] | ALL [ PRIVILEGES ] }\n    ON DATABASE database_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON DOMAIN domain_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN DATA WRAPPER fdw_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN SERVER server_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { { FUNCTION | PROCEDURE | ROUTINE } routine_name [ ( [ [ argmode ] [ arg_name ] arg_type [, ...] ] ) ] [, ...]\n         | ALL { FUNCTIONS | PROCEDURES | ROUTINES } IN SCHEMA schema_name [, ...] }\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON LANGUAGE lang_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { { SELECT | UPDATE } [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECT loid [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { { SET | ALTER SYSTEM } [, ... ] | ALL [ PRIVILEGES ] }\n    ON PARAMETER configuration_parameter [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { { CREATE | USAGE } [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMA schema_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { CREATE | ALL [ PRIVILEGES ] }\n    ON TABLESPACE tablespace_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPE type_name [, ...]\n    TO role_specification [, ...] [ WITH GRANT OPTION ]\n    [ GRANTED BY role_specification ]\n\nGRANT role_name [, ...] TO role_specification [, ...]\n    [ WITH { ADMIN | INHERIT | SET } { OPTION | TRUE | FALSE } ]\n    [ GRANTED BY role_specification ]\n\nwhere role_specification can be:\n\n    [ GROUP ] role_name\n  | PUBLIC\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER"],
+      ["IMPORT FOREIGN SCHEMA", "import table definitions from a foreign server", "sql-importforeignschema", "IMPORT FOREIGN SCHEMA remote_schema\n    [ { LIMIT TO | EXCEPT } ( table_name [, ...] ) ]\n    FROM SERVER server_name\n    INTO local_schema\n    [ OPTIONS ( option 'value' [, ... ] ) ]"],
+      ["INSERT", "create new rows in a table", "sql-insert", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nINSERT INTO table_name [ AS alias ] [ ( column_name [, ...] ) ]\n    [ OVERRIDING { SYSTEM | USER } VALUE ]\n    { DEFAULT VALUES | VALUES ( { expression | DEFAULT } [, ...] ) [, ...] | query }\n    [ ON CONFLICT [ conflict_target ] conflict_action ]\n    [ RETURNING [ WITH ( { OLD | NEW } AS output_alias [, ...] ) ]\n                { * | output_expression [ [ AS ] output_name ] } [, ...] ]\n\nwhere conflict_target can be one of:\n\n    ( { index_column_name | ( index_expression ) } [ COLLATE collation ] [ opclass ] [, ...] ) [ WHERE index_predicate ]\n    ON CONSTRAINT constraint_name\n\nand conflict_action is one of:\n\n    DO NOTHING\n    DO SELECT [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } ] [ WHERE condition ]\n    DO UPDATE SET { column_name = { expression | DEFAULT } |\n                    ( column_name [, ...] ) = [ ROW ] ( { expression | DEFAULT } [, ...] ) |\n                    ( column_name [, ...] ) = ( sub-SELECT )\n                  } [, ...]\n              [ WHERE condition ]"],
+      ["LISTEN", "listen for a notification", "sql-listen", "LISTEN channel"],
+      ["LOAD", "load a shared library file", "sql-load", "LOAD 'filename'"],
+      ["LOCK", "lock a table", "sql-lock", "LOCK [ TABLE ] [ ONLY ] name [ * ] [, ...] [ IN lockmode MODE ] [ NOWAIT ]\n\nwhere lockmode is one of:\n\n    ACCESS SHARE | ROW SHARE | ROW EXCLUSIVE | SHARE UPDATE EXCLUSIVE\n    | SHARE | SHARE ROW EXCLUSIVE | EXCLUSIVE | ACCESS EXCLUSIVE"],
+      ["MERGE", "conditionally insert, update, or delete rows of a table", "sql-merge", "[ WITH with_query [, ...] ]\nMERGE INTO [ ONLY ] target_table_name [ * ] [ [ AS ] target_alias ]\n    USING data_source ON join_condition\n    when_clause [...]\n    [ RETURNING [ WITH ( { OLD | NEW } AS output_alias [, ...] ) ]\n                { * | output_expression [ [ AS ] output_name ] } [, ...] ]\n\nwhere data_source is:\n\n    { [ ONLY ] source_table_name [ * ] | ( source_query ) } [ [ AS ] source_alias ]\n\nand when_clause is:\n\n    { WHEN MATCHED [ AND condition ] THEN { merge_update | merge_delete | DO NOTHING } |\n      WHEN NOT MATCHED BY SOURCE [ AND condition ] THEN { merge_update | merge_delete | DO NOTHING } |\n      WHEN NOT MATCHED [ BY TARGET ] [ AND condition ] THEN { merge_insert | DO NOTHING } }\n\nand merge_insert is:\n\n    INSERT [( column_name [, ...] )]\n        [ OVERRIDING { SYSTEM | USER } VALUE ]\n        { VALUES ( { expression | DEFAULT } [, ...] ) | DEFAULT VALUES }\n\nand merge_update is:\n\n    UPDATE SET { column_name = { expression | DEFAULT } |\n                 ( column_name [, ...] ) = [ ROW ] ( { expression | DEFAULT } [, ...] ) |\n                 ( column_name [, ...] ) = ( sub-SELECT )\n               } [, ...]\n\nand merge_delete is:\n\n    DELETE"],
+      ["MOVE", "position a cursor", "sql-move", "MOVE [ direction ] [ FROM | IN ] cursor_name\n\nwhere direction can be one of:\n\n    NEXT\n    PRIOR\n    FIRST\n    LAST\n    ABSOLUTE count\n    RELATIVE count\n    count\n    ALL\n    FORWARD\n    FORWARD count\n    FORWARD ALL\n    BACKWARD\n    BACKWARD count\n    BACKWARD ALL"],
+      ["NOTIFY", "generate a notification", "sql-notify", "NOTIFY channel [ , payload ]"],
+      ["PREPARE", "prepare a statement for execution", "sql-prepare", "PREPARE name [ ( data_type [, ...] ) ] AS statement"],
+      ["PREPARE TRANSACTION", "prepare the current transaction for two-phase commit", "sql-prepare-transaction", "PREPARE TRANSACTION transaction_id"],
+      ["REASSIGN OWNED", "change the ownership of database objects owned by a database role", "sql-reassign-owned", "REASSIGN OWNED BY { old_role | CURRENT_ROLE | CURRENT_USER | SESSION_USER } [, ...]\n               TO { new_role | CURRENT_ROLE | CURRENT_USER | SESSION_USER }"],
+      ["REFRESH MATERIALIZED VIEW", "replace the contents of a materialized view", "sql-refreshmaterializedview", "REFRESH MATERIALIZED VIEW [ CONCURRENTLY ] name\n    [ WITH [ NO ] DATA ]"],
+      ["REINDEX", "rebuild indexes", "sql-reindex", "REINDEX [ ( option [, ...] ) ] { INDEX | TABLE | SCHEMA } [ CONCURRENTLY ] name\nREINDEX [ ( option [, ...] ) ] { DATABASE | SYSTEM } [ CONCURRENTLY ] [ name ]\n\nwhere option can be one of:\n\n    CONCURRENTLY [ boolean ]\n    TABLESPACE new_tablespace\n    VERBOSE [ boolean ]"],
+      ["RELEASE SAVEPOINT", "release a previously defined savepoint", "sql-release-savepoint", "RELEASE [ SAVEPOINT ] savepoint_name"],
+      ["REPACK", "rewrite a table to reclaim disk space", "sql-repack", "REPACK [ ( option [, ...] ) ] [ table_and_columns [ USING INDEX [ index_name ] ] ]\nREPACK [ ( option [, ...] ) ] USING INDEX\n\nwhere option can be one of:\n\n    VERBOSE [ boolean ]\n    ANALYZE [ boolean ]\n    CONCURRENTLY [ boolean ]\n\nand table_and_columns is:\n\n    table_name [ ( column_name [, ...] ) ]"],
+      ["RESET", "restore the value of a run-time parameter to the default value", "sql-reset", "RESET configuration_parameter\nRESET ALL"],
+      ["REVOKE", "remove access privileges", "sql-revoke", "REVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | DELETE | TRUNCATE | REFERENCES | TRIGGER | MAINTAIN }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { [ TABLE ] table_name [, ...]\n         | ALL TABLES IN SCHEMA schema_name [, ...] }\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | INSERT | UPDATE | REFERENCES } ( column_name [, ...] )\n    [, ...] | ALL [ PRIVILEGES ] ( column_name [, ...] ) }\n    ON [ TABLE ] table_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { USAGE | SELECT | UPDATE }\n    [, ...] | ALL [ PRIVILEGES ] }\n    ON { SEQUENCE sequence_name [, ...]\n         | ALL SEQUENCES IN SCHEMA schema_name [, ...] }\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { CREATE | CONNECT | TEMPORARY | TEMP } [, ...] | ALL [ PRIVILEGES ] }\n    ON DATABASE database_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON DOMAIN domain_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN DATA WRAPPER fdw_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON FOREIGN SERVER server_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { EXECUTE | ALL [ PRIVILEGES ] }\n    ON { { FUNCTION | PROCEDURE | ROUTINE } function_name [ ( [ [ argmode ] [ arg_name ] arg_type [, ...] ] ) ] [, ...]\n         | ALL { FUNCTIONS | PROCEDURES | ROUTINES } IN SCHEMA schema_name [, ...] }\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON LANGUAGE lang_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SELECT | UPDATE } [, ...] | ALL [ PRIVILEGES ] }\n    ON LARGE OBJECT loid [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { SET | ALTER SYSTEM } [, ...] | ALL [ PRIVILEGES ] }\n    ON PARAMETER configuration_parameter [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { { CREATE | USAGE } [, ...] | ALL [ PRIVILEGES ] }\n    ON SCHEMA schema_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { CREATE | ALL [ PRIVILEGES ] }\n    ON TABLESPACE tablespace_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ GRANT OPTION FOR ]\n    { USAGE | ALL [ PRIVILEGES ] }\n    ON TYPE type_name [, ...]\n    FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nREVOKE [ { ADMIN | INHERIT | SET } OPTION FOR ]\n    role_name [, ...] FROM role_specification [, ...]\n    [ GRANTED BY role_specification ]\n    [ CASCADE | RESTRICT ]\n\nwhere role_specification can be:\n\n    [ GROUP ] role_name\n  | PUBLIC\n  | CURRENT_ROLE\n  | CURRENT_USER\n  | SESSION_USER"],
+      ["ROLLBACK", "abort the current transaction", "sql-rollback", "ROLLBACK [ WORK | TRANSACTION ] [ AND [ NO ] CHAIN ]"],
+      ["ROLLBACK PREPARED", "cancel a transaction that was earlier prepared for two-phase commit", "sql-rollback-prepared", "ROLLBACK PREPARED transaction_id"],
+      ["ROLLBACK TO SAVEPOINT", "roll back to a savepoint", "sql-rollback-to", "ROLLBACK [ WORK | TRANSACTION ] TO [ SAVEPOINT ] savepoint_name"],
+      ["SAVEPOINT", "define a new savepoint within the current transaction", "sql-savepoint", "SAVEPOINT savepoint_name"],
+      ["SECURITY LABEL", "define or change a security label applied to an object", "sql-security-label", "SECURITY LABEL [ FOR provider ] ON\n{\n  TABLE object_name |\n  COLUMN table_name.column_name |\n  AGGREGATE aggregate_name ( aggregate_signature ) |\n  DATABASE object_name |\n  DOMAIN object_name |\n  EVENT TRIGGER object_name |\n  FOREIGN TABLE object_name |\n  FUNCTION function_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  LARGE OBJECT large_object_oid |\n  MATERIALIZED VIEW object_name |\n  [ PROCEDURAL ] LANGUAGE object_name |\n  PROCEDURE procedure_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  PUBLICATION object_name |\n  ROLE object_name |\n  ROUTINE routine_name [ ( [ [ argmode ] [ argname ] argtype [, ...] ] ) ] |\n  SCHEMA object_name |\n  SEQUENCE object_name |\n  SUBSCRIPTION object_name |\n  TABLESPACE object_name |\n  TYPE object_name |\n  VIEW object_name\n} IS { string_literal | NULL }\n\nwhere aggregate_signature is:\n\n* |\n[ argmode ] [ argname ] argtype [ , ... ] |\n[ [ argmode ] [ argname ] argtype [ , ... ] ] ORDER BY [ argmode ] [ argname ] argtype [ , ... ]"],
+      ["SELECT", "retrieve rows from a table or view", "sql-select", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]\n    [ { * | expression [ [ AS ] output_name ] } [, ...] ]\n    [ FROM from_item [, ...] ]\n    [ WHERE condition ]\n    [ GROUP BY [ ALL | DISTINCT ] grouping_element [, ...] ]\n    [ HAVING condition ]\n    [ WINDOW window_name AS ( window_definition ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] select ]\n    [ ORDER BY expression [ ASC | DESC | USING operator ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { count | ALL } ]\n    [ OFFSET start [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF from_reference [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]\n\nwhere from_item can be one of:\n\n    [ ONLY ] table_name [ * ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n                [ TABLESAMPLE sampling_method ( argument [, ...] ) [ REPEATABLE ( seed ) ] ]\n    [ LATERAL ] ( select ) [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    with_query_name [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    [ LATERAL ] function_name ( [ argument [, ...] ] )\n                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    [ LATERAL ] function_name ( [ argument [, ...] ] ) [ AS ] alias ( column_definition [, ...] )\n    [ LATERAL ] function_name ( [ argument [, ...] ] ) AS ( column_definition [, ...] )\n    [ LATERAL ] ROWS FROM( function_name ( [ argument [, ...] ] ) [ AS ( column_definition [, ...] ) ] [, ...] )\n                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    from_item join_type from_item { ON join_condition | USING ( join_column [, ...] ) [ AS join_using_alias ] }\n    from_item NATURAL join_type from_item\n    from_item CROSS JOIN from_item\n\nand grouping_element can be one of:\n\n    ( )\n    expression\n    ( expression [, ...] )\n    ROLLUP ( { expression | ( expression [, ...] ) } [, ...] )\n    CUBE ( { expression | ( expression [, ...] ) } [, ...] )\n    GROUPING SETS ( grouping_element [, ...] )\n\nand with_query is:\n\n    with_query_name [ ( column_name [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( select | values | insert | update | delete | merge )\n        [ SEARCH { BREADTH | DEPTH } FIRST BY column_name [, ...] SET search_seq_col_name ]\n        [ CYCLE column_name [, ...] SET cycle_mark_col_name [ TO cycle_mark_value DEFAULT cycle_mark_default ] USING cycle_path_col_name ]\n\nTABLE [ ONLY ] table_name [ * ]"],
+      ["SELECT INTO", "define a new table from the results of a query", "sql-selectinto", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]\n    [ { * | expression [ [ AS ] output_name ] } [, ...] ]\n    INTO [ TEMPORARY | TEMP | UNLOGGED ] [ TABLE ] new_table\n    [ FROM from_item [, ...] ]\n    [ WHERE condition ]\n    [ GROUP BY [ ALL | DISTINCT ] grouping_element [, ...] ]\n    [ HAVING condition ]\n    [ WINDOW window_name AS ( window_definition ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] select ]\n    [ ORDER BY expression [ ASC | DESC | USING operator ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { count | ALL } ]\n    [ OFFSET start [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF from_reference [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]"],
+      ["SET", "change a run-time parameter", "sql-set", "SET [ SESSION | LOCAL ] configuration_parameter { TO | = } { value [, ...] | DEFAULT }\nSET [ SESSION | LOCAL ] TIME ZONE { value | LOCAL | DEFAULT }"],
+      ["SET CONSTRAINTS", "set constraint check timing for the current transaction", "sql-set-constraints", "SET CONSTRAINTS { ALL | name [, ...] } { DEFERRED | IMMEDIATE }"],
+      ["SET ROLE", "set the current user identifier of the current session", "sql-set-role", "SET [ SESSION | LOCAL ] ROLE role_name\nSET [ SESSION | LOCAL ] ROLE NONE\nRESET ROLE"],
+      ["SET SESSION AUTHORIZATION", "set the session user identifier and the current user identifier of the current session", "sql-set-session-authorization", "SET [ SESSION | LOCAL ] SESSION AUTHORIZATION user_name\nSET [ SESSION | LOCAL ] SESSION AUTHORIZATION DEFAULT\nRESET SESSION AUTHORIZATION"],
+      ["SET TRANSACTION", "set the characteristics of the current transaction", "sql-set-transaction", "SET TRANSACTION transaction_mode [, ...]\nSET TRANSACTION SNAPSHOT snapshot_id\nSET SESSION CHARACTERISTICS AS TRANSACTION transaction_mode [, ...]\n\nwhere transaction_mode is one of:\n\n    ISOLATION LEVEL { SERIALIZABLE | REPEATABLE READ | READ COMMITTED | READ UNCOMMITTED }\n    READ WRITE | READ ONLY\n    [ NOT ] DEFERRABLE"],
+      ["SHOW", "show the value of a run-time parameter", "sql-show", "SHOW name\nSHOW ALL"],
+      ["START TRANSACTION", "start a transaction block", "sql-start-transaction", "START TRANSACTION [ transaction_mode [, ...] ]\n\nwhere transaction_mode is one of:\n\n    ISOLATION LEVEL { SERIALIZABLE | REPEATABLE READ | READ COMMITTED | READ UNCOMMITTED }\n    READ WRITE | READ ONLY\n    [ NOT ] DEFERRABLE"],
+      ["TABLE", "retrieve rows from a table or view", "sql-select", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]\n    [ { * | expression [ [ AS ] output_name ] } [, ...] ]\n    [ FROM from_item [, ...] ]\n    [ WHERE condition ]\n    [ GROUP BY [ ALL | DISTINCT ] grouping_element [, ...] ]\n    [ HAVING condition ]\n    [ WINDOW window_name AS ( window_definition ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] select ]\n    [ ORDER BY expression [ ASC | DESC | USING operator ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { count | ALL } ]\n    [ OFFSET start [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF from_reference [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]\n\nwhere from_item can be one of:\n\n    [ ONLY ] table_name [ * ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n                [ TABLESAMPLE sampling_method ( argument [, ...] ) [ REPEATABLE ( seed ) ] ]\n    [ LATERAL ] ( select ) [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    with_query_name [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    [ LATERAL ] function_name ( [ argument [, ...] ] )\n                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    [ LATERAL ] function_name ( [ argument [, ...] ] ) [ AS ] alias ( column_definition [, ...] )\n    [ LATERAL ] function_name ( [ argument [, ...] ] ) AS ( column_definition [, ...] )\n    [ LATERAL ] ROWS FROM( function_name ( [ argument [, ...] ] ) [ AS ( column_definition [, ...] ) ] [, ...] )\n                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    from_item join_type from_item { ON join_condition | USING ( join_column [, ...] ) [ AS join_using_alias ] }\n    from_item NATURAL join_type from_item\n    from_item CROSS JOIN from_item\n\nand grouping_element can be one of:\n\n    ( )\n    expression\n    ( expression [, ...] )\n    ROLLUP ( { expression | ( expression [, ...] ) } [, ...] )\n    CUBE ( { expression | ( expression [, ...] ) } [, ...] )\n    GROUPING SETS ( grouping_element [, ...] )\n\nand with_query is:\n\n    with_query_name [ ( column_name [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( select | values | insert | update | delete | merge )\n        [ SEARCH { BREADTH | DEPTH } FIRST BY column_name [, ...] SET search_seq_col_name ]\n        [ CYCLE column_name [, ...] SET cycle_mark_col_name [ TO cycle_mark_value DEFAULT cycle_mark_default ] USING cycle_path_col_name ]\n\nTABLE [ ONLY ] table_name [ * ]"],
+      ["TRUNCATE", "empty a table or set of tables", "sql-truncate", "TRUNCATE [ TABLE ] [ ONLY ] name [ * ] [, ... ]\n    [ RESTART IDENTITY | CONTINUE IDENTITY ] [ CASCADE | RESTRICT ]"],
+      ["UNLISTEN", "stop listening for a notification", "sql-unlisten", "UNLISTEN { channel | * }"],
+      ["UPDATE", "update rows of a table", "sql-update", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nUPDATE [ ONLY ] table_name [ * ] [ [ AS ] alias ]\n    SET { column_name = { expression | DEFAULT } |\n          ( column_name [, ...] ) = [ ROW ] ( { expression | DEFAULT } [, ...] ) |\n          ( column_name [, ...] ) = ( sub-SELECT )\n        } [, ...]\n    [ FROM from_item [, ...] ]\n    [ WHERE condition | WHERE CURRENT OF cursor_name ]\n    [ RETURNING [ WITH ( { OLD | NEW } AS output_alias [, ...] ) ]\n                { * | output_expression [ [ AS ] output_name ] } [, ...] ]"],
+      ["VACUUM", "garbage-collect and optionally analyze a database", "sql-vacuum", "VACUUM [ ( option [, ...] ) ] [ table_and_columns [, ...] ]\n\nwhere option can be one of:\n\n    FREEZE [ boolean ]\n    VERBOSE [ boolean ]\n    ANALYZE [ boolean ]\n    DISABLE_PAGE_SKIPPING [ boolean ]\n    SKIP_LOCKED [ boolean ]\n    INDEX_CLEANUP { AUTO | ON | OFF }\n    PROCESS_MAIN [ boolean ]\n    PROCESS_TOAST [ boolean ]\n    TRUNCATE [ boolean ]\n    PARALLEL integer\n    SKIP_DATABASE_STATS [ boolean ]\n    ONLY_DATABASE_STATS [ boolean ]\n    BUFFER_USAGE_LIMIT size\n    FULL [ boolean ]\n\nand table_and_columns is:\n\n    [ ONLY ] table_name [ * ] [ ( column_name [, ...] ) ]"],
+      ["VALUES", "compute a set of rows", "sql-values", "VALUES ( expression [, ...] ) [, ...]\n    [ ORDER BY sort_expression [ ASC | DESC | USING operator ] [, ...] ]\n    [ LIMIT { count | ALL } ]\n    [ OFFSET start [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]"],
+      ["WAIT", "wait for WAL to reach a target LSN", "sql-wait", "WAIT FOR LSN 'lsn'\n    [ WITH ( option [, ...] ) ]\n\nwhere option can be:\n\n    MODE 'mode'\n    TIMEOUT 'timeout'\n    NO_THROW\n\nand mode can be:\n\n    standby_replay | standby_write | standby_flush | primary_flush"],
+      ["WITH", "retrieve rows from a table or view", "sql-select", "[ WITH [ RECURSIVE ] with_query [, ...] ]\nSELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]\n    [ { * | expression [ [ AS ] output_name ] } [, ...] ]\n    [ FROM from_item [, ...] ]\n    [ WHERE condition ]\n    [ GROUP BY [ ALL | DISTINCT ] grouping_element [, ...] ]\n    [ HAVING condition ]\n    [ WINDOW window_name AS ( window_definition ) [, ...] ]\n    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] select ]\n    [ ORDER BY expression [ ASC | DESC | USING operator ] [ NULLS { FIRST | LAST } ] [, ...] ]\n    [ LIMIT { count | ALL } ]\n    [ OFFSET start [ ROW | ROWS ] ]\n    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } { ONLY | WITH TIES } ]\n    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF from_reference [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]\n\nwhere from_item can be one of:\n\n    [ ONLY ] table_name [ * ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n                [ TABLESAMPLE sampling_method ( argument [, ...] ) [ REPEATABLE ( seed ) ] ]\n    [ LATERAL ] ( select ) [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    with_query_name [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    [ LATERAL ] function_name ( [ argument [, ...] ] )\n                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    [ LATERAL ] function_name ( [ argument [, ...] ] ) [ AS ] alias ( column_definition [, ...] )\n    [ LATERAL ] function_name ( [ argument [, ...] ] ) AS ( column_definition [, ...] )\n    [ LATERAL ] ROWS FROM( function_name ( [ argument [, ...] ] ) [ AS ( column_definition [, ...] ) ] [, ...] )\n                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]\n    from_item join_type from_item { ON join_condition | USING ( join_column [, ...] ) [ AS join_using_alias ] }\n    from_item NATURAL join_type from_item\n    from_item CROSS JOIN from_item\n\nand grouping_element can be one of:\n\n    ( )\n    expression\n    ( expression [, ...] )\n    ROLLUP ( { expression | ( expression [, ...] ) } [, ...] )\n    CUBE ( { expression | ( expression [, ...] ) } [, ...] )\n    GROUPING SETS ( grouping_element [, ...] )\n\nand with_query is:\n\n    with_query_name [ ( column_name [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( select | values | insert | update | delete | merge )\n        [ SEARCH { BREADTH | DEPTH } FIRST BY column_name [, ...] SET search_seq_col_name ]\n        [ CYCLE column_name [, ...] SET cycle_mark_col_name [ TO cycle_mark_value DEFAULT cycle_mark_default ] USING cycle_path_col_name ]\n\nTABLE [ ONLY ] table_name [ * ]"]
+    ];
+  }
+});
+
+// generated/describe.mjs
 var NULL = null;
 var FUNC_MAX_ARGS = 100;
 var ESCAPE_STRING_SYNTAX = "E";
 var InvalidOid = 0;
+var PG_UTF8 = 6;
 var EditableFunction = 0;
 var EditableView = 1;
+var PG_DIAG_SEVERITY = "S";
+var PG_DIAG_MESSAGE_PRIMARY = "M";
+var COERCION_CODE_ASSIGNMENT = "a";
+var COERCION_CODE_EXPLICIT = "e";
+var COERCION_METHOD_BINARY = "b";
+var COERCION_METHOD_INOUT = "i";
+var PUBLISH_GENCOLS_NONE = "n";
+var PUBLISH_GENCOLS_STORED = "s";
+var UNRESERVED_KEYWORD = 0;
+var COL_NAME_KEYWORD = 1;
+var TYPE_FUNC_NAME_KEYWORD = 2;
+var RESERVED_KEYWORD = 3;
+var IFSTATE_IGNORED = 3;
+var CONNECTION_OK = 0;
+var CONNECTION_BAD = 1;
+var PGRES_TUPLES_OK = 2;
+var PGRES_FATAL_ERROR = 7;
 var PSQL_CMD_UNKNOWN = 0;
+var PSQL_CMD_SEND = 1;
 var PSQL_CMD_SKIP_LINE = 2;
 var PSQL_CMD_ERROR = 5;
 var OT_NORMAL = 0;
 var OT_WHOLE_LINE = 4;
-var PG_UTF8 = 6;
-var CONNECTION_OK = 0;
-var CONNECTION_BAD = 1;
-var COERCION_METHOD_BINARY = "b";
-var COERCION_METHOD_INOUT = "i";
-var COERCION_CODE_ASSIGNMENT = "a";
-var COERCION_CODE_EXPLICIT = "e";
-var DEFACLOBJ_RELATION = "r";
-var DEFACLOBJ_SEQUENCE = "S";
-var DEFACLOBJ_FUNCTION = "f";
-var DEFACLOBJ_TYPE = "T";
-var DEFACLOBJ_NAMESPACE = "n";
-var DEFACLOBJ_LARGEOBJECT = "L";
-var ATTRIBUTE_IDENTITY_ALWAYS = "a";
-var ATTRIBUTE_IDENTITY_BY_DEFAULT = "d";
-var ATTRIBUTE_GENERATED_STORED = "s";
-var ATTRIBUTE_GENERATED_VIRTUAL = "v";
-var RELKIND_RELATION = "r";
-var RELKIND_INDEX = "i";
-var RELKIND_SEQUENCE = "S";
-var RELKIND_TOASTVALUE = "t";
-var RELKIND_VIEW = "v";
-var RELKIND_MATVIEW = "m";
-var RELKIND_COMPOSITE_TYPE = "c";
-var RELKIND_FOREIGN_TABLE = "f";
-var RELKIND_PARTITIONED_TABLE = "p";
-var RELKIND_PARTITIONED_INDEX = "I";
-var PUBLISH_GENCOLS_NONE = "n";
-var PUBLISH_GENCOLS_STORED = "s";
-var INT8OID = 20;
-var INT2OID = 21;
-var INT4OID = 23;
-var OIDOID = 26;
-var XIDOID = 28;
-var CIDOID = 29;
-var XID8OID = 5069;
-var FLOAT4OID = 700;
-var FLOAT8OID = 701;
-var MONEYOID = 790;
-var NUMERICOID = 1700;
+var PSQL_ECHO_HIDDEN_OFF = 0;
+var PSQL_ECHO_HIDDEN_ON = 1;
+var PSQL_ECHO_HIDDEN_NOEXEC = 2;
+var PG_VERSION = "19.0";
+var PG_MAJORVERSION = "19";
+var helpText = "Help\n  \\? [commands]          show help on backslash commands\n  \\h [NAME]              help on syntax of SQL commands, * for all commands\n\nInformational\n  (options: S = show system objects, x = expanded mode, + = additional detail)\n  \\d[Sx+]                list tables, views, and sequences\n  \\d[Sx+]  NAME          describe table, view, sequence, or index\n                         (x applies only to sequences)\n  \\da[Sx]  [PATTERN]     list aggregates\n  \\dA[x+]  [PATTERN]     list access methods\n  \\dAc[x+] [AMPTRN [TYPEPTRN]]  list operator classes\n  \\dAf[x+] [AMPTRN [TYPEPTRN]]  list operator families\n  \\dAo[x+] [AMPTRN [OPFPTRN]]   list operators of operator families\n  \\dAp[x+] [AMPTRN [OPFPTRN]]   list support functions of operator families\n  \\db[x+]  [PATTERN]     list tablespaces\n  \\dc[Sx+] [PATTERN]     list conversions\n  \\dconfig[x+] [PATTERN] list configuration parameters\n  \\dC[x+]  [PATTERN]     list casts\n  \\dd[Sx]  [PATTERN]     show object descriptions not displayed elsewhere\n  \\dD[Sx+] [PATTERN]     list domains\n  \\ddp[x]  [PATTERN]     list default privileges\n  \\dE[Sx+] [PATTERN]     list foreign tables\n  \\des[x+] [PATTERN]     list foreign servers\n  \\det[x+] [PATTERN]     list foreign tables\n  \\deu[x+] [PATTERN]     list user mappings\n  \\dew[x+] [PATTERN]     list foreign-data wrappers\n  \\df[anptw][Sx+] [FUNCPTRN [TYPEPTRN ...]]\n                         list [only agg/normal/procedure/trigger/window] functions\n  \\dF[x+]  [PATTERN]     list text search configurations\n  \\dFd[x+] [PATTERN]     list text search dictionaries\n  \\dFp[x+] [PATTERN]     list text search parsers\n  \\dFt[x+] [PATTERN]     list text search templates\n  \\dg[Sx+] [PATTERN]     list roles\n  \\di[Sx+] [PATTERN]     list indexes\n  \\dl[x+]                list large objects, same as \\lo_list\n  \\dL[Sx+] [PATTERN]     list procedural languages\n  \\dm[Sx+] [PATTERN]     list materialized views\n  \\dn[Sx+] [PATTERN]     list schemas\n  \\do[Sx+] [OPPTRN [TYPEPTRN [TYPEPTRN]]]\n                         list operators\n  \\dO[Sx+] [PATTERN]     list collations\n  \\dp[Sx]  [PATTERN]     list table, view, and sequence access privileges\n  \\dP[itnx+] [PATTERN]   list [only index/table] partitioned relations [n=nested]\n  \\drds[x] [ROLEPTRN [DBPTRN]]\n                         list per-database role settings\n  \\drg[Sx] [PATTERN]     list role grants\n  \\dRp[x+] [PATTERN]     list replication publications\n  \\dRs[x+] [PATTERN]     list replication subscriptions\n  \\ds[Sx+] [PATTERN]     list sequences\n  \\dt[Sx+] [PATTERN]     list tables\n  \\dT[Sx+] [PATTERN]     list data types\n  \\du[Sx+] [PATTERN]     list roles\n  \\dv[Sx+] [PATTERN]     list views\n  \\dx[x+]  [PATTERN]     list extensions\n  \\dX[x+]  [PATTERN]     list extended statistics\n  \\dy[x+]  [PATTERN]     list event triggers\n  \\l[x+]   [PATTERN]     list databases\n  \\sf[+]   FUNCNAME      show a function's definition\n  \\sv[+]   VIEWNAME      show a view's definition\n  \\z[Sx]   [PATTERN]     same as \\dp\n\nLarge Objects\n  \\lo_list[x+]           list large objects\n\n";
 function describeDataToString(item) {
   return typeof item === "string" ? item : tableToString(item);
 }
 function describeDataToHtml(item) {
   return typeof item === "string" ? `<p>${htmlEscape(item, true)}</p>` : tableToHtml(item);
 }
-function describe(cmd, dbName, runQuery, outputFn, echoHidden = false, sversion = null, std_strings = 1, docsURLTemplate = (id) => `https://www.postgresql.org/docs/19/${id}.html`) {
-  let cancel_pressed = false;
-  function cancel() {
+function describe(cmd, dbName, runQuery, outputFn, options = {}) {
+  const optionNames = ["echoHidden", "serverVersion", "standardConformingStrings", "docsURLTemplate", "multipleCommands"];
+  if (options === null || typeof options !== "object" || Array.isArray(options)) {
+    throw new TypeError(`describe(): the fifth argument must be an object of options, e.g. { echoHidden: true }, not ${options === null ? "null" : typeof options}`);
+  }
+  const unknown = Object.keys(options).filter((name) => !optionNames.includes(name));
+  if (unknown.length > 0) {
+    throw new TypeError(`describe(): unknown option${unknown.length > 1 ? "s" : ""} ${unknown.join(", ")} (options are: ${optionNames.join(", ")})`);
+  }
+  const {
+    echoHidden = false,
+    serverVersion = null,
+    standardConformingStrings = true,
+    docsURLTemplate = (id) => `https://www.postgresql.org/docs/${strstr(PG_VERSION, "devel") ? "devel" : PG_MAJORVERSION}/${id}.html`,
+    multipleCommands = false
+  } = options;
+  let cancel_pressed = false, cancel;
+  const cancelled = new Promise((resolve) => cancel = () => {
     cancel_pressed = true;
     outputFn = () => void 0;
-  }
+    resolve(null);
+  });
   function throwIfCancelled() {
     if (cancel_pressed) throw new Error("cancelled");
   }
+  let text = null;
+  function flushText() {
+    if (text !== null) outputFn(text.replace(/\n+$/, ""));
+    text = null;
+  }
+  function output(item) {
+    flushText();
+    outputFn(item);
+  }
+  function write(str) {
+    text = (text ?? "") + str;
+  }
   async function main() {
-    const match = cmd.match(/^\\([?hdzsl]\S*)(.*)/);
-    if (!match) {
-      outputFn(`unsupported command: ${cmd}`);
-      return false;
-    }
-    let [, matchedCommand, remaining] = match;
-    matchedCommand = matchedCommand.replace(/^lo_list/, "dl");
-    matchedCommand = matchedCommand.replace(/^z/, "dp");
-    if (matchedCommand === "?") {
-      outputFn(helpText);
-      return false;
-    }
-    if (matchedCommand === "h") {
-      const helpSearch = (remaining ?? "").trim().toUpperCase().replace(/\s+/g, " ");
+    const remainder = cmd.trimStart();
+    if (remainder[0] !== "\\") return { success: true, remainder, commands: 0 };
+    async function helpSQL(topic, pager) {
+      let helpIndex2;
+      try {
+        ({ helpIndex: helpIndex2 } = await Promise.resolve().then(() => (init_sql_help_generated(), sql_help_generated_exports)));
+      } catch (err) {
+        throw new Error("could not load the SQL help, perhaps because of a network problem: please try again", { cause: err });
+      }
+      const helpSearch = (topic ?? "").trim().toUpperCase().replace(/\s+/g, " ");
       if (helpSearch === "") {
-        outputFn("Available help:\n" + helpIndex.map((arr) => arr[0]).join("\n"));
-        return false;
-      } else {
-        let matches = helpSearch === "*" ? helpIndex : helpIndex.filter((arr) => arr[0] === helpSearch);
-        if (matches.length === 0) matches = helpIndex.filter((arr) => arr[0].startsWith(helpSearch));
-        if (matches.length === 0) {
-          const searchWords = helpSearch.split(" ");
-          for (let i = searchWords.length; i > 0; i--) {
-            const indexTerm = searchWords.slice(0, i).join(" ");
-            matches = helpIndex.filter((arr) => arr[0].startsWith(indexTerm));
-            if (matches.length > 0) break;
-          }
+        output("Available help:\n" + helpIndex2.map((arr) => arr[0]).join("\n"));
+        return;
+      }
+      let matches = helpSearch === "*" ? helpIndex2 : helpIndex2.filter((arr) => arr[0] === helpSearch);
+      if (matches.length === 0) matches = helpIndex2.filter((arr) => arr[0].startsWith(helpSearch));
+      if (matches.length === 0) {
+        const searchWords = helpSearch.split(" ");
+        for (let i = searchWords.length; i > 0; i--) {
+          const indexTerm = searchWords.slice(0, i).join(" ");
+          matches = helpIndex2.filter((arr) => arr[0].startsWith(indexTerm));
+          if (matches.length > 0) break;
         }
-        if (matches.length === 0) {
-          outputFn(`No help available for "${remaining.trim()}".
+      }
+      if (matches.length === 0) {
+        output(`No help available for "${topic.trim()}".
 Try \\h with no arguments to see available help.`);
-          return false;
-        } else {
-          for (const index of matches) {
-            outputFn(
-              `Command:     ${index[0]}
+        return;
+      }
+      for (const index of matches) {
+        output(
+          `Command:     ${index[0]}
 Description: ${index[1]}
 Syntax:
 ${index[3]}
 
 URL: ${docsURLTemplate(index[2])}`
-            );
-          }
-          return false;
-        }
+        );
       }
     }
+    const slashUsage = (pager) => fputs(helpText, stdout);
+    const unsupported = (command) => () => {
+      pg_log_error("\\%s is not supported", command);
+      return false;
+    }, usage = unsupported("? options"), helpVariables = unsupported("? variables"), do_lo_export = unsupported("lo_export"), do_lo_import = unsupported("lo_import"), do_lo_unlink = unsupported("lo_unlink"), expand_tilde = noop;
     const PSQLexec = async (sql, suppressEcho = false) => {
       throwIfCancelled();
-      if (echoHidden && !suppressEcho) outputFn(`/**** INTERNAL QUERY ****/
+      if (echoHidden && !suppressEcho) output(`/**** INTERNAL QUERY ****/
 ${sql}
 /************************/`);
       const result = await runQuery(sql);
       throwIfCancelled();
       return result;
     };
-    let pset;
-    try {
-      if (!sversion) {
-        const vres = await PSQLexec("SHOW server_version_num", true);
-        sversion = parseInt(vres.rows[0][0], 10);
+    async function PQexec(conn, query) {
+      throwIfCancelled();
+      try {
+        return { ...await runQuery(query), status: PGRES_TUPLES_OK };
+      } catch (err) {
+        return { status: PGRES_FATAL_ERROR, errorFields: { [PG_DIAG_SEVERITY]: "ERROR", [PG_DIAG_MESSAGE_PRIMARY]: err.message } };
+      } finally {
+        throwIfCancelled();
       }
-      const expandedSearchString = matchedCommand.startsWith("dx") ? matchedCommand.slice(2) : matchedCommand;
-      const expanded = expandedSearchString.indexOf("x") !== -1 ? 1 : 0;
-      pset = {
-        sversion,
-        db: {
-          // PGconn struct
-          dbName,
-          sversion,
-          std_strings,
-          status: CONNECTION_OK,
-          encoding: PG_UTF8
-        },
-        popt: {
-          // print options
-          topt: {
-            // table options
-            default_footer: true,
-            expanded
-          },
-          nullPrint: ""
-        }
-      };
-      const scan_state = [remaining, 0], result = await (matchedCommand[0] === "d" ? exec_command_d(scan_state, true, matchedCommand) : matchedCommand === "sf" || matchedCommand === "sf+" || matchedCommand === "sv" || matchedCommand === "sv+" ? exec_command_sf_sv(scan_state, true, matchedCommand, matchedCommand[1] === "f") : matchedCommand[0] === "l" ? exec_command_list(scan_state, true, matchedCommand) : PSQL_CMD_UNKNOWN);
-      if (result === PSQL_CMD_UNKNOWN) outputFn(`invalid command \\${matchedCommand}`);
-      else {
-        let arg, warnings = [];
-        while (arg = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true)) warnings.push(sprintf('\\%s: extra argument "%s" ignored', matchedCommand, arg));
-        if (warnings.length > 0) outputFn(warnings.join("\n"));
-      }
-    } catch (err) {
-      outputFn("ERROR:  " + err.message);
-      return cancel_pressed ? null : false;
     }
-    function pg_log_error(template, ...args) {
-      outputFn(sprintf(template, ...args));
-    }
-    function validateSQLNamePattern(buf, pattern, have_where, force_escape, schemavar, namevar, altnamevar, visibilityrule, added_clause, maxparts) {
-      let dbbuf = {
-        /* struct */
+    const PQresultStatus = (res) => res.status, PQresultErrorField = (res, field) => res.errorFields?.[field] ?? NULL, standard_strings = () => standardConformingStrings;
+    const stdout = { write }, fputs = (str, stream) => stream.write(str), fprintf = (stream, template, ...args) => stream.write(sprintf(template, ...args)), printf = (template, ...args) => fprintf(stdout, template, ...args), fflush = noop, ClosePager = noop, PageOutput = (lines, topt) => stdout;
+    const pg_log_error = (template, ...args) => write(sprintf(template, ...args) + "\n"), pg_log_error_internal = pg_log_error, pg_log_error_hint = pg_log_error, pg_log_warning = pg_log_error;
+    const conditional_active = (cstack) => true, conditional_stack_push = noop, conditional_stack_pop = noop;
+    function psql_scan_slash_option(scan_state, type, quote, semicolon) {
+      if (type !== OT_NORMAL && type !== OT_WHOLE_LINE) throw new Error(`scan type ${type} not implemented`);
+      const [str] = scan_state;
+      const space = /[ \t\n\r\f\v]/;
+      let i = scan_state[1];
+      let result = "";
+      let lastQuote = 0;
+      let unquotedChars = 0;
+      let m;
+      const unterminated = () => {
+        pg_log_error("unterminated quoted string");
+        scan_state[1] = str.length;
+        return NULL;
       };
-      let dotcnt = {};
-      let added;
-      initPQExpBuffer(dbbuf);
-      added = processSQLNamePattern(
-        pset.db,
-        buf,
-        pattern,
-        have_where,
-        force_escape,
-        schemavar,
-        namevar,
-        altnamevar,
-        visibilityrule,
-        dbbuf,
-        dotcnt
-      );
-      dotcnt = dotcnt.value;
-      if (added_clause) added_clause.value = added;
-      if (dotcnt >= maxparts) {
-        pg_log_error(
-          "improper qualified name (too many dotted names): %s",
-          pattern
-        );
-        return false;
-      }
-      if (maxparts > 1 && dotcnt == maxparts - 1) {
-        if (PQdb(pset.db) == NULL) {
-          pg_log_error("You are currently not connected to a database.");
-          return false;
-        }
-        if (strcmp(PQdb(pset.db), dbbuf.data) != 0) {
-          pg_log_error(
-            "cross-database references are not implemented: %s",
-            pattern
-          );
-          return false;
-        }
-      }
-      return true;
-    }
-    function processSQLNamePattern(conn, buf, pattern, have_where, force_escape, schemavar, namevar, altnamevar, visibilityrule, dbnamebuf, dotcnt) {
-      let schemabuf = {
-        /* struct */
-      };
-      let namebuf = {
-        /* struct */
-      };
-      let added_clause = false;
-      if (!dotcnt) dotcnt = {};
-      dotcnt.value = 0;
-      if (pattern == NULL) {
-        if (visibilityrule) {
-          appendPQExpBufferStr(buf, have_where ? "  AND " : "WHERE ");
-          have_where = true;
-          added_clause = true;
-          appendPQExpBuffer(buf, "%s\n", visibilityrule);
-        }
-        return added_clause;
-      }
-      initPQExpBuffer(schemabuf);
-      initPQExpBuffer(namebuf);
-      patternToSQLRegex(
-        PQclientEncoding(conn),
-        schemavar ? dbnamebuf : NULL,
-        schemavar ? schemabuf : NULL,
-        namebuf,
-        pattern,
-        force_escape,
-        true,
-        dotcnt
-      );
-      if (namevar && namebuf.len > 2) {
-        if (strcmp(namebuf.data, "^(.*)$") != 0) {
-          appendPQExpBufferStr(buf, have_where ? "  AND " : "WHERE ");
-          have_where = true;
-          added_clause = true;
-          if (altnamevar) {
-            appendPQExpBuffer(
-              buf,
-              "(%s OPERATOR(pg_catalog.~) ",
-              namevar
-            );
-            appendStringLiteralConn(buf, namebuf.data, conn);
-            if (PQserverVersion(conn) >= 12e4)
-              appendPQExpBufferStr(buf, " COLLATE pg_catalog.default");
-            appendPQExpBuffer(
-              buf,
-              "\n        OR %s OPERATOR(pg_catalog.~) ",
-              altnamevar
-            );
-            appendStringLiteralConn(buf, namebuf.data, conn);
-            if (PQserverVersion(conn) >= 12e4)
-              appendPQExpBufferStr(buf, " COLLATE pg_catalog.default");
-            appendPQExpBufferStr(buf, ")\n");
-          } else {
-            appendPQExpBuffer(buf, "%s OPERATOR(pg_catalog.~) ", namevar);
-            appendStringLiteralConn(buf, namebuf.data, conn);
-            if (PQserverVersion(conn) >= 12e4)
-              appendPQExpBufferStr(buf, " COLLATE pg_catalog.default");
-            appendPQExpBufferChar(buf, "\n");
-          }
-        }
-      }
-      if (schemavar && schemabuf.len > 2) {
-        if (strcmp(schemabuf.data, "^(.*)$") != 0 && schemavar) {
-          appendPQExpBufferStr(buf, have_where ? "  AND " : "WHERE ");
-          have_where = true;
-          added_clause = true;
-          appendPQExpBuffer(buf, "%s OPERATOR(pg_catalog.~) ", schemavar);
-          appendStringLiteralConn(buf, schemabuf.data, conn);
-          if (PQserverVersion(conn) >= 12e4)
-            appendPQExpBufferStr(buf, " COLLATE pg_catalog.default");
-          appendPQExpBufferChar(buf, "\n");
-        }
+      while (space.test(str[i] ?? "")) i++;
+      if (type === OT_WHOLE_LINE) {
+        result = str.slice(i);
+        i = str.length;
+        if (semicolon) result = result.replace(/[; \t\n\r\f\v]+$/, "");
       } else {
-        if (visibilityrule) {
-          appendPQExpBufferStr(buf, have_where ? "  AND " : "WHERE ");
-          have_where = true;
-          added_clause = true;
-          appendPQExpBuffer(buf, "%s\n", visibilityrule);
-        }
-      }
-      return added_clause;
-    }
-    function patternToSQLRegex(encoding, dbnamebuf, schemabuf, namebuf, pattern, force_escape, want_literal_dbname, dotcnt) {
-      let buf = [{}, {}, {}];
-      let bufIndex = 0;
-      let left_literal = {};
-      let curbuf = {};
-      let maxbuf = {};
-      let inquotes;
-      let left;
-      let cp;
-      Assert(pattern);
-      Assert(namebuf);
-      Assert(!dbnamebuf || schemabuf);
-      Assert(dotcnt);
-      dotcnt.value = 0;
-      inquotes = false;
-      cp = pattern;
-      if (dbnamebuf)
-        maxbuf = 2;
-      else if (schemabuf)
-        maxbuf = 1;
-      else
-        maxbuf = 0;
-      curbuf = buf[bufIndex];
-      if (want_literal_dbname) {
-        left = true;
-        initPQExpBuffer(left_literal);
-      } else
-        left = false;
-      initPQExpBuffer(curbuf);
-      appendPQExpBufferStr(curbuf, "^(");
-      let cpIndex = 0;
-      let ch;
-      while ((ch = cp[cpIndex]) != NULL) {
-        if (ch == '"') {
-          if (inquotes && cp[cpIndex + 1] == '"') {
-            appendPQExpBufferChar(curbuf, '"');
-            if (left)
-              appendPQExpBufferChar(left_literal, '"');
-            cpIndex++;
-          } else
-            inquotes = !inquotes;
-          cpIndex++;
-        } else if (!inquotes && isupper(ch)) {
-          appendPQExpBufferChar(
-            curbuf,
-            pg_tolower(ch)
-          );
-          if (left)
-            appendPQExpBufferChar(
-              left_literal,
-              pg_tolower(ch)
-            );
-          cpIndex++;
-        } else if (!inquotes && ch == "*") {
-          appendPQExpBufferStr(curbuf, ".*");
-          if (left)
-            appendPQExpBufferChar(left_literal, "*");
-          cpIndex++;
-        } else if (!inquotes && ch == "?") {
-          appendPQExpBufferChar(curbuf, ".");
-          if (left)
-            appendPQExpBufferChar(left_literal, "?");
-          cpIndex++;
-        } else if (!inquotes && ch == ".") {
-          left = false;
-          dotcnt.value++;
-          if (bufIndex < maxbuf) {
-            appendPQExpBufferStr(curbuf, ")$");
-            curbuf = buf[++bufIndex];
-            initPQExpBuffer(curbuf);
-            appendPQExpBufferStr(curbuf, "^(");
-            cpIndex++;
+        for (; ; ) {
+          const rest = str.slice(i);
+          if (rest === "" || space.test(rest[0]) || rest[0] === "\\") break;
+          if (rest[0] === "'") {
+            lastQuote = "'";
+            unquotedChars = 0;
+            i++;
+            let bytes = [];
+            const add = (text2) => {
+              if (bytes.length > 0) result += new TextDecoder().decode(new Uint8Array(bytes)), bytes = [];
+              result += text2;
+            };
+            for (; ; ) {
+              const rest2 = str.slice(i);
+              if (rest2 === "") return unterminated();
+              if (rest2.startsWith("''")) add("'"), i += 2;
+              else if (rest2[0] === "'") {
+                add("");
+                i++;
+                break;
+              } else if (m = rest2.match(/^\\[ntbrf]/)) add({ n: "\n", t: "	", b: "\b", r: "\r", f: "\f" }[m[0][1]]), i += 2;
+              else if (m = rest2.match(/^\\([0-7]{1,3})/)) bytes.push(parseInt(m[1], 8) & 255), i += m[0].length;
+              else if (m = rest2.match(/^\\x([0-9A-Fa-f]{1,2})/)) bytes.push(parseInt(m[1], 16)), i += m[0].length;
+              else if (m = rest2.match(/^\\(.)/)) add(m[1]), i += 2;
+              else add(rest2[0]), i++;
+            }
+          } else if (rest[0] === '"') {
+            const end2 = str.indexOf('"', i + 1);
+            if (end2 === -1) return unterminated();
+            lastQuote = '"';
+            unquotedChars = 0;
+            result += str.slice(i, end2 + 1);
+            i = end2 + 1;
+          } else if (m = rest.match(/^:(?:[A-Za-z\u0080-\uFFFF_0-9]+|'[A-Za-z\u0080-\uFFFF_0-9]+'|"[A-Za-z\u0080-\uFFFF_0-9]+")/)) {
+            result += m[0];
+            i += m[0].length;
+            unquotedChars = 0;
+          } else if (m = rest.match(/^:\{\?[A-Za-z\u0080-\uFFFF_0-9]+\}/)) {
+            result += "FALSE";
+            i += m[0].length;
           } else {
-            appendPQExpBufferChar(curbuf, ch);
-            cpIndex++;
+            result += rest[0];
+            i++;
+            unquotedChars++;
           }
-        } else if (ch == "$") {
-          appendPQExpBufferStr(curbuf, "\\$");
-          if (left)
-            appendPQExpBufferChar(left_literal, "$");
-          cpIndex++;
-        } else {
-          if ((inquotes || force_escape) && strchr("|*+?()[]{}.^$\\", ch) != NULL)
-            appendPQExpBufferChar(curbuf, "\\");
-          else if (ch == "[" && cp[cpIndex + 1] == "]")
-            appendPQExpBufferChar(curbuf, "\\");
-          if (left)
-            appendPQExpBufferChar(left_literal, ch);
-          appendPQExpBufferChar(curbuf, ch);
-          cpIndex++;
+        }
+        if (semicolon) while (unquotedChars-- > 0 && result.endsWith(";")) result = result.slice(0, -1);
+      }
+      result = result.split("\0")[0];
+      scan_state[1] = i;
+      if (quote != NULL) quote.value = lastQuote;
+      return result === "" && lastQuote === 0 ? NULL : result;
+    }
+    let restricted = false;
+    async function HandleSlashCmds(scan_state, cstack, query_buf, previous_buf) {
+      let status;
+      let cmd2;
+      let arg;
+      Assert(scan_state != NULL);
+      Assert(cstack != NULL);
+      cmd2 = psql_scan_slash_command(scan_state);
+      if (cmd2 == NULL)
+        status = PSQL_CMD_ERROR;
+      else if (restricted && strcmp(cmd2, "unrestrict") != 0) {
+        pg_log_error("backslash commands are restricted; only \\unrestrict is allowed");
+        status = PSQL_CMD_ERROR;
+      } else
+        status = await exec_command(cmd2, scan_state, cstack, query_buf, previous_buf);
+      if (status == PSQL_CMD_UNKNOWN) {
+        pg_log_error("invalid command \\%s", cmd2);
+        if (pset.cur_cmd_interactive)
+          pg_log_error_hint("Try \\? for help.");
+        status = PSQL_CMD_ERROR;
+      }
+      if (status != PSQL_CMD_ERROR) {
+        let active_branch = conditional_active(cstack);
+        conditional_stack_push(cstack, IFSTATE_IGNORED);
+        while ((arg = psql_scan_slash_option(
+          scan_state,
+          OT_NORMAL,
+          NULL,
+          false
+        )) != NULL) {
+          if (active_branch)
+            pg_log_warning('\\%s: extra argument "%s" ignored', cmd2, arg);
+        }
+        cstack;
+      } else {
+        while ((arg = psql_scan_slash_option(
+          scan_state,
+          OT_WHOLE_LINE,
+          NULL,
+          false
+        )) != NULL) {
         }
       }
-      appendPQExpBufferStr(curbuf, ")$");
-      if (namebuf) {
-        appendPQExpBufferStr(namebuf, curbuf.data);
-        curbuf = buf[--bufIndex];
-      }
-      if (schemabuf && bufIndex >= 0) {
-        appendPQExpBufferStr(schemabuf, curbuf.data);
-        curbuf = buf[--bufIndex];
-      }
-      if (dbnamebuf && bufIndex >= 0) {
-        if (want_literal_dbname)
-          appendPQExpBufferStr(dbnamebuf, left_literal.data);
-        else
-          appendPQExpBufferStr(dbnamebuf, curbuf.data);
-      }
+      psql_scan_slash_command_end(scan_state);
+      pset.queryFout;
+      return status;
     }
-    function column_type_alignment(ftype) {
-      let align;
-      switch (ftype) {
-        case INT2OID:
-        case INT4OID:
-        case INT8OID:
-        case FLOAT4OID:
-        case FLOAT8OID:
-        case NUMERICOID:
-        case OIDOID:
-        case XIDOID:
-        case XID8OID:
-        case CIDOID:
-        case MONEYOID:
-          align = "r";
-          break;
-        default:
-          align = "l";
-          break;
-      }
-      return align;
-    }
-    function printQuery(result, opt, fout, is_pager, flog) {
-      let cont = {};
-      let i, r, c;
-      printTableInit(
-        cont,
-        opt.topt,
-        opt.title,
-        PQnfields(result),
-        PQntuples(result)
-      );
-      Assert(opt.translate_columns == NULL || opt.translate_columns == null || opt.n_translate_columns >= cont.ncolumns);
-      for (i = 0; i < cont.ncolumns; i++) {
-        printTableAddHeader(
-          cont,
-          PQfname(result, i),
-          opt.translate_header,
-          column_type_alignment(PQftype(result, i))
+    async function exec_command(cmd2, scan_state, cstack, query_buf, previous_buf) {
+      let status;
+      let active_branch = conditional_active(cstack);
+      if (pset.cur_cmd_interactive && !active_branch && !is_branching_command(cmd2)) {
+        pg_log_warning(
+          "\\%s command ignored; use \\endif or Ctrl-C to exit current \\if block",
+          cmd2
         );
       }
-      for (r = 0; r < cont.nrows; r++) {
-        for (c = 0; c < cont.ncolumns; c++) {
-          let cell;
-          let mustfree = false;
-          let translate;
-          if (PQgetisnull(result, r, c))
-            cell = opt.nullPrint ? opt.nullPrint : "";
-          else {
-            cell = PQgetvalue(result, r, c);
-            if (cont.aligns[c] == "r" && opt.topt.numericLocale) {
-              cell = format_numeric_locale(cell);
-              mustfree = true;
+      if (cmd2[0] == "d")
+        status = await exec_command_d(scan_state, active_branch, cmd2);
+      else if (strcmp(cmd2, "h") == 0 || strcmp(cmd2, "help") == 0)
+        status = await exec_command_help(scan_state, active_branch);
+      else if (strcmp(cmd2, "l") == 0 || strcmp(cmd2, "list") == 0 || strcmp(cmd2, "lx") == 0 || strcmp(cmd2, "listx") == 0 || strcmp(cmd2, "l+") == 0 || strcmp(cmd2, "list+") == 0 || strcmp(cmd2, "lx+") == 0 || strcmp(cmd2, "listx+") == 0 || strcmp(cmd2, "l+x") == 0 || strcmp(cmd2, "list+x") == 0)
+        status = await exec_command_list(scan_state, active_branch, cmd2);
+      else if (strncmp(cmd2, "lo_", 3) == 0)
+        status = await exec_command_lo(scan_state, active_branch, cmd2);
+      else if (strcmp(cmd2, "sf") == 0 || strcmp(cmd2, "sf+") == 0)
+        status = await exec_command_sf_sv(scan_state, active_branch, cmd2, true);
+      else if (strcmp(cmd2, "sv") == 0 || strcmp(cmd2, "sv+") == 0)
+        status = await exec_command_sf_sv(scan_state, active_branch, cmd2, false);
+      else if (strcmp(cmd2, "z") == 0 || strcmp(cmd2, "zS") == 0 || strcmp(cmd2, "zx") == 0 || strcmp(cmd2, "zSx") == 0 || strcmp(cmd2, "zxS") == 0)
+        status = await exec_command_z(scan_state, active_branch, cmd2);
+      else if (strcmp(cmd2, "?") == 0)
+        status = exec_command_slash_command_help(scan_state, active_branch);
+      else
+        status = PSQL_CMD_UNKNOWN;
+      if (status == PSQL_CMD_SEND)
+        copy_previous_query(query_buf, previous_buf);
+      return status;
+    }
+    async function exec_command_d(scan_state, active_branch, cmd2) {
+      let status = PSQL_CMD_SKIP_LINE;
+      let success2 = true;
+      if (active_branch) {
+        let pattern;
+        let show_verbose, show_system;
+        let save_expanded;
+        pattern = psql_scan_slash_option(
+          scan_state,
+          OT_NORMAL,
+          NULL,
+          true
+        );
+        show_verbose = strchr(cmd2, "+") != NULL ? true : false;
+        show_system = strchr(cmd2, "S") != NULL ? true : false;
+        save_expanded = pset.popt.topt.expanded;
+        if (cmd2[1] != void 0 && strchr(cmd2.slice(2), "x") != NULL)
+          pset.popt.topt.expanded = 1;
+        switch (cmd2[1]) {
+          case void 0:
+          case "+":
+          case "S":
+            if (pattern != NULL)
+              success2 = await describeTableDetails(pattern, show_verbose, show_system);
+            else
+              success2 = await listTables("tvmsE", NULL, show_verbose, show_system);
+            break;
+          case "A":
+            {
+              let pattern2 = NULL;
+              if (pattern != NULL && cmd2[2] != void 0 && cmd2[2] != "+" && cmd2[2] != "x")
+                pattern2 = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true);
+              switch (cmd2[2]) {
+                case void 0:
+                case "+":
+                case "x":
+                  success2 = await describeAccessMethods(pattern, show_verbose);
+                  break;
+                case "c":
+                  success2 = await listOperatorClasses(pattern, pattern2, show_verbose);
+                  break;
+                case "f":
+                  success2 = await listOperatorFamilies(pattern, pattern2, show_verbose);
+                  break;
+                case "o":
+                  success2 = await listOpFamilyOperators(pattern, pattern2, show_verbose);
+                  break;
+                case "p":
+                  success2 = await listOpFamilyFunctions(pattern, pattern2, show_verbose);
+                  break;
+                default:
+                  status = PSQL_CMD_UNKNOWN;
+                  break;
+              }
             }
-          }
-          translate = opt.translate_columns && opt.translate_columns[c];
-          printTableAddCell(cont, cell, translate, mustfree);
+            break;
+          case "a":
+            success2 = await describeAggregates(pattern, show_verbose, show_system);
+            break;
+          case "b":
+            success2 = await describeTablespaces(pattern, show_verbose);
+            break;
+          case "c":
+            if (strncmp(cmd2, "dconfig", 7) == 0)
+              success2 = await describeConfigurationParameters(
+                pattern,
+                show_verbose,
+                show_system
+              );
+            else
+              success2 = await listConversions(
+                pattern,
+                show_verbose,
+                show_system
+              );
+            break;
+          case "C":
+            success2 = await listCasts(pattern, show_verbose);
+            break;
+          case "d":
+            if (strncmp(cmd2, "ddp", 3) == 0)
+              success2 = await listDefaultACLs(pattern);
+            else
+              success2 = await objectDescription(pattern, show_system);
+            break;
+          case "D":
+            success2 = await listDomains(pattern, show_verbose, show_system);
+            break;
+          case "f":
+            switch (cmd2[2]) {
+              case void 0:
+              case "+":
+              case "S":
+              case "a":
+              case "n":
+              case "p":
+              case "t":
+              case "w":
+              case "x":
+                success2 = await exec_command_dfo(
+                  scan_state,
+                  cmd2,
+                  pattern,
+                  show_verbose,
+                  show_system
+                );
+                break;
+              default:
+                status = PSQL_CMD_UNKNOWN;
+                break;
+            }
+            break;
+          case "g":
+            success2 = await describeRoles(pattern, show_verbose, show_system);
+            break;
+          case "l":
+            success2 = await listLargeObjects(show_verbose);
+            break;
+          case "L":
+            success2 = await listLanguages(pattern, show_verbose, show_system);
+            break;
+          case "n":
+            success2 = await listSchemas(pattern, show_verbose, show_system);
+            break;
+          case "o":
+            success2 = await exec_command_dfo(
+              scan_state,
+              cmd2,
+              pattern,
+              show_verbose,
+              show_system
+            );
+            break;
+          case "O":
+            success2 = await listCollations(pattern, show_verbose, show_system);
+            break;
+          case "p":
+            success2 = await permissionsList(pattern, show_system);
+            break;
+          case "P":
+            {
+              switch (cmd2[2]) {
+                case void 0:
+                case "+":
+                case "t":
+                case "i":
+                case "n":
+                case "x":
+                  success2 = await listPartitionedTables(cmd2.slice(2), pattern, show_verbose);
+                  break;
+                default:
+                  status = PSQL_CMD_UNKNOWN;
+                  break;
+              }
+            }
+            break;
+          case "T":
+            success2 = await describeTypes(pattern, show_verbose, show_system);
+            break;
+          case "t":
+          case "v":
+          case "m":
+          case "i":
+          case "s":
+          case "E":
+            success2 = await listTables(cmd2.slice(1), pattern, show_verbose, show_system);
+            break;
+          case "r":
+            if (cmd2[2] == "d" && cmd2[3] == "s") {
+              let pattern2 = NULL;
+              if (pattern != NULL)
+                pattern2 = psql_scan_slash_option(
+                  scan_state,
+                  OT_NORMAL,
+                  NULL,
+                  true
+                );
+              success2 = await listDbRoleSettings(pattern, pattern2);
+            } else if (cmd2[2] == "g")
+              success2 = await describeRoleGrants(pattern, show_system);
+            else
+              status = PSQL_CMD_UNKNOWN;
+            break;
+          case "R":
+            switch (cmd2[2]) {
+              case "p":
+                if (show_verbose)
+                  success2 = await describePublications(pattern);
+                else
+                  success2 = await listPublications(pattern);
+                break;
+              case "s":
+                success2 = await describeSubscriptions(pattern, show_verbose);
+                break;
+              default:
+                status = PSQL_CMD_UNKNOWN;
+            }
+            break;
+          case "u":
+            success2 = await describeRoles(pattern, show_verbose, show_system);
+            break;
+          case "F":
+            switch (cmd2[2]) {
+              case void 0:
+              case "+":
+              case "x":
+                success2 = await listTSConfigs(pattern, show_verbose);
+                break;
+              case "p":
+                success2 = await listTSParsers(pattern, show_verbose);
+                break;
+              case "d":
+                success2 = await listTSDictionaries(pattern, show_verbose);
+                break;
+              case "t":
+                success2 = await listTSTemplates(pattern, show_verbose);
+                break;
+              default:
+                status = PSQL_CMD_UNKNOWN;
+                break;
+            }
+            break;
+          case "e":
+            switch (cmd2[2]) {
+              case "s":
+                success2 = await listForeignServers(pattern, show_verbose);
+                break;
+              case "u":
+                success2 = await listUserMappings(pattern, show_verbose);
+                break;
+              case "w":
+                success2 = await listForeignDataWrappers(pattern, show_verbose);
+                break;
+              case "t":
+                success2 = await listForeignTables(pattern, show_verbose);
+                break;
+              default:
+                status = PSQL_CMD_UNKNOWN;
+                break;
+            }
+            break;
+          case "x":
+            if (show_verbose)
+              success2 = await listExtensionContents(pattern);
+            else
+              success2 = await listExtensions(pattern);
+            break;
+          case "X":
+            success2 = await listExtendedStats(pattern, show_verbose);
+            break;
+          case "y":
+            success2 = await listEventTriggers(pattern, show_verbose);
+            break;
+          default:
+            status = PSQL_CMD_UNKNOWN;
+        }
+        pset.popt.topt.expanded = save_expanded;
+      } else
+        ignore_slash_options(scan_state);
+      if (!success2)
+        status = PSQL_CMD_ERROR;
+      return status;
+    }
+    async function exec_command_dfo(scan_state, cmd2, pattern, show_verbose, show_system) {
+      let success2;
+      let arg_patterns = [];
+      let num_arg_patterns = 0;
+      if (pattern != NULL) {
+        let ap;
+        while ((ap = psql_scan_slash_option(
+          scan_state,
+          OT_NORMAL,
+          NULL,
+          true
+        )) != NULL) {
+          arg_patterns[num_arg_patterns++] = ap;
+          if (num_arg_patterns >= FUNC_MAX_ARGS)
+            break;
         }
       }
-      if (opt.footers) {
-        for (let footer of opt.footers) printTableAddFooter(cont, footer);
-      }
-      printTable(cont, fout, is_pager, flog);
+      if (cmd2[1] == "f")
+        success2 = await describeFunctions(
+          cmd2.slice(2),
+          pattern,
+          arg_patterns,
+          num_arg_patterns,
+          show_verbose,
+          show_system
+        );
+      else
+        success2 = await describeOperators(
+          pattern,
+          arg_patterns,
+          num_arg_patterns,
+          show_verbose,
+          show_system
+        );
+      return success2;
     }
-    function printTableInit(content, opt, title, ncolumns, nrows) {
-      content.opt = opt;
-      content.title = title;
-      content.ncolumns = ncolumns;
-      content.nrows = nrows;
-      content.headers = [];
-      content.cells = [];
-      content.footers = NULL;
-      content.aligns = [];
+    async function exec_command_help(scan_state, active_branch) {
+      if (active_branch) {
+        let opt = psql_scan_slash_option(
+          scan_state,
+          OT_WHOLE_LINE,
+          NULL,
+          true
+        );
+        await helpSQL(opt, pset.popt.topt.pager);
+      } else
+        ignore_slash_whole_line(scan_state);
+      return PSQL_CMD_SKIP_LINE;
     }
-    function printTableAddHeader(content, header, translate, align) {
-      if (translate) header = _(header);
-      content.headers.push(header);
-      content.header = header;
-      content.aligns.push(align);
-      content.align = align;
+    async function exec_command_list(scan_state, active_branch, cmd2) {
+      let success2 = true;
+      if (active_branch) {
+        let pattern;
+        let show_verbose;
+        let save_expanded;
+        pattern = psql_scan_slash_option(
+          scan_state,
+          OT_NORMAL,
+          NULL,
+          true
+        );
+        show_verbose = strchr(cmd2, "+") != NULL ? true : false;
+        save_expanded = pset.popt.topt.expanded;
+        if (strchr(cmd2, "x") != NULL)
+          pset.popt.topt.expanded = 1;
+        success2 = await listAllDbs(pattern, show_verbose);
+        pset.popt.topt.expanded = save_expanded;
+      } else
+        ignore_slash_options(scan_state);
+      return success2 ? PSQL_CMD_SKIP_LINE : PSQL_CMD_ERROR;
     }
-    function printTableAddCell(content, cell, translate, mustfree) {
-      if (translate) cell = _(cell);
-      content.cells.push(cell);
-      content.cell = cell;
-    }
-    function printTableAddFooter(content, footer) {
-      if (content.footers == NULL) content.footers = [];
-      content.footers.push(footer);
-      content.footer = footer;
-    }
-    function printTableSetFooter(content, footer) {
-      if (content.footers) content.footers.pop();
-      printTableAddFooter(content, footer);
-    }
-    function printTable(cont, fout, is_pager, flog) {
-      outputFn({ ...cont });
+    async function exec_command_lo(scan_state, active_branch, cmd2) {
+      let status = PSQL_CMD_SKIP_LINE;
+      let success2 = true;
+      if (active_branch) {
+        let opt1 = {}, opt2 = {};
+        opt1.value = psql_scan_slash_option(
+          scan_state,
+          OT_NORMAL,
+          NULL,
+          true
+        );
+        opt2.value = psql_scan_slash_option(
+          scan_state,
+          OT_NORMAL,
+          NULL,
+          true
+        );
+        if (strcmp(cmd2.slice(3), "export") == 0) {
+          if (opt1.value == NULL || opt2.value == NULL) {
+            pg_log_error("\\%s: missing required argument", cmd2);
+            success2 = false;
+          } else {
+            opt2;
+            success2 = do_lo_export(opt1.value, opt2.value);
+          }
+        } else if (strcmp(cmd2.slice(3), "import") == 0) {
+          if (opt1.value == NULL) {
+            pg_log_error("\\%s: missing required argument", cmd2);
+            success2 = false;
+          } else {
+            opt1;
+            success2 = do_lo_import(opt1.value, opt2.value);
+          }
+        } else if (strncmp(cmd2.slice(3), "list", 4) == 0) {
+          let show_verbose;
+          let save_expanded;
+          show_verbose = strchr(cmd2, "+") != NULL ? true : false;
+          save_expanded = pset.popt.topt.expanded;
+          if (strchr(cmd2, "x") != NULL)
+            pset.popt.topt.expanded = 1;
+          success2 = await listLargeObjects(show_verbose);
+          pset.popt.topt.expanded = save_expanded;
+        } else if (strcmp(cmd2.slice(3), "unlink") == 0) {
+          if (opt1.value == NULL) {
+            pg_log_error("\\%s: missing required argument", cmd2);
+            success2 = false;
+          } else
+            success2 = do_lo_unlink(opt1.value);
+        } else
+          status = PSQL_CMD_UNKNOWN;
+      } else
+        ignore_slash_options(scan_state);
+      if (!success2)
+        status = PSQL_CMD_ERROR;
+      return status;
     }
     async function exec_command_sf_sv(scan_state, active_branch, cmd2, is_func) {
       let status = PSQL_CMD_SKIP_LINE;
-      let show_linenumbers = strchr(cmd2, "+") != NULL;
-      let buf = {
-        /* struct */
-      };
-      let obj_desc;
-      let obj_oid = { value: InvalidOid };
-      let eot = is_func ? EditableFunction : EditableView;
-      initPQExpBuffer(buf);
-      obj_desc = psql_scan_slash_option(
+      if (active_branch) {
+        let show_linenumbers = strchr(cmd2, "+") != NULL;
+        let buf;
+        let obj_desc;
+        let obj_oid = { value: InvalidOid };
+        let eot = is_func ? EditableFunction : EditableView;
+        buf = createPQExpBuffer();
+        obj_desc = psql_scan_slash_option(
+          scan_state,
+          OT_WHOLE_LINE,
+          NULL,
+          true
+        );
+        if (obj_desc == NULL) {
+          if (is_func)
+            pg_log_error("function name is required");
+          else
+            pg_log_error("view name is required");
+          status = PSQL_CMD_ERROR;
+        } else if (!await lookup_object_oid(eot, obj_desc, obj_oid)) {
+          status = PSQL_CMD_ERROR;
+        } else if (!await get_create_object_cmd(eot, obj_oid.value, buf)) {
+          status = PSQL_CMD_ERROR;
+        } else {
+          let output2;
+          let is_pager;
+          if (pset.queryFout == stdout) {
+            let lineno = count_lines_in_buf(buf);
+            output2 = PageOutput(lineno, pset.popt.topt);
+            is_pager = true;
+          } else {
+            output2 = pset.queryFout;
+            is_pager = false;
+          }
+          if (show_linenumbers) {
+            print_with_linenumbers(output2, buf.data, is_func);
+          } else {
+            fputs(buf.data, output2);
+          }
+          if (is_pager)
+            output2;
+        }
+      } else
+        ignore_slash_whole_line(scan_state);
+      return status;
+    }
+    async function exec_command_z(scan_state, active_branch, cmd2) {
+      let success2 = true;
+      if (active_branch) {
+        let pattern;
+        let show_system;
+        let save_expanded;
+        pattern = psql_scan_slash_option(
+          scan_state,
+          OT_NORMAL,
+          NULL,
+          true
+        );
+        show_system = strchr(cmd2, "S") != NULL ? true : false;
+        save_expanded = pset.popt.topt.expanded;
+        if (strchr(cmd2, "x") != NULL)
+          pset.popt.topt.expanded = 1;
+        success2 = await permissionsList(pattern, show_system);
+        pset.popt.topt.expanded = save_expanded;
+      } else
+        ignore_slash_options(scan_state);
+      return success2 ? PSQL_CMD_SKIP_LINE : PSQL_CMD_ERROR;
+    }
+    function exec_command_slash_command_help(scan_state, active_branch) {
+      if (active_branch) {
+        let opt0 = psql_scan_slash_option(
+          scan_state,
+          OT_NORMAL,
+          NULL,
+          false
+        );
+        if (opt0 == NULL || strcmp(opt0, "commands") == 0)
+          slashUsage(pset.popt.topt.pager);
+        else if (strcmp(opt0, "options") == 0)
+          usage(pset.popt.topt.pager);
+        else if (strcmp(opt0, "variables") == 0)
+          helpVariables(pset.popt.topt.pager);
+        else
+          slashUsage(pset.popt.topt.pager);
+      } else
+        ignore_slash_options(scan_state);
+      return PSQL_CMD_SKIP_LINE;
+    }
+    function ignore_slash_options(scan_state) {
+      let arg;
+      while ((arg = psql_scan_slash_option(
+        scan_state,
+        OT_NORMAL,
+        NULL,
+        false
+      )) != NULL) {
+      }
+    }
+    function ignore_slash_whole_line(scan_state) {
+      let arg = psql_scan_slash_option(
         scan_state,
         OT_WHOLE_LINE,
         NULL,
-        true
+        false
       );
-      if (!obj_desc) {
-        if (is_func)
-          pg_log_error("function name is required");
-        else
-          pg_log_error("view name is required");
-        status = PSQL_CMD_ERROR;
-      } else if (!await lookup_object_oid(eot, obj_desc, obj_oid)) {
-        status = PSQL_CMD_ERROR;
-      } else if (!await get_create_object_cmd(eot, obj_oid.value, buf)) {
-        status = PSQL_CMD_ERROR;
-      } else {
-        if (show_linenumbers) {
-          print_with_linenumbers(buf.data, is_func);
-        } else {
-          outputFn(buf.data);
-        }
-      }
-      return status;
     }
-    function print_with_linenumbers(lines, is_func) {
-      let in_header = is_func;
-      let lineno = 0;
-      let result = "";
-      lines = lines.trimEnd().split("\n");
-      for (let line of lines) {
-        if (in_header && (strncmp(line, "AS ", 3) == 0 || strncmp(line, "BEGIN ", 6) == 0 || strncmp(line, "RETURN ", 7) == 0))
-          in_header = false;
-        if (!in_header)
-          lineno++;
-        if (in_header)
-          result += sprintf("        %s\n", line);
-        else
-          result += sprintf("%-7d %s\n", lineno, line);
+    function is_branching_command(cmd2) {
+      return strcmp(cmd2, "if") == 0 || strcmp(cmd2, "elif") == 0 || strcmp(cmd2, "else") == 0 || strcmp(cmd2, "endif") == 0;
+    }
+    function copy_previous_query(query_buf, previous_buf) {
+      if (query_buf && query_buf.len == 0) {
+        appendPQExpBufferStr(query_buf, previous_buf.data);
+        return true;
       }
-      outputFn(result);
+      return false;
+    }
+    function echo_hidden_command(query) {
+      if (pset.echo_hidden != PSQL_ECHO_HIDDEN_OFF) {
+        printf(
+          /* _ */
+          "/**** INTERNAL QUERY ****/\n%s\n/************************/\n\n",
+          query
+        );
+        stdout;
+        if (pset.logfile) {
+          fprintf(
+            pset.logfile,
+            /* _ */
+            "/**** INTERNAL QUERY ****/\n%s\n/************************/\n\n",
+            query
+          );
+          pset.logfile;
+        }
+        if (pset.echo_hidden == PSQL_ECHO_HIDDEN_NOEXEC)
+          return false;
+      }
+      return true;
     }
     async function lookup_object_oid(obj_type, desc, obj_oid) {
       let result = true;
-      let query = {
-        /* struct */
-      };
-      initPQExpBuffer(query);
+      let query = createPQExpBuffer();
       let res;
       switch (obj_type) {
         case EditableFunction:
-          printfPQExpBuffer(query, "/* %s */\n", _("Get function's OID"));
+          addQueryComment(query, "Get function's OID");
           appendPQExpBufferStr(query, "SELECT ");
           appendStringLiteralConn(query, desc, pset.db);
           appendPQExpBuffer(
             query,
             "::pg_catalog.%s::pg_catalog.oid",
-            strchr(desc, "(") !== NULL ? "regprocedure" : "regproc"
+            strchr(desc, "(") != NULL ? "regprocedure" : "regproc"
           );
           break;
         case EditableView:
-          printfPQExpBuffer(query, "/* %s */\n", _("Get view's OID"));
+          addQueryComment(query, "Get view's OID");
           appendPQExpBufferStr(query, "SELECT ");
           appendStringLiteralConn(query, desc, pset.db);
           appendPQExpBufferStr(query, "::pg_catalog.regclass::pg_catalog.oid");
           break;
       }
-      try {
-        res = await PSQLexec(query.data);
-        if (res && PQntuples(res) == 1)
-          obj_oid.value = atooid(PQgetvalue(res, 0, 0));
-        else {
-          pg_log_error("Error when querying");
-          result = false;
-        }
-      } catch (err) {
-        pg_log_error("ERROR:  " + err.message);
+      if (!echo_hidden_command(query.data)) {
+        return false;
+      }
+      res = await PQexec(pset.db, query.data);
+      if (PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1)
+        obj_oid.value = atooid(PQgetvalue(res, 0, 0));
+      else {
+        minimal_error_message(res);
         result = false;
       }
       return result;
     }
     async function get_create_object_cmd(obj_type, oid, buf) {
       let result = true;
-      let query = {
-        /* struct */
-      };
-      initPQExpBuffer(query);
+      let query = createPQExpBuffer();
       let res;
       switch (obj_type) {
         case EditableFunction:
-          printfPQExpBuffer(query, "/* %s */\n", _("Get function's definition"));
+          addQueryComment(query, "Get function's definition");
           appendPQExpBuffer(
             query,
             "SELECT pg_catalog.pg_get_functiondef(%u)",
@@ -798,7 +1091,7 @@ ${sql}
           );
           break;
         case EditableView:
-          printfPQExpBuffer(query, "/* %s */\n", _("Get view's definition and details"));
+          addQueryComment(query, "Get view's definition and details");
           if (pset.sversion >= 90400) {
             appendPQExpBuffer(
               query,
@@ -814,598 +1107,129 @@ ${sql}
           }
           break;
       }
-      res = await PSQLexec(query.data);
-      if (res && PQntuples(res) == 1) {
+      if (!echo_hidden_command(query.data)) {
+        return false;
+      }
+      res = await PQexec(pset.db, query.data);
+      if (PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1) {
         resetPQExpBuffer(buf);
         switch (obj_type) {
           case EditableFunction:
             appendPQExpBufferStr(buf, PQgetvalue(res, 0, 0));
             break;
           case EditableView:
-            let nspname = PQgetvalue(res, 0, 0);
-            let relname = PQgetvalue(res, 0, 1);
-            let relkind = PQgetvalue(res, 0, 2);
-            let viewdef = PQgetvalue(res, 0, 3);
-            let reloptions = PQgetvalue(res, 0, 4);
-            let checkoption = PQgetvalue(res, 0, 5);
-            switch (relkind[0]) {
-              /*
-                    case RELKIND_MATVIEW:
-                      appendPQExpBufferStr(buf, "CREATE OR REPLACE MATERIALIZED VIEW ");
-                      break;
-              */
-              case RELKIND_VIEW:
-                appendPQExpBufferStr(buf, "CREATE OR REPLACE VIEW ");
-                break;
-              default:
-                pg_log_error(
-                  '"%s.%s" is not a view',
-                  nspname,
-                  relname
-                );
-                result = false;
-                break;
-            }
-            appendPQExpBuffer(buf, "%s.", fmtId(nspname));
-            appendPQExpBufferStr(buf, fmtId(relname));
-            if (reloptions != NULL && strlen(reloptions) > 2) {
-              appendPQExpBufferStr(buf, "\n WITH (");
-              if (!appendReloptionsArray(
-                buf,
-                reloptions,
-                "",
-                pset.encoding,
-                pset.db.standard_strings
-              )) {
-                pg_log_error("could not parse reloptions array");
-                result = false;
+            {
+              let nspname = PQgetvalue(res, 0, 0);
+              let relname = PQgetvalue(res, 0, 1);
+              let relkind = PQgetvalue(res, 0, 2);
+              let viewdef = PQgetvalue(res, 0, 3);
+              let reloptions = PQgetvalue(res, 0, 4);
+              let checkoption = PQgetvalue(res, 0, 5);
+              switch (relkind[0]) {
+                case "v":
+                  appendPQExpBufferStr(buf, "CREATE OR REPLACE VIEW ");
+                  break;
+                default:
+                  pg_log_error(
+                    '"%s.%s" is not a view',
+                    nspname,
+                    relname
+                  );
+                  result = false;
+                  break;
               }
-              appendPQExpBufferChar(buf, ")");
+              appendPQExpBuffer(buf, "%s.", fmtId(nspname));
+              appendPQExpBufferStr(buf, fmtId(relname));
+              if (reloptions != NULL && strlen(reloptions) > 2) {
+                appendPQExpBufferStr(buf, "\n WITH (");
+                if (!appendReloptionsArray(
+                  buf,
+                  reloptions,
+                  "",
+                  pset.encoding,
+                  standard_strings()
+                )) {
+                  pg_log_error("could not parse reloptions array");
+                  result = false;
+                }
+                appendPQExpBufferChar(buf, ")");
+              }
+              appendPQExpBuffer(buf, " AS\n%s", viewdef);
+              if (buf.len > 0 && buf.data[buf.len - 1] == ";")
+                buf.data = buf.data.slice(0, --buf.len);
+              if (checkoption != NULL && checkoption[0] != void 0)
+                appendPQExpBuffer(
+                  buf,
+                  "\n WITH %s CHECK OPTION",
+                  checkoption
+                );
             }
-            appendPQExpBuffer(buf, " AS\n%s", viewdef);
-            if (buf.len > 0 && buf.data[buf.len - 1] == ";")
-              buf.data = buf.data.slice(0, buf.len - 1);
-            if (checkoption && checkoption[0] != NULL)
-              appendPQExpBuffer(
-                buf,
-                "\n WITH %s CHECK OPTION",
-                checkoption
-              );
             break;
         }
         if (buf.len > 0 && buf.data[buf.len - 1] != "\n")
           appendPQExpBufferChar(buf, "\n");
       } else {
-        pg_log_error("Error when querying");
+        minimal_error_message(res);
         result = false;
       }
       return result;
     }
-    function appendReloptionsArray(buffer, reloptions, prefix, encoding, std_strings2) {
-      let options = [];
-      let noptions = {};
-      let i;
-      if (!parsePGArray(reloptions, options, noptions)) {
-        return false;
+    function count_lines_in_buf(buf) {
+      let lineno = 0;
+      let lines = buf.data;
+      while (lines[0] != void 0) {
+        lineno++;
+        lines = strchr(lines, "\n");
+        if (lines == NULL)
+          break;
+        lines = lines.slice(1);
       }
-      noptions = noptions.value;
-      for (i = 0; i < noptions; i++) {
-        let option = options[i];
-        let [name, value] = option.split("=");
-        value ?? (value = "");
-        if (i > 0)
-          appendPQExpBufferStr(buffer, ", ");
-        appendPQExpBuffer(buffer, "%s%s=", prefix, fmtId(name));
-        if (strcmp(fmtId(value), value) == 0)
-          appendPQExpBufferStr(buffer, value);
+      return lineno;
+    }
+    function print_with_linenumbers(output2, lines, is_func) {
+      let in_header = is_func;
+      let lineno = 0;
+      while (lines[0] != void 0) {
+        let eol;
+        if (in_header && (strncmp(lines, "AS ", 3) == 0 || strncmp(lines, "BEGIN ", 6) == 0 || strncmp(lines, "RETURN ", 7) == 0))
+          in_header = false;
+        if (!in_header)
+          lineno++;
+        eol = strchr(lines, "\n");
+        if (eol != NULL)
+          lines = lines.slice(0, lines.length - eol.length);
+        if (in_header)
+          fprintf(output2, "        %s\n", lines);
         else
-          appendStringLiteral(buffer, value, encoding, std_strings2);
+          fprintf(output2, "%-7d %s\n", lineno, lines);
+        if (eol == NULL)
+          break;
+        lines = eol = eol.slice(1);
       }
-      return true;
     }
-    function parsePGArray(atext, items, nitems) {
-      let inputlen;
-      let strings;
-      let curitem;
-      inputlen = strlen(atext);
-      nitems.value = 0;
-      if (inputlen < 2 || atext[0] != "{" || atext[inputlen - 1] != "}")
-        return false;
-      let at = 0;
-      at++;
-      curitem = 0;
-      while (atext[at] != "}") {
-        if (atext[at] == NULL)
-          return false;
-        strings = "";
-        while (atext[at] != "}" && atext[at] != ",") {
-          if (atext[at] == NULL)
-            return false;
-          if (atext[at] != '"')
-            strings += atext[at++];
-          else {
-            at++;
-            while (atext[at] != '"') {
-              if (atext[at] == NULL)
-                return false;
-              if (atext[at] == "\\") {
-                at++;
-                if (atext[at] == NULL)
-                  return false;
-              }
-              strings += atext[at++];
-            }
-            at++;
-          }
-        }
-        items[curitem] = strings;
-        if (atext[at] == ",")
-          at++;
-        curitem++;
-      }
-      if (atext[at + 1] && atext[at + 1] != NULL)
-        return false;
-      nitems.value = curitem;
-      return true;
-    }
-    function fmtId(rawid) {
-      let id_return = {
-        /* struct */
-      };
-      initPQExpBuffer(id_return);
-      let need_quotes = false;
-      if (quote_all_identifiers)
-        need_quotes = true;
-      else if (!(rawid[0] >= "a" && rawid[0] <= "z" || rawid[0] == "_"))
-        need_quotes = true;
-      else {
-        if (/[^a-z0-9_]/.test(rawid)) need_quotes = true;
-      }
-      if (!need_quotes) {
-        let kw = (/* @__PURE__ */ new Set(["all", "analyse", "analyze", "and", "any", "array", "as", "asc", "asymmetric", "authorization", "between", "bigint", "binary", "bit", "boolean", "both", "case", "cast", "char", "character", "check", "coalesce", "collate", "collation", "column", "concurrently", "constraint", "create", "cross", "current_catalog", "current_date", "current_role", "current_schema", "current_time", "current_timestamp", "current_user", "dec", "decimal", "default", "deferrable", "desc", "distinct", "do", "else", "end", "except", "exists", "extract", "false", "fetch", "float", "for", "foreign", "freeze", "from", "full", "grant", "greatest", "group", "grouping", "having", "ilike", "in", "initially", "inner", "inout", "int", "integer", "intersect", "interval", "into", "is", "isnull", "join", "json", "json_array", "json_arrayagg", "json_object", "json_objectagg", "json_scalar", "json_serialize", "lateral", "leading", "least", "left", "like", "limit", "localtime", "localtimestamp", "national", "natural", "nchar", "none", "normalize", "not", "notnull", "null", "nullif", "numeric", "offset", "on", "only", "or", "order", "out", "outer", "overlaps", "overlay", "placing", "position", "precision", "primary", "real", "references", "returning", "right", "row", "select", "session_user", "setof", "similar", "smallint", "some", "substring", "symmetric", "system_user", "table", "tablesample", "then", "time", "timestamp", "to", "trailing", "treat", "trim", "true", "union", "unique", "user", "using", "values", "varchar", "variadic", "verbose", "when", "where", "window", "with", "xmlattributes", "xmlconcat", "xmlelement", "xmlexists", "xmlforest", "xmlnamespaces", "xmlparse", "xmlpi", "xmlroot", "xmlserialize", "xmltable"])).has(rawid);
-        if (kw) need_quotes = true;
-      }
-      if (!need_quotes) {
-        appendPQExpBufferStr(id_return, rawid);
-      } else {
-        appendPQExpBufferChar(id_return, '"');
-        appendPQExpBufferChar(id_return, rawid.replace(/"/g, '""'));
-        appendPQExpBufferChar(id_return, '"');
-      }
-      return id_return.data;
-    }
-    async function exec_command_list(scan_state, active_branch, cmd2) {
-      let success;
-      let pattern;
-      let show_verbose;
-      pattern = psql_scan_slash_option(
-        scan_state,
-        OT_NORMAL,
-        NULL,
-        true
-      );
-      show_verbose = strchr(cmd2, "+") != NULL;
-      success = await listAllDbs(pattern, show_verbose);
-      return success ? PSQL_CMD_SKIP_LINE : PSQL_CMD_ERROR;
-    }
-    async function exec_command_d(scan_state, active_branch, cmd2) {
-      let status = PSQL_CMD_SKIP_LINE;
-      let success = true;
-      let pattern;
-      let show_verbose, show_system;
-      pattern = psql_scan_slash_option(
-        scan_state,
-        OT_NORMAL,
-        NULL,
-        true
-      );
-      show_verbose = strchr(cmd2, "+") != NULL;
-      show_system = strchr(cmd2, "S") != NULL;
-      switch (cmd2[1]) {
-        case void 0:
-        case "+":
-        case "S":
-          if (pattern) {
-            success = await describeTableDetails(pattern, show_verbose, show_system);
-          } else {
-            success = await listTables("tvmsE", NULL, show_verbose, show_system);
-          }
-          break;
-        case "A":
-          {
-            let pattern2 = NULL;
-            if (pattern && cmd2[2] != NULL && cmd2[2] != "+" && cmd2[2] != "x")
-              pattern2 = psql_scan_slash_option(scan_state, OT_NORMAL, NULL, true);
-            switch (cmd2[2]) {
-              case void 0:
-              case "+":
-              case "x":
-                success = await describeAccessMethods(pattern, show_verbose);
-                break;
-              case "c":
-                success = await listOperatorClasses(pattern, pattern2, show_verbose);
-                break;
-              case "f":
-                success = await listOperatorFamilies(pattern, pattern2, show_verbose);
-                break;
-              case "o":
-                success = await listOpFamilyOperators(pattern, pattern2, show_verbose);
-                break;
-              case "p":
-                success = await listOpFamilyFunctions(pattern, pattern2, show_verbose);
-                break;
-              default:
-                status = PSQL_CMD_UNKNOWN;
-                break;
-            }
-          }
-          break;
-        case "a":
-          success = await describeAggregates(pattern, show_verbose, show_system);
-          break;
-        case "b":
-          success = await describeTablespaces(pattern, show_verbose);
-          break;
-        case "c":
-          if (strncmp(cmd2, "dconfig", 7) == 0)
-            success = await describeConfigurationParameters(
-              pattern,
-              show_verbose,
-              show_system
-            );
-          else
-            success = await listConversions(
-              pattern,
-              show_verbose,
-              show_system
-            );
-          break;
-        case "C":
-          success = await listCasts(pattern, show_verbose);
-          break;
-        case "d":
-          if (strncmp(cmd2, "ddp", 3) == 0)
-            success = await listDefaultACLs(pattern);
-          else
-            success = await objectDescription(pattern, show_system);
-          break;
-        case "D":
-          success = await listDomains(pattern, show_verbose, show_system);
-          break;
-        case "f":
-          switch (cmd2[2]) {
-            case void 0:
-            case "+":
-            case "S":
-            case "a":
-            case "n":
-            case "p":
-            case "t":
-            case "w":
-            case "x":
-              success = await exec_command_dfo(
-                scan_state,
-                cmd2,
-                pattern,
-                show_verbose,
-                show_system
-              );
-              break;
-            default:
-              status = PSQL_CMD_UNKNOWN;
-              break;
-          }
-          break;
-        case "g":
-          success = await describeRoles(pattern, show_verbose, show_system);
-          break;
-        case "l":
-          success = await listLargeObjects(show_verbose);
-          break;
-        case "L":
-          success = await listLanguages(pattern, show_verbose, show_system);
-          break;
-        case "n":
-          success = await listSchemas(pattern, show_verbose, show_system);
-          break;
-        case "o":
-          success = await exec_command_dfo(
-            scan_state,
-            cmd2,
-            pattern,
-            show_verbose,
-            show_system
-          );
-          break;
-        case "O":
-          success = await listCollations(pattern, show_verbose, show_system);
-          break;
-        case "p":
-          success = await permissionsList(pattern, show_system);
-          break;
-        case "P":
-          {
-            switch (cmd2[2]) {
-              case void 0:
-              case "+":
-              case "t":
-              case "i":
-              case "n":
-              case "x":
-                success = await listPartitionedTables(cmd2.slice(2), pattern, show_verbose);
-                break;
-              default:
-                status = PSQL_CMD_UNKNOWN;
-                break;
-            }
-          }
-          break;
-        case "T":
-          success = await describeTypes(pattern, show_verbose, show_system);
-          break;
-        case "t":
-        case "v":
-        case "m":
-        case "i":
-        case "s":
-        case "E":
-          success = await listTables(cmd2[1], pattern, show_verbose, show_system);
-          break;
-        case "r":
-          if (cmd2[2] == "d" && cmd2[3] == "s") {
-            let pattern2 = NULL;
-            if (pattern)
-              pattern2 = psql_scan_slash_option(
-                scan_state,
-                OT_NORMAL,
-                NULL,
-                true
-              );
-            success = await listDbRoleSettings(pattern, pattern2);
-          } else if (cmd2[2] == "g")
-            success = await describeRoleGrants(pattern, show_system);
-          else
-            status = PSQL_CMD_UNKNOWN;
-          break;
-        case "R":
-          switch (cmd2[2]) {
-            case "p":
-              if (show_verbose)
-                success = await describePublications(pattern);
-              else
-                success = await listPublications(pattern);
-              break;
-            case "s":
-              success = await describeSubscriptions(pattern, show_verbose);
-              break;
-            default:
-              status = PSQL_CMD_UNKNOWN;
-          }
-          break;
-        case "u":
-          success = await describeRoles(pattern, show_verbose, show_system);
-          break;
-        case "F":
-          switch (cmd2[2]) {
-            case void 0:
-            case "+":
-            case "x":
-              success = await listTSConfigs(pattern, show_verbose);
-              break;
-            case "p":
-              success = await listTSParsers(pattern, show_verbose);
-              break;
-            case "d":
-              success = await listTSDictionaries(pattern, show_verbose);
-              break;
-            case "t":
-              success = await listTSTemplates(pattern, show_verbose);
-              break;
-            default:
-              status = PSQL_CMD_UNKNOWN;
-              break;
-          }
-          break;
-        case "e":
-          switch (cmd2[2]) {
-            case "s":
-              success = await listForeignServers(pattern, show_verbose);
-              break;
-            case "u":
-              success = await listUserMappings(pattern, show_verbose);
-              break;
-            case "w":
-              success = await listForeignDataWrappers(pattern, show_verbose);
-              break;
-            case "t":
-              success = await listForeignTables(pattern, show_verbose);
-              break;
-            default:
-              status = PSQL_CMD_UNKNOWN;
-              break;
-          }
-          break;
-        case "x":
-          if (show_verbose)
-            success = await listExtensionContents(pattern);
-          else
-            success = await listExtensions(pattern);
-          break;
-        case "X":
-          success = await listExtendedStats(pattern, show_verbose);
-          break;
-        case "y":
-          success = await listEventTriggers(pattern, show_verbose);
-          break;
-        default:
-          status = PSQL_CMD_UNKNOWN;
-      }
-      if (!success)
-        status = PSQL_CMD_ERROR;
-      return status;
-    }
-    async function exec_command_dfo(scan_state, cmd2, pattern, show_verbose, show_system) {
-      let success;
-      let arg_patterns = [];
-      let num_arg_patterns = 0;
-      if (pattern) {
-        let ap;
-        while ((ap = psql_scan_slash_option(
-          scan_state,
-          OT_NORMAL,
-          NULL,
-          true
-        )) != NULL) {
-          arg_patterns[num_arg_patterns++] = ap;
-          if (num_arg_patterns >= FUNC_MAX_ARGS)
-            break;
-        }
-      }
-      if (cmd2[1] == "f")
-        success = await describeFunctions(
-          cmd2.slice(2),
-          pattern,
-          arg_patterns,
-          num_arg_patterns,
-          show_verbose,
-          show_system
-        );
+    function minimal_error_message(res) {
+      let msg;
+      let fld;
+      msg = createPQExpBuffer();
+      fld = PQresultErrorField(res, PG_DIAG_SEVERITY);
+      if (fld != NULL)
+        printfPQExpBuffer(msg, "%s:  ", fld);
       else
-        success = await describeOperators(
-          pattern,
-          arg_patterns,
-          num_arg_patterns,
-          show_verbose,
-          show_system
-        );
-      return success;
-    }
-    async function listAllDbs(pattern, verbose) {
-      let res;
-      let buf = {
-        /* struct */
-      };
-      let myopt = pset.popt;
-      initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching databases"));
-      appendPQExpBuffer(
-        buf,
-        'SELECT\n  d.datname as "%s",\n  pg_catalog.pg_get_userbyid(d.datdba) as "%s",\n  pg_catalog.pg_encoding_to_char(d.encoding) as "%s",\n',
-        gettext_noop("Name"),
-        gettext_noop("Owner"),
-        gettext_noop("Encoding")
-      );
-      if (pset.sversion >= 15e4)
-        appendPQExpBuffer(
-          buf,
-          `  CASE d.datlocprovider WHEN 'b' THEN 'builtin' WHEN 'c' THEN 'libc' WHEN 'i' THEN 'icu' END AS "%s",
-`,
-          gettext_noop("Locale Provider")
-        );
+        printfPQExpBuffer(msg, "ERROR:  ");
+      fld = PQresultErrorField(res, PG_DIAG_MESSAGE_PRIMARY);
+      if (fld != NULL)
+        appendPQExpBufferStr(msg, fld);
       else
-        appendPQExpBuffer(
-          buf,
-          `  'libc' AS "%s",
-`,
-          gettext_noop("Locale Provider")
-        );
-      appendPQExpBuffer(
-        buf,
-        '  d.datcollate as "%s",\n  d.datctype as "%s",\n',
-        gettext_noop("Collate"),
-        gettext_noop("Ctype")
-      );
-      if (pset.sversion >= 17e4)
-        appendPQExpBuffer(
-          buf,
-          '  d.datlocale as "%s",\n',
-          gettext_noop("Locale")
-        );
-      else if (pset.sversion >= 15e4)
-        appendPQExpBuffer(
-          buf,
-          '  d.daticulocale as "%s",\n',
-          gettext_noop("Locale")
-        );
-      else
-        appendPQExpBuffer(
-          buf,
-          '  NULL as "%s",\n',
-          gettext_noop("Locale")
-        );
-      if (pset.sversion >= 16e4)
-        appendPQExpBuffer(
-          buf,
-          '  d.daticurules as "%s",\n',
-          gettext_noop("ICU Rules")
-        );
-      else
-        appendPQExpBuffer(
-          buf,
-          '  NULL as "%s",\n',
-          gettext_noop("ICU Rules")
-        );
-      appendPQExpBufferStr(buf, "  ");
-      printACLColumn(buf, "d.datacl");
-      if (verbose) {
-        appendPQExpBuffer(
-          buf,
-          `,
-  CASE WHEN pg_catalog.has_database_privilege(d.datname, 'CONNECT')
-       %s       THEN pg_catalog.pg_size_pretty(pg_catalog.pg_database_size(d.datname))
-       ELSE 'No Access'
-  END as "%s",
-  t.spcname as "%s",
-  pg_catalog.shobj_description(d.oid, 'pg_database') as "%s"`,
-          pset.sversion >= 1e5 ? "OR pg_catalog.pg_has_role('pg_read_all_stats', 'USAGE')\n" : "",
-          gettext_noop("Size"),
-          gettext_noop("Tablespace"),
-          gettext_noop("Description")
-        );
-      }
-      appendPQExpBufferStr(
-        buf,
-        "\nFROM pg_catalog.pg_database d\n"
-      );
-      if (verbose)
-        appendPQExpBufferStr(
-          buf,
-          "  JOIN pg_catalog.pg_tablespace t on d.dattablespace = t.oid\n"
-        );
-      if (pattern) {
-        if (!validateSQLNamePattern(
-          buf,
-          pattern,
-          false,
-          false,
-          NULL,
-          "d.datname",
-          NULL,
-          NULL,
-          NULL,
-          1
-        )) {
-          return false;
-        }
-      }
-      appendPQExpBufferStr(buf, "ORDER BY 1;");
-      res = await PSQLexec(buf.data);
-      if (!res)
-        return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of databases");
-      myopt.translate_header = true;
-      printQuery(res, myopt, pset.queryFout, false, pset.logfile);
-      return true;
+        appendPQExpBufferStr(msg, "(not available)");
+      appendPQExpBufferChar(msg, "\n");
+      pg_log_error("%s", msg.data);
     }
     async function describeAggregates(pattern, verbose, showSystem) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching aggregates"));
+      addQueryComment(buf, "Get matching aggregates");
       appendPQExpBuffer(
         buf,
         `SELECT n.nspname as "%s",
@@ -1416,10 +1240,14 @@ ${sql}
     ELSE pg_catalog.pg_get_function_arguments(p.oid)
   END AS "%s",
 `,
-        gettext_noop("Schema"),
-        gettext_noop("Name"),
-        gettext_noop("Result data type"),
-        gettext_noop("Argument data types")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Result data type",
+        /* gettext_noop */
+        "Argument data types"
       );
       if (pset.sversion >= 11e4)
         appendPQExpBuffer(
@@ -1429,7 +1257,8 @@ FROM pg_catalog.pg_proc p
      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
 WHERE p.prokind = 'a'
 `,
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Description"
         );
       else
         appendPQExpBuffer(
@@ -1439,9 +1268,10 @@ FROM pg_catalog.pg_proc p
      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
 WHERE p.proisagg
 `,
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Description"
         );
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "      AND n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
@@ -1461,42 +1291,44 @@ WHERE p.proisagg
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of aggregate functions");
+      myopt.title = /* _ */
+      "List of aggregate functions";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function describeAccessMethods(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [false, true, false, false];
       if (pset.sversion < 90600) {
-        let sverbuf;
+        let sverbuf = "";
         pg_log_error(
           "The server (version %s) does not support access methods.",
           formatPGVersionNumber(
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
       }
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching access methods"));
+      addQueryComment(buf, "Get matching access methods");
       appendPQExpBuffer(
         buf,
         `SELECT amname AS "%s",
   CASE amtype WHEN 'i' THEN '%s' WHEN 't' THEN '%s' END AS "%s"`,
-        gettext_noop("Name"),
-        gettext_noop("Index"),
-        gettext_noop("Table"),
-        gettext_noop("Type")
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Index",
+        /* gettext_noop */
+        "Table",
+        /* gettext_noop */
+        "Type"
       );
       if (verbose) {
         appendPQExpBuffer(
@@ -1504,8 +1336,10 @@ WHERE p.proisagg
           `,
   amhandler AS "%s",
   pg_catalog.obj_description(oid, 'pg_am') AS "%s"`,
-          gettext_noop("Handler"),
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Handler",
+          /* gettext_noop */
+          "Description"
         );
       }
       appendPQExpBufferStr(
@@ -1530,8 +1364,8 @@ WHERE p.proisagg
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of access methods");
+      myopt.title = /* _ */
+      "List of access methods";
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
       myopt.n_translate_columns = lengthof(translate_columns);
@@ -1539,19 +1373,20 @@ WHERE p.proisagg
       return true;
     }
     async function describeTablespaces(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching tablespaces"));
+      addQueryComment(buf, "Get matching tablespaces");
       appendPQExpBuffer(
         buf,
         'SELECT spcname AS "%s",\n  pg_catalog.pg_get_userbyid(spcowner) AS "%s",\n  pg_catalog.pg_tablespace_location(oid) AS "%s"',
-        gettext_noop("Name"),
-        gettext_noop("Owner"),
-        gettext_noop("Location")
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Owner",
+        /* gettext_noop */
+        "Location"
       );
       if (verbose) {
         appendPQExpBufferStr(buf, ",\n  ");
@@ -1562,9 +1397,12 @@ WHERE p.proisagg
   spcoptions AS "%s",
   pg_catalog.pg_size_pretty(pg_catalog.pg_tablespace_size(oid)) AS "%s",
   pg_catalog.shobj_description(oid, 'pg_tablespace') AS "%s"`,
-          gettext_noop("Options"),
-          gettext_noop("Size"),
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Options",
+          /* gettext_noop */
+          "Size",
+          /* gettext_noop */
+          "Description"
         );
       }
       appendPQExpBufferStr(
@@ -1589,8 +1427,8 @@ WHERE p.proisagg
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of tablespaces");
+      myopt.title = /* _ */
+      "List of tablespaces";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
@@ -1603,19 +1441,17 @@ WHERE p.proisagg
       let showTrigger = strchr(functypes, "t") != NULL;
       let showWindow = strchr(functypes, "w") != NULL;
       let have_where;
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [false, false, false, false, true, true, true, false, true, true, false, false, false, false];
       let translate_columns_pre_96 = [false, false, false, false, true, true, false, true, true, false, false, false, false];
       if (strlen(functypes) != strspn(functypes, df_options)) {
-        pg_log_error(`\\df only takes [${df_options}] as options`);
+        pg_log_error("\\df only takes [%s] as options", df_options);
         return true;
       }
       if (showProcedure && pset.sversion < 11e4) {
-        let sverbuf;
+        let sverbuf = "";
         pg_log_error(
           '\\df does not take a "%c" option with server version %s',
           "p",
@@ -1623,7 +1459,7 @@ WHERE p.proisagg
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
@@ -1634,12 +1470,14 @@ WHERE p.proisagg
           showProcedure = true;
       }
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching functions"));
+      addQueryComment(buf, "Get matching functions");
       appendPQExpBuffer(
         buf,
         'SELECT n.nspname as "%s",\n  p.proname as "%s",\n',
-        gettext_noop("Schema"),
-        gettext_noop("Name")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name"
       );
       if (pset.sversion >= 11e4)
         appendPQExpBuffer(
@@ -1652,14 +1490,21 @@ WHERE p.proisagg
   WHEN 'p' THEN '%s'
   ELSE '%s'
  END as "%s"`,
-          gettext_noop("Result data type"),
-          gettext_noop("Argument data types"),
+          /* gettext_noop */
+          "Result data type",
+          /* gettext_noop */
+          "Argument data types",
           /* translator: "agg" is short for "aggregate" */
-          gettext_noop("agg"),
-          gettext_noop("window"),
-          gettext_noop("proc"),
-          gettext_noop("func"),
-          gettext_noop("Type")
+          /* gettext_noop */
+          "agg",
+          /* gettext_noop */
+          "window",
+          /* gettext_noop */
+          "proc",
+          /* gettext_noop */
+          "func",
+          /* gettext_noop */
+          "Type"
         );
       else
         appendPQExpBuffer(
@@ -1672,14 +1517,21 @@ WHERE p.proisagg
   WHEN p.prorettype = 'pg_catalog.trigger'::pg_catalog.regtype THEN '%s'
   ELSE '%s'
  END as "%s"`,
-          gettext_noop("Result data type"),
-          gettext_noop("Argument data types"),
+          /* gettext_noop */
+          "Result data type",
+          /* gettext_noop */
+          "Argument data types",
           /* translator: "agg" is short for "aggregate" */
-          gettext_noop("agg"),
-          gettext_noop("window"),
-          gettext_noop("trigger"),
-          gettext_noop("func"),
-          gettext_noop("Type")
+          /* gettext_noop */
+          "agg",
+          /* gettext_noop */
+          "window",
+          /* gettext_noop */
+          "trigger",
+          /* gettext_noop */
+          "func",
+          /* gettext_noop */
+          "Type"
         );
       if (verbose) {
         appendPQExpBuffer(
@@ -1690,10 +1542,14 @@ WHERE p.proisagg
   WHEN p.provolatile = 's' THEN '%s'
   WHEN p.provolatile = 'v' THEN '%s'
  END as "%s"`,
-          gettext_noop("immutable"),
-          gettext_noop("stable"),
-          gettext_noop("volatile"),
-          gettext_noop("Volatility")
+          /* gettext_noop */
+          "immutable",
+          /* gettext_noop */
+          "stable",
+          /* gettext_noop */
+          "volatile",
+          /* gettext_noop */
+          "Volatility"
         );
         if (pset.sversion >= 90600)
           appendPQExpBuffer(
@@ -1704,10 +1560,14 @@ WHERE p.proisagg
   WHEN p.proparallel = 's' THEN '%s'
   WHEN p.proparallel = 'u' THEN '%s'
  END as "%s"`,
-            gettext_noop("restricted"),
-            gettext_noop("safe"),
-            gettext_noop("unsafe"),
-            gettext_noop("Parallel")
+            /* gettext_noop */
+            "restricted",
+            /* gettext_noop */
+            "safe",
+            /* gettext_noop */
+            "unsafe",
+            /* gettext_noop */
+            "Parallel"
           );
         appendPQExpBuffer(
           buf,
@@ -1715,32 +1575,42 @@ WHERE p.proisagg
  pg_catalog.pg_get_userbyid(p.proowner) as "%s",
  CASE WHEN prosecdef THEN '%s' ELSE '%s' END AS "%s",
  CASE WHEN p.proleakproof THEN '%s' ELSE '%s' END as "%s"`,
-          gettext_noop("Owner"),
-          gettext_noop("definer"),
-          gettext_noop("invoker"),
-          gettext_noop("Security"),
-          gettext_noop("yes"),
-          gettext_noop("no"),
-          gettext_noop("Leakproof?")
+          /* gettext_noop */
+          "Owner",
+          /* gettext_noop */
+          "definer",
+          /* gettext_noop */
+          "invoker",
+          /* gettext_noop */
+          "Security",
+          /* gettext_noop */
+          "yes",
+          /* gettext_noop */
+          "no",
+          /* gettext_noop */
+          "Leakproof?"
         );
         appendPQExpBufferStr(buf, ",\n ");
         printACLColumn(buf, "p.proacl");
         appendPQExpBuffer(
           buf,
           ',\n l.lanname as "%s"',
-          gettext_noop("Language")
+          /* gettext_noop */
+          "Language"
         );
         appendPQExpBuffer(
           buf,
           `,
  CASE WHEN l.lanname IN ('internal', 'c') THEN p.prosrc END as "%s"`,
-          gettext_noop("Internal name")
+          /* gettext_noop */
+          "Internal name"
         );
         appendPQExpBuffer(
           buf,
           `,
  pg_catalog.obj_description(p.oid, 'pg_proc') as "%s"`,
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Description"
         );
       }
       appendPQExpBufferStr(
@@ -1861,10 +1731,10 @@ WHERE p.proisagg
         return false;
       for (let i = 0; i < num_arg_patterns; i++) {
         if (strcmp(arg_patterns[i], "-") != 0) {
-          let nspname;
-          let typname;
-          let ft;
-          let tiv;
+          let nspname = "";
+          let typname = "";
+          let ft = "";
+          let tiv = "";
           nspname = sprintf("nt%d.nspname", i);
           typname = sprintf("t%d.typname", i);
           ft = sprintf("pg_catalog.format_type(t%d.oid, NULL)", i);
@@ -1886,14 +1756,14 @@ WHERE p.proisagg
           appendPQExpBuffer(buf, "  AND t%d.typname IS NULL\n", i);
         }
       }
-      if (!showSystem && !func_pattern)
+      if (!showSystem && func_pattern == NULL)
         appendPQExpBufferStr(buf, "      AND n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       appendPQExpBufferStr(buf, "ORDER BY 1, 2, 4;");
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of functions");
+      myopt.title = /* _ */
+      "List of functions";
       myopt.translate_header = true;
       if (pset.sversion >= 90600) {
         myopt.translate_columns = translate_columns;
@@ -1906,18 +1776,18 @@ WHERE p.proisagg
       return true;
     }
     async function describeTypes(pattern, verbose, showSystem) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching types"));
+      addQueryComment(buf, "Get matching types");
       appendPQExpBuffer(
         buf,
         'SELECT n.nspname as "%s",\n  pg_catalog.format_type(t.oid, NULL) AS "%s",\n',
-        gettext_noop("Schema"),
-        gettext_noop("Name")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name"
       );
       if (verbose) {
         appendPQExpBuffer(
@@ -1940,10 +1810,14 @@ WHERE p.proisagg
   ) AS "%s",
   pg_catalog.pg_get_userbyid(t.typowner) AS "%s",
 `,
-          gettext_noop("Internal name"),
-          gettext_noop("Size"),
-          gettext_noop("Elements"),
-          gettext_noop("Owner")
+          /* gettext_noop */
+          "Internal name",
+          /* gettext_noop */
+          "Size",
+          /* gettext_noop */
+          "Elements",
+          /* gettext_noop */
+          "Owner"
         );
         printACLColumn(buf, "t.typacl");
         appendPQExpBufferStr(buf, ",\n  ");
@@ -1952,14 +1826,15 @@ WHERE p.proisagg
         buf,
         `  pg_catalog.obj_description(t.oid, 'pg_type') as "%s"
 `,
-        gettext_noop("Description")
+        /* gettext_noop */
+        "Description"
       );
       appendPQExpBufferStr(buf, "FROM pg_catalog.pg_type t\n     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace\n");
       appendPQExpBufferStr(buf, "WHERE (t.typrelid = 0 ");
       appendPQExpBufferStr(buf, "OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid))\n");
       if (pattern == NULL || strstr(pattern, "[]") == NULL)
         appendPQExpBufferStr(buf, "  AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid)\n");
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "      AND n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
@@ -1979,8 +1854,8 @@ WHERE p.proisagg
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of data types");
+      myopt.title = /* _ */
+      "List of data types";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
@@ -2043,14 +1918,12 @@ WHERE p.proisagg
       return pattern;
     }
     async function describeOperators(oper_pattern, arg_patterns, num_arg_patterns, verbose, showSystem) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [false, false, false, false, false, false, true, false];
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching operators"));
+      addQueryComment(buf, "Get matching operators");
       appendPQExpBuffer(
         buf,
         `SELECT n.nspname as "%s",
@@ -2059,11 +1932,16 @@ WHERE p.proisagg
   CASE WHEN o.oprkind='r' THEN NULL ELSE pg_catalog.format_type(o.oprright, NULL) END AS "%s",
   pg_catalog.format_type(o.oprresult, NULL) AS "%s",
 `,
-        gettext_noop("Schema"),
-        gettext_noop("Name"),
-        gettext_noop("Left arg type"),
-        gettext_noop("Right arg type"),
-        gettext_noop("Result type")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Left arg type",
+        /* gettext_noop */
+        "Right arg type",
+        /* gettext_noop */
+        "Result type"
       );
       if (verbose)
         appendPQExpBuffer(
@@ -2071,10 +1949,14 @@ WHERE p.proisagg
           `  o.oprcode AS "%s",
   CASE WHEN p.proleakproof THEN '%s' ELSE '%s' END AS "%s",
 `,
-          gettext_noop("Function"),
-          gettext_noop("yes"),
-          gettext_noop("no"),
-          gettext_noop("Leakproof?")
+          /* gettext_noop */
+          "Function",
+          /* gettext_noop */
+          "yes",
+          /* gettext_noop */
+          "no",
+          /* gettext_noop */
+          "Leakproof?"
         );
       appendPQExpBuffer(
         buf,
@@ -2083,7 +1965,8 @@ WHERE p.proisagg
 FROM pg_catalog.pg_operator o
      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = o.oprnamespace
 `,
-        gettext_noop("Description")
+        /* gettext_noop */
+        "Description"
       );
       if (num_arg_patterns >= 2) {
         num_arg_patterns = 2;
@@ -2102,12 +1985,12 @@ FROM pg_catalog.pg_operator o
           buf,
           "     LEFT JOIN pg_catalog.pg_proc p ON p.oid = o.oprcode\n"
         );
-      if (!showSystem && !oper_pattern)
+      if (!showSystem && oper_pattern == NULL)
         appendPQExpBufferStr(buf, "WHERE n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
         oper_pattern,
-        !showSystem && !oper_pattern,
+        !showSystem && oper_pattern == NULL,
         true,
         "n.nspname",
         "o.oprname",
@@ -2121,10 +2004,10 @@ FROM pg_catalog.pg_operator o
         appendPQExpBufferStr(buf, "  AND o.oprleft = 0\n");
       for (let i = 0; i < num_arg_patterns; i++) {
         if (strcmp(arg_patterns[i], "-") != 0) {
-          let nspname;
-          let typname;
-          let ft;
-          let tiv;
+          let nspname = "";
+          let typname = "";
+          let ft = "";
+          let tiv = "";
           nspname = sprintf("nt%d.nspname", i);
           typname = sprintf("t%d.typname", i);
           ft = sprintf("pg_catalog.format_type(t%d.oid, NULL)", i);
@@ -2150,38 +2033,176 @@ FROM pg_catalog.pg_operator o
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of operators");
+      myopt.title = /* _ */
+      "List of operators";
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
       myopt.n_translate_columns = lengthof(translate_columns);
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
-    async function permissionsList(pattern, showSystem) {
-      let buf = {
-        /* struct */
-      };
+    async function listAllDbs(pattern, verbose) {
       let res;
-      let myopt = pset.popt;
+      let buf = {};
+      let myopt = copy_printQueryOpt(pset.popt);
+      initPQExpBuffer(buf);
+      addQueryComment(buf, "Get matching databases");
+      appendPQExpBuffer(
+        buf,
+        'SELECT\n  d.datname as "%s",\n  pg_catalog.pg_get_userbyid(d.datdba) as "%s",\n  pg_catalog.pg_encoding_to_char(d.encoding) as "%s",\n',
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Owner",
+        /* gettext_noop */
+        "Encoding"
+      );
+      if (pset.sversion >= 15e4)
+        appendPQExpBuffer(
+          buf,
+          `  CASE d.datlocprovider WHEN 'b' THEN 'builtin' WHEN 'c' THEN 'libc' WHEN 'i' THEN 'icu' END AS "%s",
+`,
+          /* gettext_noop */
+          "Locale Provider"
+        );
+      else
+        appendPQExpBuffer(
+          buf,
+          `  'libc' AS "%s",
+`,
+          /* gettext_noop */
+          "Locale Provider"
+        );
+      appendPQExpBuffer(
+        buf,
+        '  d.datcollate as "%s",\n  d.datctype as "%s",\n',
+        /* gettext_noop */
+        "Collate",
+        /* gettext_noop */
+        "Ctype"
+      );
+      if (pset.sversion >= 17e4)
+        appendPQExpBuffer(
+          buf,
+          '  d.datlocale as "%s",\n',
+          /* gettext_noop */
+          "Locale"
+        );
+      else if (pset.sversion >= 15e4)
+        appendPQExpBuffer(
+          buf,
+          '  d.daticulocale as "%s",\n',
+          /* gettext_noop */
+          "Locale"
+        );
+      else
+        appendPQExpBuffer(
+          buf,
+          '  NULL as "%s",\n',
+          /* gettext_noop */
+          "Locale"
+        );
+      if (pset.sversion >= 16e4)
+        appendPQExpBuffer(
+          buf,
+          '  d.daticurules as "%s",\n',
+          /* gettext_noop */
+          "ICU Rules"
+        );
+      else
+        appendPQExpBuffer(
+          buf,
+          '  NULL as "%s",\n',
+          /* gettext_noop */
+          "ICU Rules"
+        );
+      appendPQExpBufferStr(buf, "  ");
+      printACLColumn(buf, "d.datacl");
+      if (verbose) {
+        appendPQExpBuffer(
+          buf,
+          `,
+  CASE WHEN pg_catalog.has_database_privilege(d.datname, 'CONNECT')
+       %s       THEN pg_catalog.pg_size_pretty(pg_catalog.pg_database_size(d.datname))
+       ELSE 'No Access'
+  END as "%s",
+  t.spcname as "%s",
+  pg_catalog.shobj_description(d.oid, 'pg_database') as "%s"`,
+          pset.sversion >= 1e5 ? "OR pg_catalog.pg_has_role('pg_read_all_stats', 'USAGE')\n" : "",
+          /* gettext_noop */
+          "Size",
+          /* gettext_noop */
+          "Tablespace",
+          /* gettext_noop */
+          "Description"
+        );
+      }
+      appendPQExpBufferStr(
+        buf,
+        "\nFROM pg_catalog.pg_database d\n"
+      );
+      if (verbose)
+        appendPQExpBufferStr(
+          buf,
+          "  JOIN pg_catalog.pg_tablespace t on d.dattablespace = t.oid\n"
+        );
+      if (pattern != NULL) {
+        if (!validateSQLNamePattern(
+          buf,
+          pattern,
+          false,
+          false,
+          NULL,
+          "d.datname",
+          NULL,
+          NULL,
+          NULL,
+          1
+        )) {
+          return false;
+        }
+      }
+      appendPQExpBufferStr(buf, "ORDER BY 1;");
+      res = await PSQLexec(buf.data);
+      if (!res)
+        return false;
+      myopt.title = /* _ */
+      "List of databases";
+      myopt.translate_header = true;
+      printQuery(res, myopt, pset.queryFout, false, pset.logfile);
+      return true;
+    }
+    async function permissionsList(pattern, showSystem) {
+      let buf = {};
+      let res;
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [false, false, true, false, false, false];
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get access privileges of matching relations"));
+      addQueryComment(buf, "Get access privileges of matching relations");
       appendPQExpBuffer(
         buf,
         `SELECT n.nspname as "%s",
   c.relname as "%s",
   CASE c.relkind WHEN 'r' THEN '%s' WHEN 'v' THEN '%s' WHEN 'm' THEN '%s' WHEN 'S' THEN '%s' WHEN 'f' THEN '%s' WHEN 'p' THEN '%s' END as "%s",
   `,
-        gettext_noop("Schema"),
-        gettext_noop("Name"),
-        gettext_noop("table"),
-        gettext_noop("view"),
-        gettext_noop("materialized view"),
-        gettext_noop("sequence"),
-        gettext_noop("foreign table"),
-        gettext_noop("partitioned table"),
-        gettext_noop("Type")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "table",
+        /* gettext_noop */
+        "view",
+        /* gettext_noop */
+        "materialized view",
+        /* gettext_noop */
+        "sequence",
+        /* gettext_noop */
+        "foreign table",
+        /* gettext_noop */
+        "partitioned table",
+        /* gettext_noop */
+        "Type"
       );
       printACLColumn(buf, "c.relacl");
       appendPQExpBuffer(
@@ -2192,7 +2213,8 @@ FROM pg_catalog.pg_operator o
     FROM pg_catalog.pg_attribute a
     WHERE attrelid = c.oid AND NOT attisdropped AND attacl IS NOT NULL
   ), E'\\n') AS "%s"`,
-        gettext_noop("Column privileges")
+        /* gettext_noop */
+        "Column privileges"
       );
       if (pset.sversion >= 90500 && pset.sversion < 1e5)
         appendPQExpBuffer(
@@ -2224,7 +2246,8 @@ FROM pg_catalog.pg_operator o
     FROM pg_catalog.pg_policy pol
     WHERE polrelid = c.oid), E'\\n')
     AS "%s"`,
-          gettext_noop("Policies")
+          /* gettext_noop */
+          "Policies"
         );
       if (pset.sversion >= 1e5)
         appendPQExpBuffer(
@@ -2259,10 +2282,11 @@ FROM pg_catalog.pg_operator o
     FROM pg_catalog.pg_policy pol
     WHERE polrelid = c.oid), E'\\n')
     AS "%s"`,
-          gettext_noop("Policies")
+          /* gettext_noop */
+          "Policies"
         );
       appendPQExpBufferStr(buf, "\nFROM pg_catalog.pg_class c\n     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace\nWHERE c.relkind IN ('r','v','m','S','f','p')\n");
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "      AND n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
@@ -2281,8 +2305,11 @@ FROM pg_catalog.pg_operator o
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      printfPQExpBuffer(buf, _("Access privileges"));
+      printfPQExpBuffer(
+        buf,
+        /* _ */
+        "Access privileges"
+      );
       myopt.title = buf.data;
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
@@ -2291,35 +2318,42 @@ FROM pg_catalog.pg_operator o
       return true;
     }
     async function listDefaultACLs(pattern) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [false, false, true, false];
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching default ACLs"));
+      addQueryComment(buf, "Get matching default ACLs");
       appendPQExpBuffer(
         buf,
         `SELECT pg_catalog.pg_get_userbyid(d.defaclrole) AS "%s",
   n.nspname AS "%s",
   CASE d.defaclobjtype     WHEN '%c' THEN '%s' WHEN '%c' THEN '%s' WHEN '%c' THEN '%s'    WHEN '%c' THEN '%s' WHEN '%c' THEN '%s' WHEN '%c' THEN '%s' END AS "%s",
   `,
-        gettext_noop("Owner"),
-        gettext_noop("Schema"),
-        DEFACLOBJ_RELATION,
-        gettext_noop("table"),
-        DEFACLOBJ_SEQUENCE,
-        gettext_noop("sequence"),
-        DEFACLOBJ_FUNCTION,
-        gettext_noop("function"),
-        DEFACLOBJ_TYPE,
-        gettext_noop("type"),
-        DEFACLOBJ_NAMESPACE,
-        gettext_noop("schema"),
-        DEFACLOBJ_LARGEOBJECT,
-        gettext_noop("large object"),
-        gettext_noop("Type")
+        /* gettext_noop */
+        "Owner",
+        /* gettext_noop */
+        "Schema",
+        "r",
+        /* gettext_noop */
+        "table",
+        "S",
+        /* gettext_noop */
+        "sequence",
+        "f",
+        /* gettext_noop */
+        "function",
+        "T",
+        /* gettext_noop */
+        "type",
+        "n",
+        /* gettext_noop */
+        "schema",
+        "L",
+        /* gettext_noop */
+        "large object",
+        /* gettext_noop */
+        "Type"
       );
       printACLColumn(buf, "d.defaclacl");
       appendPQExpBufferStr(buf, "\nFROM pg_catalog.pg_default_acl d\n     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = d.defaclnamespace\n");
@@ -2340,8 +2374,11 @@ FROM pg_catalog.pg_operator o
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      printfPQExpBuffer(buf, _("Default access privileges"));
+      printfPQExpBuffer(
+        buf,
+        /* _ */
+        "Default access privileges"
+      );
       myopt.title = buf.data;
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
@@ -2350,33 +2387,36 @@ FROM pg_catalog.pg_operator o
       return true;
     }
     async function objectDescription(pattern, showSystem) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [false, false, true, false];
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching object comments"));
+      addQueryComment(buf, "Get matching object comments");
       appendPQExpBuffer(
         buf,
         'SELECT DISTINCT tt.nspname AS "%s", tt.name AS "%s", tt.object AS "%s", d.description AS "%s"\nFROM (\n',
-        gettext_noop("Schema"),
-        gettext_noop("Name"),
-        gettext_noop("Object"),
-        gettext_noop("Description")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Object",
+        /* gettext_noop */
+        "Description"
       );
       appendPQExpBuffer(
         buf,
         "  SELECT pgc.oid as oid, pgc.tableoid AS tableoid,\n  n.nspname as nspname,\n  CAST(pgc.conname AS pg_catalog.text) as name,  CAST('%s' AS pg_catalog.text) as object\n  FROM pg_catalog.pg_constraint pgc\n    JOIN pg_catalog.pg_class c ON c.oid = pgc.conrelid\n    LEFT JOIN pg_catalog.pg_namespace n     ON n.oid = c.relnamespace\n",
-        gettext_noop("table constraint")
+        /* gettext_noop */
+        "table constraint"
       );
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "WHERE n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
         pattern,
-        !showSystem && !pattern,
+        !showSystem && pattern == NULL,
         false,
         "n.nspname",
         "pgc.conname",
@@ -2389,14 +2429,15 @@ FROM pg_catalog.pg_operator o
       appendPQExpBuffer(
         buf,
         "UNION ALL\n  SELECT pgc.oid as oid, pgc.tableoid AS tableoid,\n  n.nspname as nspname,\n  CAST(pgc.conname AS pg_catalog.text) as name,  CAST('%s' AS pg_catalog.text) as object\n  FROM pg_catalog.pg_constraint pgc\n    JOIN pg_catalog.pg_type t ON t.oid = pgc.contypid\n    LEFT JOIN pg_catalog.pg_namespace n     ON n.oid = t.typnamespace\n",
-        gettext_noop("domain constraint")
+        /* gettext_noop */
+        "domain constraint"
       );
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "WHERE n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
         pattern,
-        !showSystem && !pattern,
+        !showSystem && pattern == NULL,
         false,
         "n.nspname",
         "pgc.conname",
@@ -2409,9 +2450,10 @@ FROM pg_catalog.pg_operator o
       appendPQExpBuffer(
         buf,
         "UNION ALL\n  SELECT o.oid as oid, o.tableoid as tableoid,\n  n.nspname as nspname,\n  CAST(o.opcname AS pg_catalog.text) as name,\n  CAST('%s' AS pg_catalog.text) as object\n  FROM pg_catalog.pg_opclass o\n    JOIN pg_catalog.pg_am am ON o.opcmethod = am.oid\n    JOIN pg_catalog.pg_namespace n ON n.oid = o.opcnamespace\n",
-        gettext_noop("operator class")
+        /* gettext_noop */
+        "operator class"
       );
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "      AND n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
@@ -2429,9 +2471,10 @@ FROM pg_catalog.pg_operator o
       appendPQExpBuffer(
         buf,
         "UNION ALL\n  SELECT opf.oid as oid, opf.tableoid as tableoid,\n  n.nspname as nspname,\n  CAST(opf.opfname AS pg_catalog.text) AS name,\n  CAST('%s' AS pg_catalog.text) as object\n  FROM pg_catalog.pg_opfamily opf\n    JOIN pg_catalog.pg_am am ON opf.opfmethod = am.oid\n    JOIN pg_catalog.pg_namespace n ON opf.opfnamespace = n.oid\n",
-        gettext_noop("operator family")
+        /* gettext_noop */
+        "operator family"
       );
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "      AND n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
@@ -2449,9 +2492,10 @@ FROM pg_catalog.pg_operator o
       appendPQExpBuffer(
         buf,
         "UNION ALL\n  SELECT r.oid as oid, r.tableoid as tableoid,\n  n.nspname as nspname,\n  CAST(r.rulename AS pg_catalog.text) as name,  CAST('%s' AS pg_catalog.text) as object\n  FROM pg_catalog.pg_rewrite r\n       JOIN pg_catalog.pg_class c ON c.oid = r.ev_class\n       LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace\n  WHERE r.rulename != '_RETURN'\n",
-        gettext_noop("rule")
+        /* gettext_noop */
+        "rule"
       );
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "      AND n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
@@ -2469,14 +2513,15 @@ FROM pg_catalog.pg_operator o
       appendPQExpBuffer(
         buf,
         "UNION ALL\n  SELECT t.oid as oid, t.tableoid as tableoid,\n  n.nspname as nspname,\n  CAST(t.tgname AS pg_catalog.text) as name,  CAST('%s' AS pg_catalog.text) as object\n  FROM pg_catalog.pg_trigger t\n       JOIN pg_catalog.pg_class c ON c.oid = t.tgrelid\n       LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace\n",
-        gettext_noop("trigger")
+        /* gettext_noop */
+        "trigger"
       );
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "WHERE n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
         pattern,
-        !showSystem && !pattern,
+        !showSystem && pattern == NULL,
         false,
         "n.nspname",
         "t.tgname",
@@ -2494,8 +2539,8 @@ FROM pg_catalog.pg_operator o
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("Object descriptions");
+      myopt.title = /* _ */
+      "Object descriptions";
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
       myopt.n_translate_columns = lengthof(translate_columns);
@@ -2503,23 +2548,21 @@ FROM pg_catalog.pg_operator o
       return true;
     }
     async function describeTableDetails(pattern, verbose, showSystem) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
       let i;
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching relations to describe"));
+      addQueryComment(buf, "Get matching relations to describe");
       appendPQExpBufferStr(
         buf,
         "SELECT c.oid,\n  n.nspname,\n  c.relname\nFROM pg_catalog.pg_class c\n     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace\n"
       );
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "WHERE n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
         pattern,
-        !showSystem && !pattern,
+        !showSystem && pattern == NULL,
         false,
         "n.nspname",
         "c.relname",
@@ -2536,7 +2579,7 @@ FROM pg_catalog.pg_operator o
         return false;
       if (PQntuples(res) == 0) {
         if (!pset.quiet) {
-          if (pattern)
+          if (pattern != NULL)
             pg_log_error(
               'Did not find any relation named "%s".',
               pattern
@@ -2564,23 +2607,16 @@ FROM pg_catalog.pg_operator o
     }
     async function describeOneTableDetails(schemaname, relationname, oid, verbose) {
       let retval = false;
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res = NULL;
-      let myopt = { ...pset.popt.topt };
-      let cont = {
-        /* struct */
-      };
+      let myopt = copy_printTableOpt(pset.popt.topt);
+      let cont = {};
+      let printTableInitialized = false;
       let i;
       let view_def = NULL;
       let headers = [];
-      let title = {
-        /* struct */
-      };
-      let tmpbuf = {
-        /* struct */
-      };
+      let title = {};
+      let tmpbuf = {};
       let cols;
       let attname_col = -1, atttype_col = -1, attrdef_col = -1, attnotnull_col = -1, attcoll_col = -1, attidentity_col = -1, attgenerated_col = -1, isindexkey_col = -1, indexdef_col = -1, fdwopts_col = -1, attstorage_col = -1, attcompression_col = -1, attstattarget_col = -1, attdescr_col = -1;
       let numrows;
@@ -2591,11 +2627,7 @@ FROM pg_catalog.pg_operator o
       initPQExpBuffer(buf);
       initPQExpBuffer(title);
       initPQExpBuffer(tmpbuf);
-      printfPQExpBuffer(
-        buf,
-        "/* %s */\n",
-        _("Get general information about one relation")
-      );
+      addQueryComment(buf, "Get general information about one relation");
       if (pset.sversion >= 12e4) {
         appendPQExpBuffer(
           buf,
@@ -2641,7 +2673,7 @@ FROM pg_catalog.pg_operator o
         return retval;
       }
       tableinfo.checks = atoi(PQgetvalue(res, 0, 0));
-      tableinfo.relkind = PQgetvalue(res, 0, 1);
+      tableinfo.relkind = PQgetvalue(res, 0, 1)[0];
       tableinfo.hasindex = strcmp(PQgetvalue(res, 0, 2), "t") == 0;
       tableinfo.hasrules = strcmp(PQgetvalue(res, 0, 3), "t") == 0;
       tableinfo.hastriggers = strcmp(PQgetvalue(res, 0, 4), "t") == 0;
@@ -2649,21 +2681,28 @@ FROM pg_catalog.pg_operator o
       tableinfo.forcerowsecurity = strcmp(PQgetvalue(res, 0, 6), "t") == 0;
       tableinfo.hasoids = strcmp(PQgetvalue(res, 0, 7), "t") == 0;
       tableinfo.ispartition = strcmp(PQgetvalue(res, 0, 8), "t") == 0;
-      tableinfo.reloptions = pg_strdup(PQgetvalue(res, 0, 9));
+      tableinfo.reloptions = /* pg_strdup */
+      PQgetvalue(res, 0, 9);
       tableinfo.tablespace = atooid(PQgetvalue(res, 0, 10));
-      tableinfo.reloftype = strcmp(PQgetvalue(res, 0, 11), "") != 0 ? pg_strdup(PQgetvalue(res, 0, 11)) : NULL;
-      tableinfo.relpersistence = PQgetvalue(res, 0, 12);
-      tableinfo.relreplident = pset.sversion >= 90400 ? PQgetvalue(res, 0, 13) : "d";
+      tableinfo.reloftype = strcmp(PQgetvalue(res, 0, 11), "") != 0 ? (
+        /* pg_strdup */
+        PQgetvalue(res, 0, 11)
+      ) : NULL;
+      tableinfo.relpersistence = PQgetvalue(res, 0, 12)[0];
+      tableinfo.relreplident = pset.sversion >= 90400 ? PQgetvalue(res, 0, 13)[0] : "d";
       if (pset.sversion >= 12e4)
-        tableinfo.relam = PQgetisnull(res, 0, 14) ? NULL : pg_strdup(PQgetvalue(res, 0, 14));
+        tableinfo.relam = PQgetisnull(res, 0, 14) ? NULL : (
+          /* pg_strdup */
+          PQgetvalue(res, 0, 14)
+        );
       else
         tableinfo.relam = NULL;
       res = NULL;
-      if (tableinfo.relkind == RELKIND_SEQUENCE) {
+      if (tableinfo.relkind == "S") {
         let result = NULL;
-        let myopt2 = pset.popt;
+        let myopt2 = copy_printQueryOpt(pset.popt);
         let footers = [NULL, NULL, NULL];
-        printfPQExpBuffer(buf, "/* %s */\n", _("Get sequence information"));
+        addQueryComment(buf, "Get sequence information");
         if (pset.sversion >= 1e5) {
           appendPQExpBuffer(
             buf,
@@ -2675,15 +2714,24 @@ FROM pg_catalog.pg_operator o
        CASE WHEN seqcycle THEN '%s' ELSE '%s' END AS "%s",
        seqcache AS "%s"
 `,
-            gettext_noop("Type"),
-            gettext_noop("Start"),
-            gettext_noop("Minimum"),
-            gettext_noop("Maximum"),
-            gettext_noop("Increment"),
-            gettext_noop("yes"),
-            gettext_noop("no"),
-            gettext_noop("Cycles?"),
-            gettext_noop("Cache")
+            /* gettext_noop */
+            "Type",
+            /* gettext_noop */
+            "Start",
+            /* gettext_noop */
+            "Minimum",
+            /* gettext_noop */
+            "Maximum",
+            /* gettext_noop */
+            "Increment",
+            /* gettext_noop */
+            "yes",
+            /* gettext_noop */
+            "no",
+            /* gettext_noop */
+            "Cycles?",
+            /* gettext_noop */
+            "Cache"
           );
           appendPQExpBuffer(
             buf,
@@ -2701,15 +2749,24 @@ FROM pg_catalog.pg_operator o
        CASE WHEN is_cycled THEN '%s' ELSE '%s' END AS "%s",
        cache_value AS "%s"
 `,
-            gettext_noop("Type"),
-            gettext_noop("Start"),
-            gettext_noop("Minimum"),
-            gettext_noop("Maximum"),
-            gettext_noop("Increment"),
-            gettext_noop("yes"),
-            gettext_noop("no"),
-            gettext_noop("Cycles?"),
-            gettext_noop("Cache")
+            /* gettext_noop */
+            "Type",
+            /* gettext_noop */
+            "Start",
+            /* gettext_noop */
+            "Minimum",
+            /* gettext_noop */
+            "Maximum",
+            /* gettext_noop */
+            "Increment",
+            /* gettext_noop */
+            "yes",
+            /* gettext_noop */
+            "no",
+            /* gettext_noop */
+            "Cycles?",
+            /* gettext_noop */
+            "Cache"
           );
           appendPQExpBuffer(buf, "FROM %s", fmtId(schemaname));
           appendPQExpBuffer(buf, ".%s;", fmtId(relationname));
@@ -2717,11 +2774,7 @@ FROM pg_catalog.pg_operator o
         res = await PSQLexec(buf.data);
         if (!res)
           return retval;
-        printfPQExpBuffer(
-          buf,
-          "/* %s */\n",
-          _("Get the column that owns this sequence")
-        );
+        addQueryComment(buf, "Get the column that owns this sequence");
         appendPQExpBuffer(
           buf,
           "SELECT pg_catalog.quote_ident(nspname) || '.' ||\n   pg_catalog.quote_ident(relname) || '.' ||\n   pg_catalog.quote_ident(attname),\n   d.deptype\nFROM pg_catalog.pg_class c\nINNER JOIN pg_catalog.pg_depend d ON c.oid=d.refobjid\nINNER JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace\nINNER JOIN pg_catalog.pg_attribute a ON (\n a.attrelid=c.oid AND\n a.attnum=d.refobjsubid)\nWHERE d.classid='pg_catalog.pg_class'::pg_catalog.regclass\n AND d.refclassid='pg_catalog.pg_class'::pg_catalog.regclass\n AND d.objid='%s'\n AND d.deptype IN ('a', 'i')",
@@ -2734,24 +2787,22 @@ FROM pg_catalog.pg_operator o
           switch (PQgetvalue(result, 0, 1)[0]) {
             case "a":
               footers[0] = psprintf(
-                _("Owned by: %s"),
+                /* _ */
+                "Owned by: %s",
                 PQgetvalue(result, 0, 0)
               );
               break;
             case "i":
               footers[0] = psprintf(
-                _("Sequence for identity column: %s"),
+                /* _ */
+                "Sequence for identity column: %s",
                 PQgetvalue(result, 0, 0)
               );
               break;
           }
         }
         if (pset.sversion >= 19e4) {
-          printfPQExpBuffer(
-            buf,
-            "/* %s */\n",
-            _("Get publications containing this sequence")
-          );
+          addQueryComment(buf, "Get publications containing this sequence");
           appendPQExpBuffer(
             buf,
             "SELECT pubname FROM pg_catalog.pg_publication p\nWHERE p.puballsequences\n AND pg_catalog.pg_relation_is_publishable('%s')\nORDER BY 1",
@@ -2761,13 +2812,19 @@ FROM pg_catalog.pg_operator o
           if (result) {
             let nrows = PQntuples(result);
             if (nrows > 0) {
-              printfPQExpBuffer(tmpbuf, _("Included in publications:"));
+              printfPQExpBuffer(
+                tmpbuf,
+                /* _ */
+                "Included in publications:"
+              );
               for (i = 0; i < nrows; i++)
                 appendPQExpBuffer(tmpbuf, '\n    "%s"', PQgetvalue(result, i, 0));
               if (footers[0] == NULL)
-                footers[0] = pg_strdup(tmpbuf.data);
+                footers[0] = /* pg_strdup */
+                tmpbuf.data;
               else
-                footers[1] = pg_strdup(tmpbuf.data);
+                footers[1] = /* pg_strdup */
+                tmpbuf.data;
               resetPQExpBuffer(tmpbuf);
             }
           }
@@ -2775,14 +2832,16 @@ FROM pg_catalog.pg_operator o
         if (tableinfo.relpersistence == "u")
           printfPQExpBuffer(
             title,
-            _('Unlogged sequence "%s.%s"'),
+            /* _ */
+            'Unlogged sequence "%s.%s"',
             schemaname,
             relationname
           );
         else
           printfPQExpBuffer(
             title,
-            _('Sequence "%s.%s"'),
+            /* _ */
+            'Sequence "%s.%s"',
             schemaname,
             relationname
           );
@@ -2794,14 +2853,10 @@ FROM pg_catalog.pg_operator o
         retval = true;
         return retval;
       }
-      if (tableinfo.relkind == RELKIND_RELATION || tableinfo.relkind == RELKIND_VIEW || tableinfo.relkind == RELKIND_MATVIEW || tableinfo.relkind == RELKIND_FOREIGN_TABLE || tableinfo.relkind == RELKIND_COMPOSITE_TYPE || tableinfo.relkind == RELKIND_PARTITIONED_TABLE)
+      if (tableinfo.relkind == "r" || tableinfo.relkind == "v" || tableinfo.relkind == "m" || tableinfo.relkind == "f" || tableinfo.relkind == "c" || tableinfo.relkind == "p")
         show_column_details = true;
       cols = 0;
-      printfPQExpBuffer(
-        buf,
-        "/* %s */\n",
-        _("Get per-column information for one relation")
-      );
+      addQueryComment(buf, "Get per-column information for one relation");
       appendPQExpBufferStr(buf, "SELECT a.attname");
       attname_col = cols++;
       appendPQExpBufferStr(buf, ",\n  pg_catalog.format_type(a.atttypid, a.atttypmod)");
@@ -2826,36 +2881,38 @@ FROM pg_catalog.pg_operator o
           appendPQExpBufferStr(buf, ",\n  ''::pg_catalog.char AS attgenerated");
         attgenerated_col = cols++;
       }
-      if (tableinfo.relkind == RELKIND_INDEX || tableinfo.relkind == RELKIND_PARTITIONED_INDEX) {
+      if (tableinfo.relkind == "i" || tableinfo.relkind == "I") {
         if (pset.sversion >= 11e4) {
           appendPQExpBuffer(
             buf,
             ",\n  CASE WHEN a.attnum <= (SELECT i.indnkeyatts FROM pg_catalog.pg_index i WHERE i.indexrelid = '%s') THEN '%s' ELSE '%s' END AS is_key",
             oid,
-            gettext_noop("yes"),
-            gettext_noop("no")
+            /* gettext_noop */
+            "yes",
+            /* gettext_noop */
+            "no"
           );
           isindexkey_col = cols++;
         }
         appendPQExpBufferStr(buf, ",\n  pg_catalog.pg_get_indexdef(a.attrelid, a.attnum, TRUE) AS indexdef");
         indexdef_col = cols++;
       }
-      if (tableinfo.relkind == RELKIND_FOREIGN_TABLE) {
+      if (tableinfo.relkind == "f") {
         appendPQExpBufferStr(buf, ",\n  CASE WHEN attfdwoptions IS NULL THEN '' ELSE   '(' || pg_catalog.array_to_string(ARRAY(SELECT pg_catalog.quote_ident(option_name) || ' ' || pg_catalog.quote_literal(option_value)  FROM   pg_catalog.pg_options_to_table(attfdwoptions)), ', ') || ')' END AS attfdwoptions");
         fdwopts_col = cols++;
       }
       if (verbose) {
         appendPQExpBufferStr(buf, ",\n  a.attstorage");
         attstorage_col = cols++;
-        if (pset.sversion >= 14e4 && !pset.hide_compression && (tableinfo.relkind == RELKIND_RELATION || tableinfo.relkind == RELKIND_PARTITIONED_TABLE || tableinfo.relkind == RELKIND_MATVIEW)) {
+        if (pset.sversion >= 14e4 && !pset.hide_compression && (tableinfo.relkind == "r" || tableinfo.relkind == "p" || tableinfo.relkind == "m")) {
           appendPQExpBufferStr(buf, ",\n  a.attcompression AS attcompression");
           attcompression_col = cols++;
         }
-        if (tableinfo.relkind == RELKIND_RELATION || tableinfo.relkind == RELKIND_INDEX || tableinfo.relkind == RELKIND_PARTITIONED_INDEX || tableinfo.relkind == RELKIND_MATVIEW || tableinfo.relkind == RELKIND_FOREIGN_TABLE || tableinfo.relkind == RELKIND_PARTITIONED_TABLE) {
+        if (tableinfo.relkind == "r" || tableinfo.relkind == "i" || tableinfo.relkind == "I" || tableinfo.relkind == "m" || tableinfo.relkind == "f" || tableinfo.relkind == "p") {
           appendPQExpBufferStr(buf, ",\n  CASE WHEN a.attstattarget=-1 THEN NULL ELSE a.attstattarget END AS attstattarget");
           attstattarget_col = cols++;
         }
-        if (tableinfo.relkind == RELKIND_RELATION || tableinfo.relkind == RELKIND_VIEW || tableinfo.relkind == RELKIND_MATVIEW || tableinfo.relkind == RELKIND_FOREIGN_TABLE || tableinfo.relkind == RELKIND_COMPOSITE_TYPE || tableinfo.relkind == RELKIND_PARTITIONED_TABLE) {
+        if (tableinfo.relkind == "r" || tableinfo.relkind == "v" || tableinfo.relkind == "m" || tableinfo.relkind == "f" || tableinfo.relkind == "c" || tableinfo.relkind == "p") {
           appendPQExpBufferStr(buf, ",\n  pg_catalog.col_description(a.attrelid, a.attnum)");
           attdescr_col = cols++;
         }
@@ -2868,106 +2925,119 @@ FROM pg_catalog.pg_operator o
         return retval;
       numrows = PQntuples(res);
       switch (tableinfo.relkind) {
-        case RELKIND_RELATION:
+        case "r":
           if (tableinfo.relpersistence == "u")
             printfPQExpBuffer(
               title,
-              _('Unlogged table "%s.%s"'),
+              /* _ */
+              'Unlogged table "%s.%s"',
               schemaname,
               relationname
             );
           else
             printfPQExpBuffer(
               title,
-              _('Table "%s.%s"'),
+              /* _ */
+              'Table "%s.%s"',
               schemaname,
               relationname
             );
           break;
-        case RELKIND_VIEW:
+        case "v":
           printfPQExpBuffer(
             title,
-            _('View "%s.%s"'),
+            /* _ */
+            'View "%s.%s"',
             schemaname,
             relationname
           );
           break;
-        case RELKIND_MATVIEW:
+        case "m":
           printfPQExpBuffer(
             title,
-            _('Materialized view "%s.%s"'),
+            /* _ */
+            'Materialized view "%s.%s"',
             schemaname,
             relationname
           );
           break;
-        case RELKIND_INDEX:
+        case "i":
           if (tableinfo.relpersistence == "u")
             printfPQExpBuffer(
               title,
-              _('Unlogged index "%s.%s"'),
+              /* _ */
+              'Unlogged index "%s.%s"',
               schemaname,
               relationname
             );
           else
             printfPQExpBuffer(
               title,
-              _('Index "%s.%s"'),
+              /* _ */
+              'Index "%s.%s"',
               schemaname,
               relationname
             );
           break;
-        case RELKIND_PARTITIONED_INDEX:
+        case "I":
           if (tableinfo.relpersistence == "u")
             printfPQExpBuffer(
               title,
-              _('Unlogged partitioned index "%s.%s"'),
+              /* _ */
+              'Unlogged partitioned index "%s.%s"',
               schemaname,
               relationname
             );
           else
             printfPQExpBuffer(
               title,
-              _('Partitioned index "%s.%s"'),
+              /* _ */
+              'Partitioned index "%s.%s"',
               schemaname,
               relationname
             );
           break;
-        case RELKIND_TOASTVALUE:
+        case "t":
           printfPQExpBuffer(
             title,
-            _('TOAST table "%s.%s"'),
+            /* _ */
+            'TOAST table "%s.%s"',
             schemaname,
             relationname
           );
           break;
-        case RELKIND_COMPOSITE_TYPE:
+        case "c":
           printfPQExpBuffer(
             title,
-            _('Composite type "%s.%s"'),
+            /* _ */
+            'Composite type "%s.%s"',
             schemaname,
             relationname
           );
           break;
-        case RELKIND_FOREIGN_TABLE:
+        case "f":
           printfPQExpBuffer(
             title,
-            _('Foreign table "%s.%s"'),
+            /* _ */
+            'Foreign table "%s.%s"',
             schemaname,
             relationname
           );
           break;
-        case RELKIND_PARTITIONED_TABLE:
+        case "p":
           if (tableinfo.relpersistence == "u")
             printfPQExpBuffer(
               title,
-              _('Unlogged partitioned table "%s.%s"'),
+              /* _ */
+              'Unlogged partitioned table "%s.%s"',
               schemaname,
               relationname
             );
           else
             printfPQExpBuffer(
               title,
-              _('Partitioned table "%s.%s"'),
+              /* _ */
+              'Partitioned table "%s.%s"',
               schemaname,
               relationname
             );
@@ -2983,29 +3053,42 @@ FROM pg_catalog.pg_operator o
           break;
       }
       cols = 0;
-      headers[cols++] = gettext_noop("Column");
-      headers[cols++] = gettext_noop("Type");
+      headers[cols++] = /* gettext_noop */
+      "Column";
+      headers[cols++] = /* gettext_noop */
+      "Type";
       if (show_column_details) {
-        headers[cols++] = gettext_noop("Collation");
-        headers[cols++] = gettext_noop("Nullable");
-        headers[cols++] = gettext_noop("Default");
+        headers[cols++] = /* gettext_noop */
+        "Collation";
+        headers[cols++] = /* gettext_noop */
+        "Nullable";
+        headers[cols++] = /* gettext_noop */
+        "Default";
       }
       if (isindexkey_col >= 0)
-        headers[cols++] = gettext_noop("Key?");
+        headers[cols++] = /* gettext_noop */
+        "Key?";
       if (indexdef_col >= 0)
-        headers[cols++] = gettext_noop("Definition");
+        headers[cols++] = /* gettext_noop */
+        "Definition";
       if (fdwopts_col >= 0)
-        headers[cols++] = gettext_noop("FDW options");
+        headers[cols++] = /* gettext_noop */
+        "FDW options";
       if (attstorage_col >= 0)
-        headers[cols++] = gettext_noop("Storage");
+        headers[cols++] = /* gettext_noop */
+        "Storage";
       if (attcompression_col >= 0)
-        headers[cols++] = gettext_noop("Compression");
+        headers[cols++] = /* gettext_noop */
+        "Compression";
       if (attstattarget_col >= 0)
-        headers[cols++] = gettext_noop("Stats target");
+        headers[cols++] = /* gettext_noop */
+        "Stats target";
       if (attdescr_col >= 0)
-        headers[cols++] = gettext_noop("Description");
+        headers[cols++] = /* gettext_noop */
+        "Description";
       Assert(cols <= lengthof(headers));
       printTableInit(cont, myopt, title.data, cols, numrows);
+      printTableInitialized = true;
       for (i = 0; i < cols; i++)
         printTableAddHeader(cont, headers[i], true, "l");
       for (i = 0; i < numrows; i++) {
@@ -3025,17 +3108,17 @@ FROM pg_catalog.pg_operator o
           );
           identity = PQgetvalue(res, i, attidentity_col);
           generated = PQgetvalue(res, i, attgenerated_col);
-          if (identity[0] == ATTRIBUTE_IDENTITY_ALWAYS)
+          if (identity[0] == "a")
             default_str = "generated always as identity";
-          else if (identity[0] == ATTRIBUTE_IDENTITY_BY_DEFAULT)
+          else if (identity[0] == "d")
             default_str = "generated by default as identity";
-          else if (generated[0] == ATTRIBUTE_GENERATED_STORED) {
+          else if (generated[0] == "s") {
             default_str = psprintf(
               "generated always as (%s) stored",
               PQgetvalue(res, i, attrdef_col)
             );
             mustfree = true;
-          } else if (generated[0] == ATTRIBUTE_GENERATED_VIRTUAL) {
+          } else if (generated[0] == "v") {
             default_str = psprintf(
               "generated always as (%s)",
               PQgetvalue(res, i, attrdef_col)
@@ -3064,7 +3147,7 @@ FROM pg_catalog.pg_operator o
           let compression = PQgetvalue(res, i, attcompression_col);
           printTableAddCell(
             cont,
-            compression[0] == "p" ? "pglz" : compression[0] == "l" ? "lz4" : compression[0] == NULL ? "" : "???",
+            compression[0] == "p" ? "pglz" : compression[0] == "l" ? "lz4" : compression[0] == void 0 ? "" : "???",
             false,
             false
           );
@@ -3086,11 +3169,7 @@ FROM pg_catalog.pg_operator o
       }
       if (tableinfo.ispartition) {
         let result;
-        printfPQExpBuffer(
-          buf,
-          "/* %s */\n",
-          _("Get partitioning information for this partition")
-        );
+        addQueryComment(buf, "Get partitioning information for this partition");
         appendPQExpBufferStr(
           buf,
           "SELECT inhparent::pg_catalog.regclass,\n  pg_catalog.pg_get_expr(c.relpartbound, c.oid),\n  "
@@ -3118,7 +3197,8 @@ FROM pg_catalog.pg_operator o
           let detached = PQgetvalue(result, 0, 2);
           printfPQExpBuffer(
             tmpbuf,
-            _("Partition of: %s %s%s"),
+            /* _ */
+            "Partition of: %s %s%s",
             parent_name,
             partdef,
             strcmp(detached, "t") == 0 ? " DETACH PENDING" : ""
@@ -3128,25 +3208,26 @@ FROM pg_catalog.pg_operator o
             let partconstraintdef = NULL;
             if (!PQgetisnull(result, 0, 3))
               partconstraintdef = PQgetvalue(result, 0, 3);
-            if (partconstraintdef == NULL || partconstraintdef[0] == NULL)
-              printfPQExpBuffer(tmpbuf, _("No partition constraint"));
+            if (partconstraintdef == NULL || partconstraintdef[0] == void 0)
+              printfPQExpBuffer(
+                tmpbuf,
+                /* _ */
+                "No partition constraint"
+              );
             else
               printfPQExpBuffer(
                 tmpbuf,
-                _("Partition constraint: %s"),
+                /* _ */
+                "Partition constraint: %s",
                 partconstraintdef
               );
             printTableAddFooter(cont, tmpbuf.data);
           }
         }
       }
-      if (tableinfo.relkind == RELKIND_PARTITIONED_TABLE) {
+      if (tableinfo.relkind == "p") {
         let result;
-        printfPQExpBuffer(
-          buf,
-          "/* %s */\n",
-          _("Get partitioning information for this table")
-        );
+        addQueryComment(buf, "Get partitioning information for this table");
         appendPQExpBuffer(
           buf,
           "SELECT pg_catalog.pg_get_partkeydef('%s'::pg_catalog.oid);",
@@ -3157,17 +3238,18 @@ FROM pg_catalog.pg_operator o
           return retval;
         if (PQntuples(result) == 1) {
           let partkeydef = PQgetvalue(result, 0, 0);
-          printfPQExpBuffer(tmpbuf, _("Partition key: %s"), partkeydef);
+          printfPQExpBuffer(
+            tmpbuf,
+            /* _ */
+            "Partition key: %s",
+            partkeydef
+          );
           printTableAddFooter(cont, tmpbuf.data);
         }
       }
-      if (tableinfo.relkind == RELKIND_TOASTVALUE) {
+      if (tableinfo.relkind == "t") {
         let result;
-        printfPQExpBuffer(
-          buf,
-          "/* %s */\n",
-          _("Get the table that owns this TOAST table")
-        );
+        addQueryComment(buf, "Get the table that owns this TOAST table");
         appendPQExpBuffer(
           buf,
           "SELECT n.nspname, c.relname\nFROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace\nWHERE reltoastrelid = '%s';",
@@ -3181,16 +3263,17 @@ FROM pg_catalog.pg_operator o
           let relname = PQgetvalue(result, 0, 1);
           printfPQExpBuffer(
             tmpbuf,
-            _('Owning table: "%s.%s"'),
+            /* _ */
+            'Owning table: "%s.%s"',
             schemaname2,
             relname
           );
           printTableAddFooter(cont, tmpbuf.data);
         }
       }
-      if (tableinfo.relkind == RELKIND_INDEX || tableinfo.relkind == RELKIND_PARTITIONED_INDEX) {
+      if (tableinfo.relkind == "i" || tableinfo.relkind == "I") {
         let result;
-        printfPQExpBuffer(buf, "/* %s */\n", _("Get index details"));
+        addQueryComment(buf, "Get index details");
         appendPQExpBufferStr(
           buf,
           "SELECT i.indisunique, i.indisprimary, i.indisclustered, i.indisvalid,\n  (NOT i.indimmediate) AND EXISTS (SELECT 1 FROM pg_catalog.pg_constraint WHERE conrelid = i.indrelid AND conindid = i.indexrelid AND contype IN ('p','u','x') AND condeferrable) AS condeferrable,\n  (NOT i.indimmediate) AND EXISTS (SELECT 1 FROM pg_catalog.pg_constraint WHERE conrelid = i.indrelid AND conindid = i.indexrelid AND contype IN ('p','u','x') AND condeferred) AS condeferred,\n"
@@ -3226,35 +3309,73 @@ FROM pg_catalog.pg_operator o
           let indtable = PQgetvalue(result, 0, 9);
           let indpred = PQgetvalue(result, 0, 10);
           if (strcmp(indisprimary, "t") == 0)
-            printfPQExpBuffer(tmpbuf, _("primary key, "));
+            printfPQExpBuffer(
+              tmpbuf,
+              /* _ */
+              "primary key, "
+            );
           else if (strcmp(indisunique, "t") == 0) {
             if (strcmp(indnullsnotdistinct, "t") == 0)
-              printfPQExpBuffer(tmpbuf, _("unique nulls not distinct, "));
+              printfPQExpBuffer(
+                tmpbuf,
+                /* _ */
+                "unique nulls not distinct, "
+              );
             else
-              printfPQExpBuffer(tmpbuf, _("unique, "));
+              printfPQExpBuffer(
+                tmpbuf,
+                /* _ */
+                "unique, "
+              );
           } else
             resetPQExpBuffer(tmpbuf);
           appendPQExpBuffer(
             tmpbuf,
-            _('%s, for table "%s.%s"'),
+            /* _ */
+            '%s, for table "%s.%s"',
             indamname,
             schemaname,
             indtable
           );
           if (strlen(indpred))
-            appendPQExpBuffer(tmpbuf, _(", predicate (%s)"), indpred);
+            appendPQExpBuffer(
+              tmpbuf,
+              /* _ */
+              ", predicate (%s)",
+              indpred
+            );
           if (strcmp(indisclustered, "t") == 0)
-            appendPQExpBufferStr(tmpbuf, _(", clustered"));
+            appendPQExpBufferStr(
+              tmpbuf,
+              /* _ */
+              ", clustered"
+            );
           if (strcmp(indisvalid, "t") != 0)
-            appendPQExpBufferStr(tmpbuf, _(", invalid"));
+            appendPQExpBufferStr(
+              tmpbuf,
+              /* _ */
+              ", invalid"
+            );
           if (strcmp(deferrable, "t") == 0)
-            appendPQExpBufferStr(tmpbuf, _(", deferrable"));
+            appendPQExpBufferStr(
+              tmpbuf,
+              /* _ */
+              ", deferrable"
+            );
           if (strcmp(deferred, "t") == 0)
-            appendPQExpBufferStr(tmpbuf, _(", initially deferred"));
+            appendPQExpBufferStr(
+              tmpbuf,
+              /* _ */
+              ", initially deferred"
+            );
           if (strcmp(indisreplident, "t") == 0)
-            appendPQExpBufferStr(tmpbuf, _(", replica identity"));
+            appendPQExpBufferStr(
+              tmpbuf,
+              /* _ */
+              ", replica identity"
+            );
           printTableAddFooter(cont, tmpbuf.data);
-          if (tableinfo.relkind == RELKIND_INDEX)
+          if (tableinfo.relkind == "i")
             await add_tablespace_footer(
               cont,
               tableinfo.relkind,
@@ -3262,11 +3383,11 @@ FROM pg_catalog.pg_operator o
               true
             );
         }
-      } else if (tableinfo.relkind == RELKIND_RELATION || tableinfo.relkind == RELKIND_MATVIEW || tableinfo.relkind == RELKIND_FOREIGN_TABLE || tableinfo.relkind == RELKIND_PARTITIONED_TABLE || tableinfo.relkind == RELKIND_PARTITIONED_INDEX || tableinfo.relkind == RELKIND_TOASTVALUE) {
+      } else if (tableinfo.relkind == "r" || tableinfo.relkind == "m" || tableinfo.relkind == "f" || tableinfo.relkind == "p" || tableinfo.relkind == "I" || tableinfo.relkind == "t") {
         let result = NULL;
         let tuples = 0;
         if (tableinfo.hasindex) {
-          printfPQExpBuffer(buf, "/* %s */\n", _("Get indexes for this table"));
+          addQueryComment(buf, "Get indexes for this table");
           appendPQExpBufferStr(
             buf,
             "SELECT c2.relname, i.indisprimary, i.indisunique, i.indisclustered, i.indisvalid, pg_catalog.pg_get_indexdef(i.indexrelid, 0, true),\n  pg_catalog.pg_get_constraintdef(con.oid, true), contype, condeferrable, condeferred"
@@ -3291,7 +3412,11 @@ FROM pg_catalog.pg_operator o
           else
             tuples = PQntuples(result);
           if (tuples > 0) {
-            printTableAddFooter(cont, _("Indexes:"));
+            printTableAddFooter(
+              cont,
+              /* _ */
+              "Indexes:"
+            );
             for (i = 0; i < tuples; i++) {
               printfPQExpBuffer(
                 buf,
@@ -3318,7 +3443,7 @@ FROM pg_catalog.pg_operator o
                 indexdef = PQgetvalue(result, i, 5);
                 usingpos = strstr(indexdef, " USING ");
                 if (usingpos != NULL)
-                  indexdef = indexdef.slice(usingpos + 7);
+                  indexdef = usingpos.slice(7);
                 appendPQExpBuffer(buf, " %s", indexdef);
                 if (strcmp(PQgetvalue(result, i, 8), "t") == 0)
                   appendPQExpBufferStr(buf, " DEFERRABLE");
@@ -3334,7 +3459,7 @@ FROM pg_catalog.pg_operator o
               printTableAddFooter(cont, buf.data);
               await add_tablespace_footer(
                 cont,
-                RELKIND_INDEX,
+                "i",
                 atooid(PQgetvalue(result, i, 11)),
                 false
               );
@@ -3342,11 +3467,7 @@ FROM pg_catalog.pg_operator o
           }
         }
         if (tableinfo.checks) {
-          printfPQExpBuffer(
-            buf,
-            "/* %s */\n",
-            _("Get check constraints for this table")
-          );
+          addQueryComment(buf, "Get check constraints for this table");
           appendPQExpBuffer(
             buf,
             "SELECT r.conname, pg_catalog.pg_get_constraintdef(r.oid, true)\nFROM pg_catalog.pg_constraint r\nWHERE r.conrelid = '%s' AND r.contype = 'c'\nORDER BY 1;",
@@ -3358,7 +3479,11 @@ FROM pg_catalog.pg_operator o
           else
             tuples = PQntuples(result);
           if (tuples > 0) {
-            printTableAddFooter(cont, _("Check constraints:"));
+            printTableAddFooter(
+              cont,
+              /* _ */
+              "Check constraints:"
+            );
             for (i = 0; i < tuples; i++) {
               printfPQExpBuffer(
                 buf,
@@ -3370,12 +3495,8 @@ FROM pg_catalog.pg_operator o
             }
           }
         }
-        printfPQExpBuffer(
-          buf,
-          "/* %s */\n",
-          _("Get foreign key constraints for this table")
-        );
-        if (pset.sversion >= 12e4 && (tableinfo.ispartition || tableinfo.relkind == RELKIND_PARTITIONED_TABLE)) {
+        addQueryComment(buf, "Get foreign key constraints for this table");
+        if (pset.sversion >= 12e4 && (tableinfo.ispartition || tableinfo.relkind == "p")) {
           appendPQExpBuffer(
             buf,
             "SELECT conrelid = '%s'::pg_catalog.regclass AS sametable,\n       conname,\n       pg_catalog.pg_get_constraintdef(oid, true) AS condef,\n       conrelid::pg_catalog.regclass AS ontable\n  FROM pg_catalog.pg_constraint,\n       pg_catalog.pg_partition_ancestors('%s')\n WHERE conrelid = relid AND contype = 'f' AND conparentid = 0\nORDER BY sametable DESC, conname;",
@@ -3389,8 +3510,8 @@ FROM pg_catalog.pg_operator o
             oid
           );
           if (pset.sversion >= 12e4)
-            appendPQExpBuffer(buf, "     AND conparentid = 0\n");
-          appendPQExpBuffer(buf, "ORDER BY conname");
+            appendPQExpBufferStr(buf, "     AND conparentid = 0\n");
+          appendPQExpBufferStr(buf, "ORDER BY conname");
         }
         result = await PSQLexec(buf.data);
         if (!result)
@@ -3399,7 +3520,11 @@ FROM pg_catalog.pg_operator o
           tuples = PQntuples(result);
         if (tuples > 0) {
           let i_sametable = PQfnumber(result, "sametable"), i_conname = PQfnumber(result, "conname"), i_condef = PQfnumber(result, "condef"), i_ontable = PQfnumber(result, "ontable");
-          printTableAddFooter(cont, _("Foreign-key constraints:"));
+          printTableAddFooter(
+            cont,
+            /* _ */
+            "Foreign-key constraints:"
+          );
           for (i = 0; i < tuples; i++) {
             if (strcmp(PQgetvalue(result, i, i_sametable), "f") == 0)
               printfPQExpBuffer(
@@ -3419,11 +3544,7 @@ FROM pg_catalog.pg_operator o
             printTableAddFooter(cont, buf.data);
           }
         }
-        printfPQExpBuffer(
-          buf,
-          "/* %s */\n",
-          _("Get foreign keys referencing this table")
-        );
+        addQueryComment(buf, "Get foreign keys referencing this table");
         if (pset.sversion >= 12e4) {
           appendPQExpBuffer(
             buf,
@@ -3445,7 +3566,11 @@ FROM pg_catalog.pg_operator o
           tuples = PQntuples(result);
         if (tuples > 0) {
           let i_conname = PQfnumber(result, "conname"), i_ontable = PQfnumber(result, "ontable"), i_condef = PQfnumber(result, "condef");
-          printTableAddFooter(cont, _("Referenced by:"));
+          printTableAddFooter(
+            cont,
+            /* _ */
+            "Referenced by:"
+          );
           for (i = 0; i < tuples; i++) {
             printfPQExpBuffer(
               buf,
@@ -3458,11 +3583,7 @@ FROM pg_catalog.pg_operator o
           }
         }
         if (pset.sversion >= 90500) {
-          printfPQExpBuffer(
-            buf,
-            "/* %s */\n",
-            _("Get row-level policies for this table")
-          );
+          addQueryComment(buf, "Get row-level policies for this table");
           appendPQExpBufferStr(buf, "SELECT pol.polname,");
           if (pset.sversion >= 1e5)
             appendPQExpBufferStr(
@@ -3485,22 +3606,42 @@ FROM pg_catalog.pg_operator o
           else
             tuples = PQntuples(result);
           if (tableinfo.rowsecurity && !tableinfo.forcerowsecurity && tuples > 0)
-            printTableAddFooter(cont, _("Policies:"));
+            printTableAddFooter(
+              cont,
+              /* _ */
+              "Policies:"
+            );
           if (tableinfo.rowsecurity && tableinfo.forcerowsecurity && tuples > 0)
-            printTableAddFooter(cont, _("Policies (forced row security enabled):"));
+            printTableAddFooter(
+              cont,
+              /* _ */
+              "Policies (forced row security enabled):"
+            );
           if (tableinfo.rowsecurity && !tableinfo.forcerowsecurity && tuples == 0)
-            printTableAddFooter(cont, _("Policies (row security enabled): (none)"));
+            printTableAddFooter(
+              cont,
+              /* _ */
+              "Policies (row security enabled): (none)"
+            );
           if (tableinfo.rowsecurity && tableinfo.forcerowsecurity && tuples == 0)
-            printTableAddFooter(cont, _("Policies (forced row security enabled): (none)"));
+            printTableAddFooter(
+              cont,
+              /* _ */
+              "Policies (forced row security enabled): (none)"
+            );
           if (!tableinfo.rowsecurity && tuples > 0)
-            printTableAddFooter(cont, _("Policies (row security disabled):"));
+            printTableAddFooter(
+              cont,
+              /* _ */
+              "Policies (row security disabled):"
+            );
           for (i = 0; i < tuples; i++) {
             printfPQExpBuffer(
               buf,
               '    POLICY "%s"',
               PQgetvalue(result, i, 0)
             );
-            if (PQgetvalue(result, i, 1) == "f")
+            if (PQgetvalue(result, i, 1)[0] == "f")
               appendPQExpBufferStr(buf, " AS RESTRICTIVE");
             if (!PQgetisnull(result, i, 5))
               appendPQExpBuffer(
@@ -3531,11 +3672,7 @@ FROM pg_catalog.pg_operator o
           }
         }
         if (pset.sversion >= 14e4) {
-          printfPQExpBuffer(
-            buf,
-            "/* %s */\n",
-            _("Get extended statistics for this table")
-          );
+          addQueryComment(buf, "Get extended statistics for this table");
           appendPQExpBuffer(
             buf,
             "SELECT oid, stxrelid::pg_catalog.regclass, stxnamespace::pg_catalog.regnamespace::pg_catalog.text AS nsp, stxname,\npg_catalog.pg_get_statisticsobjdef_columns(oid) AS columns,\n  'd' = any(stxkind) AS ndist_enabled,\n  'f' = any(stxkind) AS deps_enabled,\n  'm' = any(stxkind) AS mcv_enabled,\nstxstattarget\nFROM pg_catalog.pg_statistic_ext\nWHERE stxrelid = '%s'\nORDER BY nsp, stxname;",
@@ -3547,7 +3684,11 @@ FROM pg_catalog.pg_operator o
           else
             tuples = PQntuples(result);
           if (tuples > 0) {
-            printTableAddFooter(cont, _("Statistics objects:"));
+            printTableAddFooter(
+              cont,
+              /* _ */
+              "Statistics objects:"
+            );
             for (i = 0; i < tuples; i++) {
               let gotone = false;
               let has_ndistinct;
@@ -3598,11 +3739,7 @@ FROM pg_catalog.pg_operator o
             }
           }
         } else if (pset.sversion >= 1e5) {
-          printfPQExpBuffer(
-            buf,
-            "/* %s */\n",
-            _("Get extended statistics for this table")
-          );
+          addQueryComment(buf, "Get extended statistics for this table");
           appendPQExpBufferStr(
             buf,
             "SELECT oid, stxrelid::pg_catalog.regclass, stxnamespace::pg_catalog.regnamespace AS nsp, stxname,\n  (SELECT pg_catalog.string_agg(pg_catalog.quote_ident(attname),', ')\n   FROM pg_catalog.unnest(stxkeys) s(attnum)\n   JOIN pg_catalog.pg_attribute a ON (stxrelid = a.attrelid AND\n        a.attnum = s.attnum AND NOT attisdropped)) AS columns,\n  'd' = any(stxkind) AS ndist_enabled,\n  'f' = any(stxkind) AS deps_enabled,\n  'm' = any(stxkind) AS mcv_enabled,\n"
@@ -3622,7 +3759,11 @@ FROM pg_catalog.pg_operator o
           else
             tuples = PQntuples(result);
           if (tuples > 0) {
-            printTableAddFooter(cont, _("Statistics objects:"));
+            printTableAddFooter(
+              cont,
+              /* _ */
+              "Statistics objects:"
+            );
             for (i = 0; i < tuples; i++) {
               let gotone = false;
               printfPQExpBuffer(buf, "    ");
@@ -3659,12 +3800,8 @@ FROM pg_catalog.pg_operator o
             }
           }
         }
-        if (tableinfo.hasrules && tableinfo.relkind != RELKIND_MATVIEW) {
-          printfPQExpBuffer(
-            buf,
-            "/* %s */\n",
-            _("Get rules for this relation")
-          );
+        if (tableinfo.hasrules && tableinfo.relkind != "m") {
+          addQueryComment(buf, "Get rules for this relation");
           appendPQExpBuffer(
             buf,
             "SELECT r.rulename, trim(trailing ';' from pg_catalog.pg_get_ruledef(r.oid, true)), ev_enabled\nFROM pg_catalog.pg_rewrite r\nWHERE r.ev_class = '%s' ORDER BY 1;",
@@ -3685,19 +3822,19 @@ FROM pg_catalog.pg_operator o
                 let list_rule = false;
                 switch (category) {
                   case 0:
-                    if (PQgetvalue(result, i, 2) == "O")
+                    if (PQgetvalue(result, i, 2)[0] == "O")
                       list_rule = true;
                     break;
                   case 1:
-                    if (PQgetvalue(result, i, 2) == "D")
+                    if (PQgetvalue(result, i, 2)[0] == "D")
                       list_rule = true;
                     break;
                   case 2:
-                    if (PQgetvalue(result, i, 2) == "A")
+                    if (PQgetvalue(result, i, 2)[0] == "A")
                       list_rule = true;
                     break;
                   case 3:
-                    if (PQgetvalue(result, i, 2) == "R")
+                    if (PQgetvalue(result, i, 2)[0] == "R")
                       list_rule = true;
                     break;
                 }
@@ -3706,16 +3843,32 @@ FROM pg_catalog.pg_operator o
                 if (!have_heading) {
                   switch (category) {
                     case 0:
-                      printfPQExpBuffer(buf, _("Rules:"));
+                      printfPQExpBuffer(
+                        buf,
+                        /* _ */
+                        "Rules:"
+                      );
                       break;
                     case 1:
-                      printfPQExpBuffer(buf, _("Disabled rules:"));
+                      printfPQExpBuffer(
+                        buf,
+                        /* _ */
+                        "Disabled rules:"
+                      );
                       break;
                     case 2:
-                      printfPQExpBuffer(buf, _("Rules firing always:"));
+                      printfPQExpBuffer(
+                        buf,
+                        /* _ */
+                        "Rules firing always:"
+                      );
                       break;
                     case 3:
-                      printfPQExpBuffer(buf, _("Rules firing on replica only:"));
+                      printfPQExpBuffer(
+                        buf,
+                        /* _ */
+                        "Rules firing on replica only:"
+                      );
                       break;
                   }
                   printTableAddFooter(cont, buf.data);
@@ -3730,11 +3883,7 @@ FROM pg_catalog.pg_operator o
           }
         }
         if (pset.sversion >= 1e5) {
-          printfPQExpBuffer(
-            buf,
-            "/* %s */\n",
-            _("Get publications that publish this table")
-          );
+          addQueryComment(buf, "Get publications that publish this table");
           if (pset.sversion >= 15e4) {
             appendPQExpBuffer(
               buf,
@@ -3772,7 +3921,11 @@ FROM pg_catalog.pg_operator o
           else
             tuples = PQntuples(result);
           if (tuples > 0)
-            printTableAddFooter(cont, _("Included in publications:"));
+            printTableAddFooter(
+              cont,
+              /* _ */
+              "Included in publications:"
+            );
           for (i = 0; i < tuples; i++) {
             printfPQExpBuffer(
               buf,
@@ -3795,11 +3948,7 @@ FROM pg_catalog.pg_operator o
           }
         }
         if (pset.sversion >= 19e4) {
-          printfPQExpBuffer(
-            buf,
-            "/* %s */\n",
-            _("Get publications that exclude this table")
-          );
+          addQueryComment(buf, "Get publications that exclude this table");
           appendPQExpBuffer(
             buf,
             "SELECT pubname\nFROM pg_catalog.pg_publication p\nJOIN pg_catalog.pg_publication_rel pr ON p.oid = pr.prpubid\nWHERE (pr.prrelid = '%s' OR pr.prrelid = pg_catalog.pg_partition_root('%s'))\nAND pr.prexcept\nORDER BY 1;",
@@ -3812,18 +3961,18 @@ FROM pg_catalog.pg_operator o
           else
             tuples = PQntuples(result);
           if (tuples > 0)
-            printTableAddFooter(cont, _("Excluded from publications:"));
+            printTableAddFooter(
+              cont,
+              /* _ */
+              "Excluded from publications:"
+            );
           for (i = 0; i < tuples; i++) {
             printfPQExpBuffer(buf, '    "%s"', PQgetvalue(result, i, 0));
             printTableAddFooter(cont, buf.data);
           }
         }
         if (verbose) {
-          printfPQExpBuffer(
-            buf,
-            "/* %s */\n",
-            _("Get not-null constraints for this table")
-          );
+          addQueryComment(buf, "Get not-null constraints for this table");
           appendPQExpBuffer(
             buf,
             "SELECT c.conname, a.attname, c.connoinherit,\n  c.conislocal, c.coninhcount <> 0,\n  c.convalidated\nFROM pg_catalog.pg_constraint c JOIN\n  pg_catalog.pg_attribute a ON\n    (a.attrelid = c.conrelid AND a.attnum = c.conkey[1])\nWHERE c.contype = 'n' AND\n  c.conrelid = '%s'::pg_catalog.regclass\nORDER BY a.attnum",
@@ -3835,7 +3984,11 @@ FROM pg_catalog.pg_operator o
           else
             tuples = PQntuples(result);
           if (tuples > 0)
-            printTableAddFooter(cont, _("Not-null constraints:"));
+            printTableAddFooter(
+              cont,
+              /* _ */
+              "Not-null constraints:"
+            );
           for (i = 0; i < tuples; i++) {
             let islocal = PQgetvalue(result, i, 3)[0] == "t";
             let inherited = PQgetvalue(result, i, 4)[0] == "t";
@@ -3845,16 +3998,22 @@ FROM pg_catalog.pg_operator o
               '    "%s" NOT NULL "%s"%s%s',
               PQgetvalue(result, i, 0),
               PQgetvalue(result, i, 1),
-              PQgetvalue(result, i, 2)[0] == "t" ? " NO INHERIT" : islocal && inherited ? _(" (local, inherited)") : inherited ? _(" (inherited)") : "",
+              PQgetvalue(result, i, 2)[0] == "t" ? " NO INHERIT" : islocal && inherited ? (
+                /* _ */
+                " (local, inherited)"
+              ) : inherited ? (
+                /* _ */
+                " (inherited)"
+              ) : "",
               !validated ? " NOT VALID" : ""
             );
             printTableAddFooter(cont, buf.data);
           }
         }
       }
-      if ((tableinfo.relkind == RELKIND_VIEW || tableinfo.relkind == RELKIND_MATVIEW) && verbose) {
+      if ((tableinfo.relkind == "v" || tableinfo.relkind == "m") && verbose) {
         let result;
-        printfPQExpBuffer(buf, "/* %s */\n", _("Get view's definition"));
+        addQueryComment(buf, "Get view's definition");
         appendPQExpBuffer(
           buf,
           "SELECT pg_catalog.pg_get_viewdef('%s'::pg_catalog.oid, true);",
@@ -3864,14 +4023,19 @@ FROM pg_catalog.pg_operator o
         if (!result)
           return retval;
         if (PQntuples(result) > 0)
-          view_def = pg_strdup(PQgetvalue(result, 0, 0));
+          view_def = /* pg_strdup */
+          PQgetvalue(result, 0, 0);
       }
-      if (view_def) {
+      if (view_def != NULL) {
         let result = NULL;
-        printTableAddFooter(cont, _("View definition:"));
+        printTableAddFooter(
+          cont,
+          /* _ */
+          "View definition:"
+        );
         printTableAddFooter(cont, view_def);
         if (tableinfo.hasrules) {
-          printfPQExpBuffer(buf, "/* %s */\n", _("Get rules for this view"));
+          addQueryComment(buf, "Get rules for this view");
           appendPQExpBuffer(
             buf,
             "SELECT r.rulename, trim(trailing ';' from pg_catalog.pg_get_ruledef(r.oid, true))\nFROM pg_catalog.pg_rewrite r\nWHERE r.ev_class = '%s' AND r.rulename != '_RETURN' ORDER BY 1;",
@@ -3881,7 +4045,11 @@ FROM pg_catalog.pg_operator o
           if (!result)
             return retval;
           if (PQntuples(result) > 0) {
-            printTableAddFooter(cont, _("Rules:"));
+            printTableAddFooter(
+              cont,
+              /* _ */
+              "Rules:"
+            );
             for (i = 0; i < PQntuples(result); i++) {
               let ruledef;
               ruledef = PQgetvalue(result, i, 1);
@@ -3895,11 +4063,7 @@ FROM pg_catalog.pg_operator o
       if (tableinfo.hastriggers) {
         let result;
         let tuples;
-        printfPQExpBuffer(
-          buf,
-          "/* %s */\n",
-          _("Get triggers for this relation")
-        );
+        addQueryComment(buf, "Get triggers for this relation");
         appendPQExpBufferStr(
           buf,
           "SELECT t.tgname, pg_catalog.pg_get_triggerdef(t.oid, true), t.tgenabled, t.tgisinternal,\n"
@@ -3942,23 +4106,23 @@ FROM pg_catalog.pg_operator o
               list_trigger = false;
               switch (category) {
                 case 0:
-                  if (tgenabled == "O" || tgenabled == "t")
+                  if (tgenabled[0] == "O" || tgenabled[0] == "t")
                     list_trigger = true;
                   break;
                 case 1:
-                  if ((tgenabled == "D" || tgenabled == "f") && tgisinternal == "f")
+                  if ((tgenabled[0] == "D" || tgenabled[0] == "f") && tgisinternal[0] == "f")
                     list_trigger = true;
                   break;
                 case 2:
-                  if ((tgenabled == "D" || tgenabled == "f") && tgisinternal == "t")
+                  if ((tgenabled[0] == "D" || tgenabled[0] == "f") && tgisinternal[0] == "t")
                     list_trigger = true;
                   break;
                 case 3:
-                  if (tgenabled == "A")
+                  if (tgenabled[0] == "A")
                     list_trigger = true;
                   break;
                 case 4:
-                  if (tgenabled == "R")
+                  if (tgenabled[0] == "R")
                     list_trigger = true;
                   break;
               }
@@ -3967,19 +4131,39 @@ FROM pg_catalog.pg_operator o
               if (have_heading == false) {
                 switch (category) {
                   case 0:
-                    printfPQExpBuffer(buf, _("Triggers:"));
+                    printfPQExpBuffer(
+                      buf,
+                      /* _ */
+                      "Triggers:"
+                    );
                     break;
                   case 1:
-                    printfPQExpBuffer(buf, _("Disabled user triggers:"));
+                    printfPQExpBuffer(
+                      buf,
+                      /* _ */
+                      "Disabled user triggers:"
+                    );
                     break;
                   case 2:
-                    printfPQExpBuffer(buf, _("Disabled internal triggers:"));
+                    printfPQExpBuffer(
+                      buf,
+                      /* _ */
+                      "Disabled internal triggers:"
+                    );
                     break;
                   case 3:
-                    printfPQExpBuffer(buf, _("Triggers firing always:"));
+                    printfPQExpBuffer(
+                      buf,
+                      /* _ */
+                      "Triggers firing always:"
+                    );
                     break;
                   case 4:
-                    printfPQExpBuffer(buf, _("Triggers firing on replica only:"));
+                    printfPQExpBuffer(
+                      buf,
+                      /* _ */
+                      "Triggers firing on replica only:"
+                    );
                     break;
                 }
                 printTableAddFooter(cont, buf.data);
@@ -3988,7 +4172,7 @@ FROM pg_catalog.pg_operator o
               tgdef = PQgetvalue(result, i, 1);
               usingpos = strstr(tgdef, " TRIGGER ");
               if (usingpos != NULL)
-                tgdef = tgdef.slice(usingpos + 9);
+                tgdef = usingpos.slice(9);
               printfPQExpBuffer(buf, "    %s", tgdef);
               if (!PQgetisnull(result, i, 4))
                 appendPQExpBuffer(
@@ -4001,18 +4185,14 @@ FROM pg_catalog.pg_operator o
           }
         }
       }
-      if (tableinfo.relkind == RELKIND_RELATION || tableinfo.relkind == RELKIND_MATVIEW || tableinfo.relkind == RELKIND_FOREIGN_TABLE || tableinfo.relkind == RELKIND_PARTITIONED_TABLE || tableinfo.relkind == RELKIND_PARTITIONED_INDEX || tableinfo.relkind == RELKIND_TOASTVALUE) {
+      if (tableinfo.relkind == "r" || tableinfo.relkind == "m" || tableinfo.relkind == "f" || tableinfo.relkind == "p" || tableinfo.relkind == "I" || tableinfo.relkind == "t") {
         let is_partitioned;
         let result;
         let tuples;
-        is_partitioned = tableinfo.relkind == RELKIND_PARTITIONED_TABLE || tableinfo.relkind == RELKIND_PARTITIONED_INDEX;
-        if (tableinfo.relkind == RELKIND_FOREIGN_TABLE) {
+        is_partitioned = tableinfo.relkind == "p" || tableinfo.relkind == "I";
+        if (tableinfo.relkind == "f") {
           let ftoptions;
-          printfPQExpBuffer(
-            buf,
-            "/* %s */\n",
-            _("Get foreign server for this table")
-          );
+          addQueryComment(buf, "Get foreign server for this table");
           appendPQExpBuffer(
             buf,
             "SELECT s.srvname,\n  pg_catalog.array_to_string(ARRAY(\n    SELECT pg_catalog.quote_ident(option_name) || ' ' || pg_catalog.quote_literal(option_value)\n    FROM pg_catalog.pg_options_to_table(ftoptions)),  ', ')\nFROM pg_catalog.pg_foreign_table f,\n     pg_catalog.pg_foreign_server s\nWHERE f.ftrelid = '%s' AND s.oid = f.ftserver;",
@@ -4026,21 +4206,23 @@ FROM pg_catalog.pg_operator o
           }
           printfPQExpBuffer(
             buf,
-            _("Server: %s"),
+            /* _ */
+            "Server: %s",
             PQgetvalue(result, 0, 0)
           );
           printTableAddFooter(cont, buf.data);
           ftoptions = PQgetvalue(result, 0, 1);
-          if (ftoptions && ftoptions[0] != NULL) {
-            printfPQExpBuffer(buf, _("FDW options: (%s)"), ftoptions);
+          if (ftoptions != NULL && ftoptions[0] != void 0) {
+            printfPQExpBuffer(
+              buf,
+              /* _ */
+              "FDW options: (%s)",
+              ftoptions
+            );
             printTableAddFooter(cont, buf.data);
           }
         }
-        printfPQExpBuffer(
-          buf,
-          "/* %s */\n",
-          _("Get inheritance parent tables")
-        );
+        addQueryComment(buf, "Get inheritance parent tables");
         appendPQExpBuffer(
           buf,
           "SELECT c.oid::pg_catalog.regclass\nFROM pg_catalog.pg_class c, pg_catalog.pg_inherits i\nWHERE c.oid = i.inhparent AND i.inhrelid = '%s'\n  AND c.relkind != 'p' AND c.relkind != 'I'\nORDER BY inhseqno;",
@@ -4050,7 +4232,10 @@ FROM pg_catalog.pg_operator o
         if (!result)
           return retval;
         else {
-          let s = _("Inherits");
+          let s = (
+            /* _ */
+            "Inherits"
+          );
           tuples = PQntuples(result);
           if (tuples > 0) {
             printfPQExpBuffer(buf, "%s:", s);
@@ -4061,7 +4246,7 @@ FROM pg_catalog.pg_operator o
             printTableAddFooter(cont, buf.data);
           }
         }
-        printfPQExpBuffer(buf, "/* %s */\n", _("Get child tables"));
+        addQueryComment(buf, "Get child tables");
         if (pset.sversion >= 14e4)
           appendPQExpBuffer(
             buf,
@@ -4085,46 +4270,75 @@ FROM pg_catalog.pg_operator o
           return retval;
         tuples = PQntuples(result);
         if (is_partitioned && tuples == 0) {
-          printfPQExpBuffer(buf, _("Number of partitions: %d"), tuples);
+          printfPQExpBuffer(
+            buf,
+            /* _ */
+            "Number of partitions: %d",
+            tuples
+          );
           printTableAddFooter(cont, buf.data);
         } else if (!verbose) {
           if (tuples > 0) {
             if (is_partitioned)
-              printfPQExpBuffer(buf, _("Number of partitions: %d (Use \\d+ to list them.)"), tuples);
+              printfPQExpBuffer(
+                buf,
+                /* _ */
+                "Number of partitions: %d (Use \\d+ to list them.)",
+                tuples
+              );
             else
-              printfPQExpBuffer(buf, _("Number of child tables: %d (Use \\d+ to list them.)"), tuples);
+              printfPQExpBuffer(
+                buf,
+                /* _ */
+                "Number of child tables: %d (Use \\d+ to list them.)",
+                tuples
+              );
             printTableAddFooter(cont, buf.data);
           }
         } else {
-          let ct = is_partitioned ? _("Partitions") : _("Child tables");
+          let ct = is_partitioned ? (
+            /* _ */
+            "Partitions"
+          ) : (
+            /* _ */
+            "Child tables"
+          );
           if (tuples > 0) {
             printfPQExpBuffer(buf, "%s:", ct);
             printTableAddFooter(cont, buf.data);
           }
           for (i = 0; i < tuples; i++) {
-            let child_relkind = PQgetvalue(result, i, 1);
+            let child_relkind = PQgetvalue(result, i, 1)[0];
             printfPQExpBuffer(buf, "    %s", PQgetvalue(result, i, 0));
             if (!PQgetisnull(result, i, 3))
               appendPQExpBuffer(buf, " %s", PQgetvalue(result, i, 3));
-            if (child_relkind == RELKIND_PARTITIONED_TABLE || child_relkind == RELKIND_PARTITIONED_INDEX)
+            if (child_relkind == "p" || child_relkind == "I")
               appendPQExpBufferStr(buf, ", PARTITIONED");
-            else if (child_relkind == RELKIND_FOREIGN_TABLE)
+            else if (child_relkind == "f")
               appendPQExpBufferStr(buf, ", FOREIGN");
             if (strcmp(PQgetvalue(result, i, 2), "t") == 0)
               appendPQExpBufferStr(buf, " (DETACH PENDING)");
             printTableAddFooter(cont, buf.data);
           }
         }
-        if (tableinfo.reloftype) {
-          printfPQExpBuffer(buf, _("Typed table of type: %s"), tableinfo.reloftype);
+        if (tableinfo.reloftype != NULL) {
+          printfPQExpBuffer(
+            buf,
+            /* _ */
+            "Typed table of type: %s",
+            tableinfo.reloftype
+          );
           printTableAddFooter(cont, buf.data);
         }
-        if (verbose && (tableinfo.relkind == RELKIND_RELATION || tableinfo.relkind == RELKIND_MATVIEW) && /*
+        if (verbose && (tableinfo.relkind == "r" || tableinfo.relkind == "m") && /*
          * No need to display default values; we already display a REPLICA
          * IDENTITY marker on indexes.
          */
         tableinfo.relreplident != "i" && (strcmp(schemaname, "pg_catalog") != 0 && tableinfo.relreplident != "d" || strcmp(schemaname, "pg_catalog") == 0 && tableinfo.relreplident != "n")) {
-          let s = _("Replica Identity");
+          let s = (
+            /* _ */
+            "Replica Identity"
+          );
           printfPQExpBuffer(
             buf,
             "%s: %s",
@@ -4133,8 +4347,12 @@ FROM pg_catalog.pg_operator o
           );
           printTableAddFooter(cont, buf.data);
         }
-        if (verbose && tableinfo.relkind != RELKIND_MATVIEW && tableinfo.hasoids)
-          printTableAddFooter(cont, _("Has OIDs: yes"));
+        if (verbose && tableinfo.relkind != "m" && tableinfo.hasoids)
+          printTableAddFooter(
+            cont,
+            /* _ */
+            "Has OIDs: yes"
+          );
         await add_tablespace_footer(
           cont,
           tableinfo.relkind,
@@ -4142,12 +4360,20 @@ FROM pg_catalog.pg_operator o
           true
         );
         if (verbose && tableinfo.relam != NULL && !pset.hide_tableam) {
-          printfPQExpBuffer(buf, _("Access method: %s"), tableinfo.relam);
+          printfPQExpBuffer(
+            buf,
+            /* _ */
+            "Access method: %s",
+            tableinfo.relam
+          );
           printTableAddFooter(cont, buf.data);
         }
       }
-      if (verbose && tableinfo.reloptions && tableinfo.reloptions[0] != NULL) {
-        let t = _("Options");
+      if (verbose && tableinfo.reloptions != NULL && tableinfo.reloptions[0] != void 0) {
+        let t = (
+          /* _ */
+          "Options"
+        );
         printfPQExpBuffer(buf, "%s: %s", t, tableinfo.reloptions);
         printTableAddFooter(cont, buf.data);
       }
@@ -4156,18 +4382,12 @@ FROM pg_catalog.pg_operator o
       return retval;
     }
     async function add_tablespace_footer(cont, relkind, tablespace, newline) {
-      if (relkind == RELKIND_RELATION || relkind == RELKIND_MATVIEW || relkind == RELKIND_INDEX || relkind == RELKIND_PARTITIONED_TABLE || relkind == RELKIND_PARTITIONED_INDEX || relkind == RELKIND_TOASTVALUE) {
+      if (relkind == "r" || relkind == "m" || relkind == "i" || relkind == "p" || relkind == "I" || relkind == "t") {
         if (tablespace != 0) {
           let result = NULL;
-          let buf = {
-            /* struct */
-          };
+          let buf = {};
           initPQExpBuffer(buf);
-          printfPQExpBuffer(
-            buf,
-            "/* %s */\n",
-            _("Get tablespace information for this relation")
-          );
+          addQueryComment(buf, "Get tablespace information for this relation");
           appendPQExpBuffer(
             buf,
             "SELECT spcname FROM pg_catalog.pg_tablespace\nWHERE oid = '%u';",
@@ -4181,15 +4401,17 @@ FROM pg_catalog.pg_operator o
             if (newline) {
               printfPQExpBuffer(
                 buf,
-                _('Tablespace: "%s"'),
+                /* _ */
+                'Tablespace: "%s"',
                 PQgetvalue(result, 0, 0)
               );
               printTableAddFooter(cont, buf.data);
             } else {
-              printfPQExpBuffer(buf, "%s", cont.footer);
+              printfPQExpBuffer(buf, "%s", cont.footer.data);
               appendPQExpBuffer(
                 buf,
-                _(', tablespace "%s"'),
+                /* _ */
+                ', tablespace "%s"',
                 PQgetvalue(result, 0, 0)
               );
               printTableSetFooter(cont, buf.data);
@@ -4199,14 +4421,10 @@ FROM pg_catalog.pg_operator o
       }
     }
     async function describeRoles(pattern, verbose, showSystem) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let cont = {
-        /* struct */
-      };
-      let myopt = pset.popt.topt;
+      let cont = {};
+      let myopt = copy_printTableOpt(pset.popt.topt);
       let ncols = 2;
       let nrows = 0;
       let i;
@@ -4215,7 +4433,7 @@ FROM pg_catalog.pg_operator o
       let attr;
       myopt.default_footer = false;
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching roles"));
+      addQueryComment(buf, "Get matching roles");
       appendPQExpBufferStr(
         buf,
         "SELECT r.rolname, r.rolsuper, r.rolinherit,\n  r.rolcreaterole, r.rolcreatedb, r.rolcanlogin,\n  r.rolconnlimit, r.rolvaliduntil"
@@ -4229,7 +4447,7 @@ FROM pg_catalog.pg_operator o
         appendPQExpBufferStr(buf, "\n, r.rolbypassrls");
       }
       appendPQExpBufferStr(buf, "\nFROM pg_catalog.pg_roles r\n");
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "WHERE r.rolname !~ '^pg_'\n");
       if (!validateSQLNamePattern(
         buf,
@@ -4251,36 +4469,93 @@ FROM pg_catalog.pg_operator o
         return false;
       nrows = PQntuples(res);
       attr = [];
-      printTableInit(cont, myopt, _("List of roles"), ncols, nrows);
-      printTableAddHeader(cont, gettext_noop("Role name"), true, align);
-      printTableAddHeader(cont, gettext_noop("Attributes"), true, align);
+      printTableInit(
+        cont,
+        myopt,
+        /* _ */
+        "List of roles",
+        ncols,
+        nrows
+      );
+      printTableAddHeader(
+        cont,
+        /* gettext_noop */
+        "Role name",
+        true,
+        align
+      );
+      printTableAddHeader(
+        cont,
+        /* gettext_noop */
+        "Attributes",
+        true,
+        align
+      );
       if (verbose)
-        printTableAddHeader(cont, gettext_noop("Description"), true, align);
+        printTableAddHeader(
+          cont,
+          /* gettext_noop */
+          "Description",
+          true,
+          align
+        );
       for (i = 0; i < nrows; i++) {
         printTableAddCell(cont, PQgetvalue(res, i, 0), false, false);
         resetPQExpBuffer(buf);
         if (strcmp(PQgetvalue(res, i, 1), "t") == 0)
-          add_role_attribute(buf, _("Superuser"));
+          add_role_attribute(
+            buf,
+            /* _ */
+            "Superuser"
+          );
         if (strcmp(PQgetvalue(res, i, 2), "t") != 0)
-          add_role_attribute(buf, _("No inheritance"));
+          add_role_attribute(
+            buf,
+            /* _ */
+            "No inheritance"
+          );
         if (strcmp(PQgetvalue(res, i, 3), "t") == 0)
-          add_role_attribute(buf, _("Create role"));
+          add_role_attribute(
+            buf,
+            /* _ */
+            "Create role"
+          );
         if (strcmp(PQgetvalue(res, i, 4), "t") == 0)
-          add_role_attribute(buf, _("Create DB"));
+          add_role_attribute(
+            buf,
+            /* _ */
+            "Create DB"
+          );
         if (strcmp(PQgetvalue(res, i, 5), "t") != 0)
-          add_role_attribute(buf, _("Cannot login"));
+          add_role_attribute(
+            buf,
+            /* _ */
+            "Cannot login"
+          );
         if (strcmp(PQgetvalue(res, i, verbose ? 9 : 8), "t") == 0)
-          add_role_attribute(buf, _("Replication"));
+          add_role_attribute(
+            buf,
+            /* _ */
+            "Replication"
+          );
         if (pset.sversion >= 90500) {
           if (strcmp(PQgetvalue(res, i, verbose ? 10 : 9), "t") == 0)
-            add_role_attribute(buf, _("Bypass RLS"));
+            add_role_attribute(
+              buf,
+              /* _ */
+              "Bypass RLS"
+            );
         }
         conns = atoi(PQgetvalue(res, i, 6));
         if (conns >= 0) {
           if (buf.len > 0)
             appendPQExpBufferChar(buf, "\n");
           if (conns == 0)
-            appendPQExpBufferStr(buf, _("No connections"));
+            appendPQExpBufferStr(
+              buf,
+              /* _ */
+              "No connections"
+            );
           else
             appendPQExpBuffer(
               buf,
@@ -4295,10 +4570,15 @@ FROM pg_catalog.pg_operator o
         if (strcmp(PQgetvalue(res, i, 7), "") != 0) {
           if (buf.len > 0)
             appendPQExpBufferChar(buf, "\n");
-          appendPQExpBufferStr(buf, _("Password valid until "));
+          appendPQExpBufferStr(
+            buf,
+            /* _ */
+            "Password valid until "
+          );
           appendPQExpBufferStr(buf, PQgetvalue(res, i, 7));
         }
-        attr[i] = pg_strdup(buf.data);
+        attr[i] = /* pg_strdup */
+        buf.data;
         printTableAddCell(cont, attr[i], false, false);
         if (verbose)
           printTableAddCell(cont, PQgetvalue(res, i, 8), false, false);
@@ -4312,14 +4592,12 @@ FROM pg_catalog.pg_operator o
       appendPQExpBufferStr(buf, str);
     }
     async function listDbRoleSettings(pattern, pattern2) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let havewhere = {};
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get per-database and per-role settings"));
+      addQueryComment(buf, "Get per-database and per-role settings");
       appendPQExpBuffer(
         buf,
         `SELECT rolname AS "%s", datname AS "%s",
@@ -4328,9 +4606,12 @@ FROM pg_catalog.pg_db_role_setting s
 LEFT JOIN pg_catalog.pg_database d ON d.oid = setdatabase
 LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
 `,
-        gettext_noop("Role"),
-        gettext_noop("Database"),
-        gettext_noop("Settings")
+        /* gettext_noop */
+        "Role",
+        /* gettext_noop */
+        "Database",
+        /* gettext_noop */
+        "Settings"
       );
       if (!validateSQLNamePattern(
         buf,
@@ -4363,13 +4644,13 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       if (!res)
         return false;
       if (PQntuples(res) == 0 && !pset.quiet) {
-        if (pattern && pattern2)
+        if (pattern != NULL && pattern2 != NULL)
           pg_log_error(
             'Did not find any settings for role "%s" and database "%s".',
             pattern,
             pattern2
           );
-        else if (pattern)
+        else if (pattern != NULL)
           pg_log_error(
             'Did not find any settings for role "%s".',
             pattern
@@ -4377,28 +4658,28 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
         else
           pg_log_error("Did not find any settings.");
       } else {
-        myopt.nullPrint = NULL;
-        myopt.title = _("List of settings");
+        myopt.title = /* _ */
+        "List of settings";
         myopt.translate_header = true;
         printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       }
       return true;
     }
     async function describeRoleGrants(pattern, showSystem) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching role grants"));
+      addQueryComment(buf, "Get matching role grants");
       appendPQExpBuffer(
         buf,
         `SELECT m.rolname AS "%s", r.rolname AS "%s",
   pg_catalog.concat_ws(', ',
 `,
-        gettext_noop("Role name"),
-        gettext_noop("Member of")
+        /* gettext_noop */
+        "Role name",
+        /* gettext_noop */
+        "Member of"
       );
       if (pset.sversion >= 16e4)
         appendPQExpBufferStr(
@@ -4413,14 +4694,16 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       appendPQExpBuffer(
         buf,
         '  ) AS "%s",\n  g.rolname AS "%s"\n',
-        gettext_noop("Options"),
-        gettext_noop("Grantor")
+        /* gettext_noop */
+        "Options",
+        /* gettext_noop */
+        "Grantor"
       );
       appendPQExpBufferStr(
         buf,
         "FROM pg_catalog.pg_roles m\n     JOIN pg_catalog.pg_auth_members pam ON (pam.member = m.oid)\n     LEFT JOIN pg_catalog.pg_roles r ON (pam.roleid = r.oid)\n     LEFT JOIN pg_catalog.pg_roles g ON (pam.grantor = g.oid)\n"
       );
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "WHERE m.rolname !~ '^pg_'\n");
       if (!validateSQLNamePattern(
         buf,
@@ -4440,8 +4723,8 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of role grants");
+      myopt.title = /* _ */
+      "List of role grants";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
@@ -4454,44 +4737,56 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       let showSeq = strchr(tabtypes, "s") != NULL;
       let showForeign = strchr(tabtypes, "E") != NULL;
       let ntypes;
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let cols_so_far;
       let translate_columns = [false, false, true, false, false, false, false, false, false];
       ntypes = showTables + showIndexes + showViews + showMatViews + showSeq + showForeign;
       if (ntypes == 0)
         showTables = showViews = showMatViews = showSeq = showForeign = true;
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching relations"));
+      addQueryComment(buf, "Get matching relations");
       appendPQExpBuffer(
         buf,
         `SELECT n.nspname as "%s",
   c.relname as "%s",
   CASE c.relkind WHEN 'r' THEN '%s' WHEN 'v' THEN '%s' WHEN 'm' THEN '%s' WHEN 'i' THEN '%s' WHEN 'S' THEN '%s' WHEN 't' THEN '%s' WHEN 'f' THEN '%s' WHEN 'p' THEN '%s' WHEN 'I' THEN '%s' END as "%s",
   pg_catalog.pg_get_userbyid(c.relowner) as "%s"`,
-        gettext_noop("Schema"),
-        gettext_noop("Name"),
-        gettext_noop("table"),
-        gettext_noop("view"),
-        gettext_noop("materialized view"),
-        gettext_noop("index"),
-        gettext_noop("sequence"),
-        gettext_noop("TOAST table"),
-        gettext_noop("foreign table"),
-        gettext_noop("partitioned table"),
-        gettext_noop("partitioned index"),
-        gettext_noop("Type"),
-        gettext_noop("Owner")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "table",
+        /* gettext_noop */
+        "view",
+        /* gettext_noop */
+        "materialized view",
+        /* gettext_noop */
+        "index",
+        /* gettext_noop */
+        "sequence",
+        /* gettext_noop */
+        "TOAST table",
+        /* gettext_noop */
+        "foreign table",
+        /* gettext_noop */
+        "partitioned table",
+        /* gettext_noop */
+        "partitioned index",
+        /* gettext_noop */
+        "Type",
+        /* gettext_noop */
+        "Owner"
       );
       cols_so_far = 4;
       if (showIndexes) {
         appendPQExpBuffer(
           buf,
           ',\n  c2.relname as "%s"',
-          gettext_noop("Table")
+          /* gettext_noop */
+          "Table"
         );
         cols_so_far++;
       }
@@ -4500,25 +4795,32 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
           buf,
           `,
   CASE c.relpersistence WHEN 'p' THEN '%s' WHEN 't' THEN '%s' WHEN 'u' THEN '%s' END as "%s"`,
-          gettext_noop("permanent"),
-          gettext_noop("temporary"),
-          gettext_noop("unlogged"),
-          gettext_noop("Persistence")
+          /* gettext_noop */
+          "permanent",
+          /* gettext_noop */
+          "temporary",
+          /* gettext_noop */
+          "unlogged",
+          /* gettext_noop */
+          "Persistence"
         );
         translate_columns[cols_so_far] = true;
         if (pset.sversion >= 12e4 && !pset.hide_tableam && (showTables || showMatViews || showIndexes))
           appendPQExpBuffer(
             buf,
             ',\n  am.amname as "%s"',
-            gettext_noop("Access method")
+            /* gettext_noop */
+            "Access method"
           );
         appendPQExpBuffer(
           buf,
           `,
   pg_catalog.pg_size_pretty(pg_catalog.pg_table_size(c.oid)) as "%s",
   pg_catalog.obj_description(c.oid, 'pg_class') as "%s"`,
-          gettext_noop("Size"),
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Size",
+          /* gettext_noop */
+          "Description"
         );
       }
       appendPQExpBufferStr(
@@ -4538,7 +4840,7 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       appendPQExpBufferStr(buf, "\nWHERE c.relkind IN (");
       if (showTables) {
         appendPQExpBufferStr(buf, "'r','p',");
-        if (showSystem || pattern)
+        if (showSystem || pattern != NULL)
           appendPQExpBufferStr(buf, "'t',");
       }
       if (showViews)
@@ -4549,13 +4851,13 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
         appendPQExpBufferStr(buf, "'i','I',");
       if (showSeq)
         appendPQExpBufferStr(buf, "'S',");
-      if (showSystem || pattern)
+      if (showSystem || pattern != NULL)
         appendPQExpBufferStr(buf, "'s',");
       if (showForeign)
         appendPQExpBufferStr(buf, "'f',");
       appendPQExpBufferStr(buf, "''");
       appendPQExpBufferStr(buf, ")\n");
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "      AND n.nspname <> 'pg_catalog'\n      AND n.nspname !~ '^pg_toast'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
@@ -4576,7 +4878,7 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       if (!res)
         return false;
       if (PQntuples(res) == 0 && !pset.quiet) {
-        if (pattern) {
+        if (pattern != NULL) {
           if (ntypes != 1)
             pg_log_error(
               'Did not find any relations named "%s".',
@@ -4636,8 +4938,28 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
             pg_log_error_internal("Did not find any ??? relations.");
         }
       } else {
-        myopt.nullPrint = NULL;
-        myopt.title = ntypes != 1 ? _("List of relations") : showTables ? _("List of tables") : showIndexes ? _("List of indexes") : showViews ? _("List of views") : showMatViews ? _("List of materialized views") : showSeq ? _("List of sequences") : showForeign ? _("List of foreign tables") : "List of ???";
+        myopt.title = ntypes != 1 ? (
+          /* _ */
+          "List of relations"
+        ) : showTables ? (
+          /* _ */
+          "List of tables"
+        ) : showIndexes ? (
+          /* _ */
+          "List of indexes"
+        ) : showViews ? (
+          /* _ */
+          "List of views"
+        ) : showMatViews ? (
+          /* _ */
+          "List of materialized views"
+        ) : showSeq ? (
+          /* _ */
+          "List of sequences"
+        ) : showForeign ? (
+          /* _ */
+          "List of foreign tables"
+        ) : "List of ???";
         myopt.translate_header = true;
         myopt.translate_columns = translate_columns;
         myopt.n_translate_columns = lengthof(translate_columns);
@@ -4649,26 +4971,22 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       let showTables = strchr(reltypes, "t") != NULL;
       let showIndexes = strchr(reltypes, "i") != NULL;
       let showNested = strchr(reltypes, "n") != NULL;
-      let buf = {
-        /* struct */
-      };
-      let title = {
-        /* struct */
-      };
+      let buf = {};
+      let title = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [false, false, false, false, false, false, false, false, false, false];
       let tabletitle;
       let mixed_output = false;
       if (pset.sversion < 1e5) {
-        let sverbuf;
+        let sverbuf = "";
         pg_log_error(
           "The server (version %s) does not support declarative table partitioning.",
           formatPGVersionNumber(
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
@@ -4676,77 +4994,89 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       if (!showTables && !showIndexes)
         showTables = showIndexes = true;
       if (showIndexes && !showTables)
-        tabletitle = _("List of partitioned indexes");
+        tabletitle = /* _ */
+        "List of partitioned indexes";
       else if (showTables && !showIndexes)
-        tabletitle = _("List of partitioned tables");
+        tabletitle = /* _ */
+        "List of partitioned tables";
       else {
-        tabletitle = _("List of partitioned relations");
+        tabletitle = /* _ */
+        "List of partitioned relations";
         mixed_output = true;
       }
       initPQExpBuffer(buf);
-      printfPQExpBuffer(
-        buf,
-        "/* %s */\n",
-        _("Get matching partitioned relations")
-      );
+      addQueryComment(buf, "Get matching partitioned relations");
       appendPQExpBuffer(
         buf,
         'SELECT n.nspname as "%s",\n  c.relname as "%s",\n  pg_catalog.pg_get_userbyid(c.relowner) as "%s"',
-        gettext_noop("Schema"),
-        gettext_noop("Name"),
-        gettext_noop("Owner")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Owner"
       );
       if (mixed_output) {
         appendPQExpBuffer(
           buf,
           `,
   CASE c.relkind WHEN 'p' THEN '%s' WHEN 'I' THEN '%s' END as "%s"`,
-          gettext_noop("partitioned table"),
-          gettext_noop("partitioned index"),
-          gettext_noop("Type")
+          /* gettext_noop */
+          "partitioned table",
+          /* gettext_noop */
+          "partitioned index",
+          /* gettext_noop */
+          "Type"
         );
         translate_columns[3] = true;
       }
-      if (showNested || pattern)
+      if (showNested || pattern != NULL)
         appendPQExpBuffer(
           buf,
           ',\n  inh.inhparent::pg_catalog.regclass as "%s"',
-          gettext_noop("Parent name")
+          /* gettext_noop */
+          "Parent name"
         );
       if (showIndexes)
         appendPQExpBuffer(
           buf,
           ',\n c2.oid::pg_catalog.regclass as "%s"',
-          gettext_noop("Table")
+          /* gettext_noop */
+          "Table"
         );
       if (verbose) {
         appendPQExpBuffer(
           buf,
           ',\n  am.amname as "%s"',
-          gettext_noop("Access method")
+          /* gettext_noop */
+          "Access method"
         );
         if (showNested) {
           appendPQExpBuffer(
             buf,
             ',\n  s.dps as "%s"',
-            gettext_noop("Leaf partition size")
+            /* gettext_noop */
+            "Leaf partition size"
           );
           appendPQExpBuffer(
             buf,
             ',\n  s.tps as "%s"',
-            gettext_noop("Total size")
+            /* gettext_noop */
+            "Total size"
           );
         } else
           appendPQExpBuffer(
             buf,
             ',\n  s.tps as "%s"',
-            gettext_noop("Total size")
+            /* gettext_noop */
+            "Total size"
           );
         appendPQExpBuffer(
           buf,
           `,
   pg_catalog.obj_description(c.oid, 'pg_class') as "%s"`,
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Description"
         );
       }
       appendPQExpBufferStr(
@@ -4758,7 +5088,7 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
           buf,
           "\n     LEFT JOIN pg_catalog.pg_index i ON i.indexrelid = c.oid\n     LEFT JOIN pg_catalog.pg_class c2 ON i.indrelid = c2.oid"
         );
-      if (showNested || pattern)
+      if (showNested || pattern != NULL)
         appendPQExpBufferStr(
           buf,
           "\n     LEFT JOIN pg_catalog.pg_inherits inh ON c.oid = inh.inhrelid"
@@ -4782,19 +5112,13 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       }
       appendPQExpBufferStr(buf, "\nWHERE c.relkind IN (");
       if (showTables)
-        appendPQExpBufferStr(
-          buf,
-          "'p',"
-        );
+        appendPQExpBufferStr(buf, "'p',");
       if (showIndexes)
-        appendPQExpBufferStr(
-          buf,
-          "'I',"
-        );
+        appendPQExpBufferStr(buf, "'I',");
       appendPQExpBufferStr(buf, "''");
       appendPQExpBufferStr(buf, ")\n");
-      appendPQExpBufferStr(buf, !showNested && !pattern ? " AND NOT c.relispartition\n" : "");
-      if (!pattern)
+      appendPQExpBufferStr(buf, !showNested && pattern == NULL ? " AND NOT c.relispartition\n" : "");
+      if (pattern == NULL)
         appendPQExpBufferStr(buf, "      AND n.nspname <> 'pg_catalog'\n      AND n.nspname !~ '^pg_toast'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
@@ -4814,14 +5138,13 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
         buf,
         'ORDER BY "Schema", %s%s"Name";',
         mixed_output ? '"Type" DESC, ' : "",
-        showNested || pattern ? '"Parent name" NULLS FIRST, ' : ""
+        showNested || pattern != NULL ? '"Parent name" NULLS FIRST, ' : ""
       );
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
       initPQExpBuffer(title);
       appendPQExpBufferStr(title, tabletitle);
-      myopt.nullPrint = NULL;
       myopt.title = title.data;
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
@@ -4830,37 +5153,43 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       return true;
     }
     async function listLanguages(pattern, verbose, showSystem) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching procedural languages"));
+      addQueryComment(buf, "Get matching procedural languages");
       appendPQExpBuffer(
         buf,
         'SELECT l.lanname AS "%s",\n       pg_catalog.pg_get_userbyid(l.lanowner) as "%s",\n       l.lanpltrusted AS "%s"',
-        gettext_noop("Name"),
-        gettext_noop("Owner"),
-        gettext_noop("Trusted")
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Owner",
+        /* gettext_noop */
+        "Trusted"
       );
       if (verbose) {
         appendPQExpBuffer(
           buf,
           ',\n       NOT l.lanispl AS "%s",\n       l.lanplcallfoid::pg_catalog.regprocedure AS "%s",\n       l.lanvalidator::pg_catalog.regprocedure AS "%s",\n       l.laninline::pg_catalog.regprocedure AS "%s",\n       ',
-          gettext_noop("Internal language"),
-          gettext_noop("Call handler"),
-          gettext_noop("Validator"),
-          gettext_noop("Inline handler")
+          /* gettext_noop */
+          "Internal language",
+          /* gettext_noop */
+          "Call handler",
+          /* gettext_noop */
+          "Validator",
+          /* gettext_noop */
+          "Inline handler"
         );
         printACLColumn(buf, "l.lanacl");
       }
       appendPQExpBuffer(
         buf,
         ',\n       d.description AS "%s"\nFROM pg_catalog.pg_language l\nLEFT JOIN pg_catalog.pg_description d\n  ON d.classoid = l.tableoid AND d.objoid = l.oid\n  AND d.objsubid = 0\n',
-        gettext_noop("Description")
+        /* gettext_noop */
+        "Description"
       );
-      if (pattern) {
+      if (pattern != NULL) {
         if (!validateSQLNamePattern(
           buf,
           pattern,
@@ -4876,26 +5205,24 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
           return false;
         }
       }
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "WHERE l.lanplcallfoid != 0\n");
       appendPQExpBufferStr(buf, "ORDER BY 1;");
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of languages");
+      myopt.title = /* _ */
+      "List of languages";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function listDomains(pattern, verbose, showSystem) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching domains"));
+      addQueryComment(buf, "Get matching domains");
       appendPQExpBuffer(
         buf,
         `SELECT n.nspname as "%s",
@@ -4908,13 +5235,20 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
        pg_catalog.array_to_string(ARRAY(
          SELECT pg_catalog.pg_get_constraintdef(r.oid, true) FROM pg_catalog.pg_constraint r WHERE t.oid = r.contypid AND r.contype = 'c' ORDER BY r.conname
        ), ' ') as "%s"`,
-        gettext_noop("Schema"),
-        gettext_noop("Name"),
-        gettext_noop("Type"),
-        gettext_noop("Collation"),
-        gettext_noop("Nullable"),
-        gettext_noop("Default"),
-        gettext_noop("Check")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Type",
+        /* gettext_noop */
+        "Collation",
+        /* gettext_noop */
+        "Nullable",
+        /* gettext_noop */
+        "Default",
+        /* gettext_noop */
+        "Check"
       );
       if (verbose) {
         appendPQExpBufferStr(buf, ",\n  ");
@@ -4922,7 +5256,8 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
         appendPQExpBuffer(
           buf,
           ',\n       d.description as "%s"',
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Description"
         );
       }
       appendPQExpBufferStr(
@@ -4935,7 +5270,7 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
           "     LEFT JOIN pg_catalog.pg_description d ON d.classoid = t.tableoid AND d.objoid = t.oid AND d.objsubid = 0\n"
         );
       appendPQExpBufferStr(buf, "WHERE t.typtype = 'd'\n");
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "      AND n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
@@ -4955,21 +5290,19 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of domains");
+      myopt.title = /* _ */
+      "List of domains";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function listConversions(pattern, verbose, showSystem) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [false, false, false, false, true, false];
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching conversions"));
+      addQueryComment(buf, "Get matching conversions");
       appendPQExpBuffer(
         buf,
         `SELECT n.nspname AS "%s",
@@ -4978,19 +5311,27 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
        pg_catalog.pg_encoding_to_char(c.contoencoding) AS "%s",
        CASE WHEN c.condefault THEN '%s'
        ELSE '%s' END AS "%s"`,
-        gettext_noop("Schema"),
-        gettext_noop("Name"),
-        gettext_noop("Source"),
-        gettext_noop("Destination"),
-        gettext_noop("yes"),
-        gettext_noop("no"),
-        gettext_noop("Default?")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Source",
+        /* gettext_noop */
+        "Destination",
+        /* gettext_noop */
+        "yes",
+        /* gettext_noop */
+        "no",
+        /* gettext_noop */
+        "Default?"
       );
       if (verbose)
         appendPQExpBuffer(
           buf,
           ',\n       d.description AS "%s"',
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Description"
         );
       appendPQExpBufferStr(
         buf,
@@ -5002,7 +5343,7 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
           "LEFT JOIN pg_catalog.pg_description d ON d.classoid = c.tableoid\n          AND d.objoid = c.oid AND d.objsubid = 0\n"
         );
       appendPQExpBufferStr(buf, "WHERE true\n");
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "  AND n.nspname <> 'pg_catalog'\n  AND n.nspname <> 'information_schema'\n");
       if (!validateSQLNamePattern(
         buf,
@@ -5022,8 +5363,8 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of conversions");
+      myopt.title = /* _ */
+      "List of conversions";
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
       myopt.n_translate_columns = lengthof(translate_columns);
@@ -5031,29 +5372,27 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       return true;
     }
     async function describeConfigurationParameters(pattern, verbose, showSystem) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(
-        buf,
-        "/* %s */\n",
-        _("Get matching configuration parameters")
-      );
+      addQueryComment(buf, "Get matching configuration parameters");
       appendPQExpBuffer(
         buf,
         'SELECT s.name AS "%s", pg_catalog.current_setting(s.name) AS "%s"',
-        gettext_noop("Parameter"),
-        gettext_noop("Value")
+        /* gettext_noop */
+        "Parameter",
+        /* gettext_noop */
+        "Value"
       );
       if (verbose) {
         appendPQExpBuffer(
           buf,
           ', s.vartype AS "%s", s.context AS "%s", ',
-          gettext_noop("Type"),
-          gettext_noop("Context")
+          /* gettext_noop */
+          "Type",
+          /* gettext_noop */
+          "Context"
         );
         if (pset.sversion >= 15e4)
           printACLColumn(buf, "p.paracl");
@@ -5061,7 +5400,8 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
           appendPQExpBuffer(
             buf,
             'NULL AS "%s"',
-            gettext_noop("Access privileges")
+            /* gettext_noop */
+            "Access privileges"
           );
       }
       appendPQExpBufferStr(buf, "\nFROM pg_catalog.pg_settings s\n");
@@ -5070,7 +5410,7 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
           buf,
           "  LEFT JOIN pg_catalog.pg_parameter_acl p\n  ON pg_catalog.lower(s.name) = p.parname\n"
         );
-      if (pattern)
+      if (pattern != NULL)
         processSQLNamePattern(
           pset.db,
           buf,
@@ -5090,59 +5430,69 @@ LEFT JOIN pg_catalog.pg_roles r ON r.oid = setrole
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      if (pattern)
-        myopt.title = _("List of configuration parameters");
+      if (pattern != NULL)
+        myopt.title = /* _ */
+        "List of configuration parameters";
       else
-        myopt.title = _("List of non-default configuration parameters");
+        myopt.title = /* _ */
+        "List of non-default configuration parameters";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function listEventTriggers(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [false, false, false, true, false, false, false];
       if (pset.sversion < 90300) {
-        let sverbuf;
+        let sverbuf = "";
         pg_log_error(
           "The server (version %s) does not support event triggers.",
           formatPGVersionNumber(
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
       }
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching event triggers"));
+      addQueryComment(buf, "Get matching event triggers");
       appendPQExpBuffer(
         buf,
         `SELECT evtname as "%s", evtevent as "%s", pg_catalog.pg_get_userbyid(e.evtowner) as "%s",
  case evtenabled when 'O' then '%s'  when 'R' then '%s'  when 'A' then '%s'  when 'D' then '%s' end as "%s",
  e.evtfoid::pg_catalog.regproc as "%s", pg_catalog.array_to_string(array(select x from pg_catalog.unnest(evttags) as t(x)), ', ') as "%s"`,
-        gettext_noop("Name"),
-        gettext_noop("Event"),
-        gettext_noop("Owner"),
-        gettext_noop("enabled"),
-        gettext_noop("replica"),
-        gettext_noop("always"),
-        gettext_noop("disabled"),
-        gettext_noop("Enabled"),
-        gettext_noop("Function"),
-        gettext_noop("Tags")
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Event",
+        /* gettext_noop */
+        "Owner",
+        /* gettext_noop */
+        "enabled",
+        /* gettext_noop */
+        "replica",
+        /* gettext_noop */
+        "always",
+        /* gettext_noop */
+        "disabled",
+        /* gettext_noop */
+        "Enabled",
+        /* gettext_noop */
+        "Function",
+        /* gettext_noop */
+        "Tags"
       );
       if (verbose)
         appendPQExpBuffer(
           buf,
           `,
 pg_catalog.obj_description(e.oid, 'pg_event_trigger') as "%s"`,
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Description"
         );
       appendPQExpBufferStr(
         buf,
@@ -5166,8 +5516,8 @@ pg_catalog.obj_description(e.oid, 'pg_event_trigger') as "%s"`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of event triggers");
+      myopt.title = /* _ */
+      "List of event triggers";
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
       myopt.n_translate_columns = lengthof(translate_columns);
@@ -5175,31 +5525,31 @@ pg_catalog.obj_description(e.oid, 'pg_event_trigger') as "%s"`,
       return true;
     }
     async function listExtendedStats(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       if (pset.sversion < 1e5) {
-        let sverbuf;
+        let sverbuf = "";
         pg_log_error(
           "The server (version %s) does not support extended statistics.",
           formatPGVersionNumber(
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
       }
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching extended statistics"));
+      addQueryComment(buf, "Get matching extended statistics");
       appendPQExpBuffer(
         buf,
         'SELECT \nes.stxnamespace::pg_catalog.regnamespace::pg_catalog.text AS "%s", \nes.stxname AS "%s", \n',
-        gettext_noop("Schema"),
-        gettext_noop("Name")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name"
       );
       if (pset.sversion >= 14e4)
         appendPQExpBuffer(
@@ -5207,7 +5557,8 @@ pg_catalog.obj_description(e.oid, 'pg_event_trigger') as "%s"`,
           `pg_catalog.format('%%s FROM %%s', 
   pg_catalog.pg_get_statisticsobjdef_columns(es.oid), 
   es.stxrelid::pg_catalog.regclass) AS "%s"`,
-          gettext_noop("Definition")
+          /* gettext_noop */
+          "Definition"
         );
       else
         appendPQExpBuffer(
@@ -5220,7 +5571,8 @@ pg_catalog.obj_description(e.oid, 'pg_event_trigger') as "%s"`,
    AND a.attnum = s.attnum 
    AND NOT a.attisdropped)), 
 es.stxrelid::pg_catalog.regclass) AS "%s"`,
-          gettext_noop("Definition")
+          /* gettext_noop */
+          "Definition"
         );
       appendPQExpBuffer(
         buf,
@@ -5229,8 +5581,10 @@ CASE WHEN 'd' = any(es.stxkind) THEN 'defined'
 END AS "%s", 
 CASE WHEN 'f' = any(es.stxkind) THEN 'defined' 
 END AS "%s"`,
-        gettext_noop("Ndistinct"),
-        gettext_noop("Dependencies")
+        /* gettext_noop */
+        "Ndistinct",
+        /* gettext_noop */
+        "Dependencies"
       );
       if (pset.sversion >= 12e4) {
         appendPQExpBuffer(
@@ -5238,7 +5592,8 @@ END AS "%s"`,
           `,
 CASE WHEN 'm' = any(es.stxkind) THEN 'defined' 
 END AS "%s" `,
-          gettext_noop("MCV")
+          /* gettext_noop */
+          "MCV"
         );
       }
       if (verbose)
@@ -5247,7 +5602,8 @@ END AS "%s" `,
           `, 
 pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
 `,
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Description"
         );
       appendPQExpBufferStr(
         buf,
@@ -5271,26 +5627,26 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of extended statistics");
+      myopt.title = /* _ */
+      "List of extended statistics";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function listCasts(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [false, false, false, true, true, false];
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching casts"));
+      addQueryComment(buf, "Get matching casts");
       appendPQExpBuffer(
         buf,
         'SELECT pg_catalog.format_type(castsource, NULL) AS "%s",\n       pg_catalog.format_type(casttarget, NULL) AS "%s",\n',
-        gettext_noop("Source type"),
-        gettext_noop("Target type")
+        /* gettext_noop */
+        "Source type",
+        /* gettext_noop */
+        "Target type"
       );
       appendPQExpBuffer(
         buf,
@@ -5301,7 +5657,8 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
 `,
         COERCION_METHOD_BINARY,
         COERCION_METHOD_INOUT,
-        gettext_noop("Function")
+        /* gettext_noop */
+        "Function"
       );
       appendPQExpBuffer(
         buf,
@@ -5310,11 +5667,15 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
             ELSE '%s'
        END AS "%s"`,
         COERCION_CODE_EXPLICIT,
-        gettext_noop("no"),
+        /* gettext_noop */
+        "no",
         COERCION_CODE_ASSIGNMENT,
-        gettext_noop("in assignment"),
-        gettext_noop("yes"),
-        gettext_noop("Implicit?")
+        /* gettext_noop */
+        "in assignment",
+        /* gettext_noop */
+        "yes",
+        /* gettext_noop */
+        "Implicit?"
       );
       if (verbose)
         appendPQExpBuffer(
@@ -5324,10 +5685,14 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
             ELSE '%s'
        END AS "%s",
        d.description AS "%s"`,
-          gettext_noop("yes"),
-          gettext_noop("no"),
-          gettext_noop("Leakproof?"),
-          gettext_noop("Description")
+          /* gettext_noop */
+          "yes",
+          /* gettext_noop */
+          "no",
+          /* gettext_noop */
+          "Leakproof?",
+          /* gettext_noop */
+          "Description"
         );
       appendPQExpBufferStr(
         buf,
@@ -5370,8 +5735,8 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of casts");
+      myopt.title = /* _ */
+      "List of casts";
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
       myopt.n_translate_columns = lengthof(translate_columns);
@@ -5379,97 +5744,112 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
       return true;
     }
     async function listCollations(pattern, verbose, showSystem) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [false, false, false, false, false, false, false, true, false];
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching collations"));
+      addQueryComment(buf, "Get matching collations");
       appendPQExpBuffer(
         buf,
         'SELECT\n  n.nspname AS "%s",\n  c.collname AS "%s",\n',
-        gettext_noop("Schema"),
-        gettext_noop("Name")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name"
       );
       if (pset.sversion >= 1e5)
         appendPQExpBuffer(
           buf,
           `  CASE c.collprovider WHEN 'd' THEN 'default' WHEN 'b' THEN 'builtin' WHEN 'c' THEN 'libc' WHEN 'i' THEN 'icu' END AS "%s",
 `,
-          gettext_noop("Provider")
+          /* gettext_noop */
+          "Provider"
         );
       else
         appendPQExpBuffer(
           buf,
           `  'libc' AS "%s",
 `,
-          gettext_noop("Provider")
+          /* gettext_noop */
+          "Provider"
         );
       appendPQExpBuffer(
         buf,
         '  c.collcollate AS "%s",\n  c.collctype AS "%s",\n',
-        gettext_noop("Collate"),
-        gettext_noop("Ctype")
+        /* gettext_noop */
+        "Collate",
+        /* gettext_noop */
+        "Ctype"
       );
       if (pset.sversion >= 17e4)
         appendPQExpBuffer(
           buf,
           '  c.colllocale AS "%s",\n',
-          gettext_noop("Locale")
+          /* gettext_noop */
+          "Locale"
         );
       else if (pset.sversion >= 15e4)
         appendPQExpBuffer(
           buf,
           '  c.colliculocale AS "%s",\n',
-          gettext_noop("Locale")
+          /* gettext_noop */
+          "Locale"
         );
       else
         appendPQExpBuffer(
           buf,
           '  c.collcollate AS "%s",\n',
-          gettext_noop("Locale")
+          /* gettext_noop */
+          "Locale"
         );
       if (pset.sversion >= 16e4)
         appendPQExpBuffer(
           buf,
           '  c.collicurules AS "%s",\n',
-          gettext_noop("ICU Rules")
+          /* gettext_noop */
+          "ICU Rules"
         );
       else
         appendPQExpBuffer(
           buf,
           '  NULL AS "%s",\n',
-          gettext_noop("ICU Rules")
+          /* gettext_noop */
+          "ICU Rules"
         );
       if (pset.sversion >= 12e4)
         appendPQExpBuffer(
           buf,
           `  CASE WHEN c.collisdeterministic THEN '%s' ELSE '%s' END AS "%s"`,
-          gettext_noop("yes"),
-          gettext_noop("no"),
-          gettext_noop("Deterministic?")
+          /* gettext_noop */
+          "yes",
+          /* gettext_noop */
+          "no",
+          /* gettext_noop */
+          "Deterministic?"
         );
       else
         appendPQExpBuffer(
           buf,
           `  '%s' AS "%s"`,
-          gettext_noop("yes"),
-          gettext_noop("Deterministic?")
+          /* gettext_noop */
+          "yes",
+          /* gettext_noop */
+          "Deterministic?"
         );
       if (verbose)
         appendPQExpBuffer(
           buf,
           `,
   pg_catalog.obj_description(c.oid, 'pg_collation') AS "%s"`,
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Description"
         );
       appendPQExpBufferStr(
         buf,
         "\nFROM pg_catalog.pg_collation c, pg_catalog.pg_namespace n\nWHERE n.oid = c.collnamespace\n"
       );
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(buf, "      AND n.nspname <> 'pg_catalog'\n      AND n.nspname <> 'information_schema'\n");
       appendPQExpBufferStr(buf, "      AND c.collencoding IN (-1, pg_catalog.pg_char_to_encoding(pg_catalog.getdatabaseencoding()))\n");
       if (!validateSQLNamePattern(
@@ -5490,8 +5870,8 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of collations");
+      myopt.title = /* _ */
+      "List of collations";
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
       myopt.n_translate_columns = lengthof(translate_columns);
@@ -5499,20 +5879,20 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
       return true;
     }
     async function listSchemas(pattern, verbose, showSystem) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let pub_schema_tuples = 0;
       let footers = NULL;
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching schemas"));
+      addQueryComment(buf, "Get matching schemas");
       appendPQExpBuffer(
         buf,
         'SELECT n.nspname AS "%s",\n  pg_catalog.pg_get_userbyid(n.nspowner) AS "%s"',
-        gettext_noop("Name"),
-        gettext_noop("Owner")
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Owner"
       );
       if (verbose) {
         appendPQExpBufferStr(buf, ",\n  ");
@@ -5521,14 +5901,15 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
           buf,
           `,
   pg_catalog.obj_description(n.oid, 'pg_namespace') AS "%s"`,
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Description"
         );
       }
       appendPQExpBufferStr(
         buf,
         "\nFROM pg_catalog.pg_namespace n\n"
       );
-      if (!showSystem && !pattern)
+      if (!showSystem && pattern == NULL)
         appendPQExpBufferStr(
           buf,
           "WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'\n"
@@ -5536,7 +5917,7 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
       if (!validateSQLNamePattern(
         buf,
         pattern,
-        !showSystem && !pattern,
+        !showSystem && pattern == NULL,
         false,
         NULL,
         "n.nspname",
@@ -5550,17 +5931,13 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of schemas");
+      myopt.title = /* _ */
+      "List of schemas";
       myopt.translate_header = true;
-      if (pattern && pset.sversion >= 15e4) {
+      if (pattern != NULL && pset.sversion >= 15e4) {
         let result;
         let i;
-        printfPQExpBuffer(
-          buf,
-          "/* %s */\n",
-          _("Get publications that publish this schema")
-        );
+        addQueryComment(buf, "Get publications that publish this schema");
         appendPQExpBuffer(
           buf,
           "SELECT pubname \nFROM pg_catalog.pg_publication p\n     JOIN pg_catalog.pg_publication_namespace pn ON p.oid = pn.pnpubid\n     JOIN pg_catalog.pg_namespace n ON n.oid = pn.pnnspid \nWHERE n.nspname = '%s'\nORDER BY 1",
@@ -5573,14 +5950,17 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
           pub_schema_tuples = PQntuples(result);
         if (pub_schema_tuples > 0) {
           footers = [];
-          footers[0] = pg_strdup(_("Included in publications:"));
+          footers[0] = /* pg_strdup */
+          /* _ */
+          "Included in publications:";
           for (i = 0; i < pub_schema_tuples; i++) {
             printfPQExpBuffer(
               buf,
               '    "%s"',
               PQgetvalue(result, i, 0)
             );
-            footers[i + 1] = pg_strdup(buf.data);
+            footers[i + 1] = /* pg_strdup */
+            buf.data;
           }
           footers[i + 1] = NULL;
           myopt.footers = footers;
@@ -5590,15 +5970,13 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
       return true;
     }
     async function listTSParsers(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       if (verbose)
         return await listTSParsersVerbose(pattern);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching text search parsers"));
+      addQueryComment(buf, "Get matching text search parsers");
       appendPQExpBuffer(
         buf,
         `SELECT
@@ -5608,9 +5986,12 @@ pg_catalog.obj_description(oid, 'pg_statistic_ext') AS "%s"
 FROM pg_catalog.pg_ts_parser p
 LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.prsnamespace
 `,
-        gettext_noop("Schema"),
-        gettext_noop("Name"),
-        gettext_noop("Description")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Description"
       );
       if (!validateSQLNamePattern(
         buf,
@@ -5630,20 +6011,18 @@ LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.prsnamespace
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of text search parsers");
+      myopt.title = /* _ */
+      "List of text search parsers";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function listTSParsersVerbose(pattern) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
       let i;
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching text search parsers"));
+      addQueryComment(buf, "Get matching text search parsers");
       appendPQExpBufferStr(
         buf,
         "SELECT p.oid,\n  n.nspname,\n  p.prsname\nFROM pg_catalog.pg_ts_parser p\nLEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.prsnamespace\n"
@@ -5668,7 +6047,7 @@ LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.prsnamespace
         return false;
       if (PQntuples(res) == 0) {
         if (!pset.quiet) {
-          if (pattern)
+          if (pattern != NULL)
             pg_log_error(
               'Did not find any text search parser named "%s".',
               pattern
@@ -5696,17 +6075,13 @@ LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.prsnamespace
       return true;
     }
     async function describeOneTSParser(oid, nspname, prsname) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let title = {
-        /* struct */
-      };
-      let myopt = pset.popt;
+      let title = {};
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [true, false, false];
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get text search parser details"));
+      addQueryComment(buf, "Get text search parser details");
       appendPQExpBuffer(
         buf,
         `SELECT '%s' AS "%s",
@@ -5738,34 +6113,47 @@ SELECT '%s',
    pg_catalog.obj_description(p.prslextype, 'pg_proc')
  FROM pg_catalog.pg_ts_parser p
  WHERE p.oid = '%s';`,
-        gettext_noop("Start parse"),
-        gettext_noop("Method"),
-        gettext_noop("Function"),
-        gettext_noop("Description"),
+        /* gettext_noop */
+        "Start parse",
+        /* gettext_noop */
+        "Method",
+        /* gettext_noop */
+        "Function",
+        /* gettext_noop */
+        "Description",
         oid,
-        gettext_noop("Get next token"),
+        /* gettext_noop */
+        "Get next token",
         oid,
-        gettext_noop("End parse"),
+        /* gettext_noop */
+        "End parse",
         oid,
-        gettext_noop("Get headline"),
+        /* gettext_noop */
+        "Get headline",
         oid,
-        gettext_noop("Get token types"),
+        /* gettext_noop */
+        "Get token types",
         oid
       );
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
       initPQExpBuffer(title);
-      if (nspname)
+      if (nspname != NULL)
         printfPQExpBuffer(
           title,
-          _('Text search parser "%s.%s"'),
+          /* _ */
+          'Text search parser "%s.%s"',
           nspname,
           prsname
         );
       else
-        printfPQExpBuffer(title, _('Text search parser "%s"'), prsname);
+        printfPQExpBuffer(
+          title,
+          /* _ */
+          'Text search parser "%s"',
+          prsname
+        );
       myopt.title = title.data;
       myopt.footers = NULL;
       myopt.topt.default_footer = false;
@@ -5774,35 +6162,38 @@ SELECT '%s',
       myopt.n_translate_columns = lengthof(translate_columns);
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(
-        buf,
-        "/* %s */\n",
-        _("Get text search parser token types")
-      );
+      addQueryComment(buf, "Get text search parser token types");
       appendPQExpBuffer(
         buf,
         `SELECT t.alias as "%s",
   t.description as "%s"
 FROM pg_catalog.ts_token_type( '%s'::pg_catalog.oid ) as t
 ORDER BY 1;`,
-        gettext_noop("Token name"),
-        gettext_noop("Description"),
+        /* gettext_noop */
+        "Token name",
+        /* gettext_noop */
+        "Description",
         oid
       );
       res = await PSQLexec(buf.data);
       if (!res) {
         return false;
       }
-      myopt.nullPrint = NULL;
-      if (nspname)
+      if (nspname != NULL)
         printfPQExpBuffer(
           title,
-          _('Token types for parser "%s.%s"'),
+          /* _ */
+          'Token types for parser "%s.%s"',
           nspname,
           prsname
         );
       else
-        printfPQExpBuffer(title, _('Token types for parser "%s"'), prsname);
+        printfPQExpBuffer(
+          title,
+          /* _ */
+          'Token types for parser "%s"',
+          prsname
+        );
       myopt.title = title.data;
       myopt.footers = NULL;
       myopt.topt.default_footer = true;
@@ -5813,18 +6204,18 @@ ORDER BY 1;`,
       return true;
     }
     async function listTSDictionaries(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching text search dictionaries"));
+      addQueryComment(buf, "Get matching text search dictionaries");
       appendPQExpBuffer(
         buf,
         'SELECT\n  n.nspname as "%s",\n  d.dictname as "%s",\n',
-        gettext_noop("Schema"),
-        gettext_noop("Name")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name"
       );
       if (verbose) {
         appendPQExpBuffer(
@@ -5835,15 +6226,18 @@ ORDER BY 1;`,
     WHERE d.dicttemplate = t.oid ) AS  "%s",
   d.dictinitoption as "%s",
 `,
-          gettext_noop("Template"),
-          gettext_noop("Init options")
+          /* gettext_noop */
+          "Template",
+          /* gettext_noop */
+          "Init options"
         );
       }
       appendPQExpBuffer(
         buf,
         `  pg_catalog.obj_description(d.oid, 'pg_ts_dict') as "%s"
 `,
-        gettext_noop("Description")
+        /* gettext_noop */
+        "Description"
       );
       appendPQExpBufferStr(buf, "FROM pg_catalog.pg_ts_dict d\nLEFT JOIN pg_catalog.pg_namespace n ON n.oid = d.dictnamespace\n");
       if (!validateSQLNamePattern(
@@ -5864,20 +6258,18 @@ ORDER BY 1;`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of text search dictionaries");
+      myopt.title = /* _ */
+      "List of text search dictionaries";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function listTSTemplates(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching text search templates"));
+      addQueryComment(buf, "Get matching text search templates");
       if (verbose)
         appendPQExpBuffer(
           buf,
@@ -5888,11 +6280,16 @@ ORDER BY 1;`,
   t.tmpllexize::pg_catalog.regproc AS "%s",
   pg_catalog.obj_description(t.oid, 'pg_ts_template') AS "%s"
 `,
-          gettext_noop("Schema"),
-          gettext_noop("Name"),
-          gettext_noop("Init"),
-          gettext_noop("Lexize"),
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Schema",
+          /* gettext_noop */
+          "Name",
+          /* gettext_noop */
+          "Init",
+          /* gettext_noop */
+          "Lexize",
+          /* gettext_noop */
+          "Description"
         );
       else
         appendPQExpBuffer(
@@ -5902,9 +6299,12 @@ ORDER BY 1;`,
   t.tmplname AS "%s",
   pg_catalog.obj_description(t.oid, 'pg_ts_template') AS "%s"
 `,
-          gettext_noop("Schema"),
-          gettext_noop("Name"),
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Schema",
+          /* gettext_noop */
+          "Name",
+          /* gettext_noop */
+          "Description"
         );
       appendPQExpBufferStr(buf, "FROM pg_catalog.pg_ts_template t\nLEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.tmplnamespace\n");
       if (!validateSQLNamePattern(
@@ -5925,22 +6325,20 @@ ORDER BY 1;`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of text search templates");
+      myopt.title = /* _ */
+      "List of text search templates";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function listTSConfigs(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       if (verbose)
         return await listTSConfigsVerbose(pattern);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching text search configurations"));
+      addQueryComment(buf, "Get matching text search configurations");
       appendPQExpBuffer(
         buf,
         `SELECT
@@ -5950,9 +6348,12 @@ ORDER BY 1;`,
 FROM pg_catalog.pg_ts_config c
 LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.cfgnamespace
 `,
-        gettext_noop("Schema"),
-        gettext_noop("Name"),
-        gettext_noop("Description")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Description"
       );
       if (!validateSQLNamePattern(
         buf,
@@ -5972,20 +6373,18 @@ LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.cfgnamespace
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of text search configurations");
+      myopt.title = /* _ */
+      "List of text search configurations";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function listTSConfigsVerbose(pattern) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
       let i;
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching text search configurations"));
+      addQueryComment(buf, "Get matching text search configurations");
       appendPQExpBufferStr(
         buf,
         "SELECT c.oid, c.cfgname,\n   n.nspname,\n   p.prsname,\n   np.nspname as pnspname\nFROM pg_catalog.pg_ts_config c\n   LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.cfgnamespace,\n pg_catalog.pg_ts_parser p\n   LEFT JOIN pg_catalog.pg_namespace np ON np.oid = p.prsnamespace\nWHERE  p.oid = c.cfgparser\n"
@@ -6010,7 +6409,7 @@ LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.cfgnamespace
         return false;
       if (PQntuples(res) == 0) {
         if (!pset.quiet) {
-          if (pattern)
+          if (pattern != NULL)
             pg_log_error(
               'Did not find any text search configuration named "%s".',
               pattern
@@ -6043,15 +6442,11 @@ LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.cfgnamespace
       return true;
     }
     async function describeOneTSConfig(oid, nspname, cfgname, pnspname, prsname) {
-      let buf = {
-        /* struct */
-      }, title = {
-        /* struct */
-      };
+      let buf = {}, title = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get text search configuration details"));
+      addQueryComment(buf, "Get text search configuration details");
       appendPQExpBuffer(
         buf,
         `SELECT
@@ -6069,41 +6464,46 @@ FROM pg_catalog.pg_ts_config AS c, pg_catalog.pg_ts_config_map AS m
 WHERE c.oid = '%s' AND m.mapcfg = c.oid
 GROUP BY m.mapcfg, m.maptokentype, c.cfgparser
 ORDER BY 1;`,
-        gettext_noop("Token"),
-        gettext_noop("Dictionaries"),
+        /* gettext_noop */
+        "Token",
+        /* gettext_noop */
+        "Dictionaries",
         oid
       );
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
       initPQExpBuffer(title);
-      if (nspname)
+      if (nspname != NULL)
         appendPQExpBuffer(
           title,
-          _('Text search configuration "%s.%s"'),
+          /* _ */
+          'Text search configuration "%s.%s"',
           nspname,
           cfgname
         );
       else
         appendPQExpBuffer(
           title,
-          _('Text search configuration "%s"'),
+          /* _ */
+          'Text search configuration "%s"',
           cfgname
         );
-      if (pnspname)
+      if (pnspname != NULL)
         appendPQExpBuffer(
           title,
-          _('\nParser: "%s.%s"'),
+          /* _ */
+          '\nParser: "%s.%s"',
           pnspname,
           prsname
         );
       else
         appendPQExpBuffer(
           title,
-          _('\nParser: "%s"'),
+          /* _ */
+          '\nParser: "%s"',
           prsname
         );
-      myopt.nullPrint = NULL;
       myopt.title = title.data;
       myopt.footers = NULL;
       myopt.topt.default_footer = false;
@@ -6112,20 +6512,22 @@ ORDER BY 1;`,
       return true;
     }
     async function listForeignDataWrappers(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching foreign-data wrappers"));
+      addQueryComment(buf, "Get matching foreign-data wrappers");
       appendPQExpBuffer(
         buf,
         'SELECT fdw.fdwname AS "%s",\n  pg_catalog.pg_get_userbyid(fdw.fdwowner) AS "%s",\n  fdw.fdwhandler::pg_catalog.regproc AS "%s",\n  fdw.fdwvalidator::pg_catalog.regproc AS "%s"',
-        gettext_noop("Name"),
-        gettext_noop("Owner"),
-        gettext_noop("Handler"),
-        gettext_noop("Validator")
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Owner",
+        /* gettext_noop */
+        "Handler",
+        /* gettext_noop */
+        "Validator"
       );
       if (verbose) {
         appendPQExpBufferStr(buf, ",\n  ");
@@ -6135,8 +6537,10 @@ ORDER BY 1;`,
           `,
  CASE WHEN fdwoptions IS NULL THEN '' ELSE   '(' || pg_catalog.array_to_string(ARRAY(SELECT   pg_catalog.quote_ident(option_name) ||  ' ' ||   pg_catalog.quote_literal(option_value)  FROM   pg_catalog.pg_options_to_table(fdwoptions)),  ', ') || ')'   END AS "%s",
   d.description AS "%s" `,
-          gettext_noop("FDW options"),
-          gettext_noop("Description")
+          /* gettext_noop */
+          "FDW options",
+          /* gettext_noop */
+          "Description"
         );
       }
       appendPQExpBufferStr(buf, "\nFROM pg_catalog.pg_foreign_data_wrapper fdw\n");
@@ -6163,26 +6567,27 @@ ORDER BY 1;`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of foreign-data wrappers");
+      myopt.title = /* _ */
+      "List of foreign-data wrappers";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function listForeignServers(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching foreign servers"));
+      addQueryComment(buf, "Get matching foreign servers");
       appendPQExpBuffer(
         buf,
         'SELECT s.srvname AS "%s",\n  pg_catalog.pg_get_userbyid(s.srvowner) AS "%s",\n  f.fdwname AS "%s"',
-        gettext_noop("Name"),
-        gettext_noop("Owner"),
-        gettext_noop("Foreign-data wrapper")
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Owner",
+        /* gettext_noop */
+        "Foreign-data wrapper"
       );
       if (verbose) {
         appendPQExpBufferStr(buf, ",\n  ");
@@ -6194,10 +6599,14 @@ ORDER BY 1;`,
   s.srvversion AS "%s",
   CASE WHEN srvoptions IS NULL THEN '' ELSE   '(' || pg_catalog.array_to_string(ARRAY(SELECT   pg_catalog.quote_ident(option_name) ||  ' ' ||   pg_catalog.quote_literal(option_value)  FROM   pg_catalog.pg_options_to_table(srvoptions)),  ', ') || ')'   END AS "%s",
   d.description AS "%s"`,
-          gettext_noop("Type"),
-          gettext_noop("Version"),
-          gettext_noop("FDW options"),
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Type",
+          /* gettext_noop */
+          "Version",
+          /* gettext_noop */
+          "FDW options",
+          /* gettext_noop */
+          "Description"
         );
       }
       appendPQExpBufferStr(
@@ -6227,32 +6636,33 @@ ORDER BY 1;`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of foreign servers");
+      myopt.title = /* _ */
+      "List of foreign servers";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function listUserMappings(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching user mappings"));
+      addQueryComment(buf, "Get matching user mappings");
       appendPQExpBuffer(
         buf,
         'SELECT um.srvname AS "%s",\n  um.usename AS "%s"',
-        gettext_noop("Server"),
-        gettext_noop("User name")
+        /* gettext_noop */
+        "Server",
+        /* gettext_noop */
+        "User name"
       );
       if (verbose)
         appendPQExpBuffer(
           buf,
           `,
  CASE WHEN umoptions IS NULL THEN '' ELSE   '(' || pg_catalog.array_to_string(ARRAY(SELECT   pg_catalog.quote_ident(option_name) ||  ' ' ||   pg_catalog.quote_literal(option_value)  FROM   pg_catalog.pg_options_to_table(umoptions)),  ', ') || ')'   END AS "%s"`,
-          gettext_noop("FDW options")
+          /* gettext_noop */
+          "FDW options"
         );
       appendPQExpBufferStr(buf, "\nFROM pg_catalog.pg_user_mappings um\n");
       if (!validateSQLNamePattern(
@@ -6273,26 +6683,27 @@ ORDER BY 1;`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of user mappings");
+      myopt.title = /* _ */
+      "List of user mappings";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function listForeignTables(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching foreign tables"));
+      addQueryComment(buf, "Get matching foreign tables");
       appendPQExpBuffer(
         buf,
         'SELECT n.nspname AS "%s",\n  c.relname AS "%s",\n  s.srvname AS "%s"',
-        gettext_noop("Schema"),
-        gettext_noop("Table"),
-        gettext_noop("Server")
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Table",
+        /* gettext_noop */
+        "Server"
       );
       if (verbose)
         appendPQExpBuffer(
@@ -6300,8 +6711,10 @@ ORDER BY 1;`,
           `,
  CASE WHEN ftoptions IS NULL THEN '' ELSE   '(' || pg_catalog.array_to_string(ARRAY(SELECT   pg_catalog.quote_ident(option_name) ||  ' ' ||   pg_catalog.quote_literal(option_value)  FROM   pg_catalog.pg_options_to_table(ftoptions)),  ', ') || ')'   END AS "%s",
   d.description AS "%s"`,
-          gettext_noop("FDW options"),
-          gettext_noop("Description")
+          /* gettext_noop */
+          "FDW options",
+          /* gettext_noop */
+          "Description"
         );
       appendPQExpBufferStr(
         buf,
@@ -6330,30 +6743,33 @@ ORDER BY 1;`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of foreign tables");
+      myopt.title = /* _ */
+      "List of foreign tables";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function listExtensions(pattern) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching installed extensions"));
+      addQueryComment(buf, "Get matching installed extensions");
       appendPQExpBuffer(
         buf,
         `SELECT e.extname AS "%s", e.extversion AS "%s", ae.default_version AS "%s",n.nspname AS "%s", d.description AS "%s"
 FROM pg_catalog.pg_extension e LEFT JOIN pg_catalog.pg_namespace n ON n.oid = e.extnamespace LEFT JOIN pg_catalog.pg_description d ON d.objoid = e.oid AND d.classoid = 'pg_catalog.pg_extension'::pg_catalog.regclass LEFT JOIN pg_catalog.pg_available_extensions() ae(name, default_version, comment) ON ae.name = e.extname
 `,
-        gettext_noop("Name"),
-        gettext_noop("Version"),
-        gettext_noop("Default version"),
-        gettext_noop("Schema"),
-        gettext_noop("Description")
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Version",
+        /* gettext_noop */
+        "Default version",
+        /* gettext_noop */
+        "Schema",
+        /* gettext_noop */
+        "Description"
       );
       if (!validateSQLNamePattern(
         buf,
@@ -6373,20 +6789,18 @@ FROM pg_catalog.pg_extension e LEFT JOIN pg_catalog.pg_namespace n ON n.oid = e.
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of installed extensions");
+      myopt.title = /* _ */
+      "List of installed extensions";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
     async function listExtensionContents(pattern) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
       let i;
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching installed extensions"));
+      addQueryComment(buf, "Get matching installed extensions");
       appendPQExpBufferStr(
         buf,
         "SELECT e.extname, e.oid\nFROM pg_catalog.pg_extension e\n"
@@ -6411,7 +6825,7 @@ FROM pg_catalog.pg_extension e LEFT JOIN pg_catalog.pg_namespace n ON n.oid = e.
         return false;
       if (PQntuples(res) == 0) {
         if (!pset.quiet) {
-          if (pattern)
+          if (pattern != NULL)
             pg_log_error(
               'Did not find any extension named "%s".',
               pattern
@@ -6436,83 +6850,132 @@ FROM pg_catalog.pg_extension e LEFT JOIN pg_catalog.pg_namespace n ON n.oid = e.
       return true;
     }
     async function listOneExtensionContents(extname, oid) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let title = {
-        /* struct */
-      };
-      let myopt = pset.popt;
+      let title = {};
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get installed extension's contents"));
+      addQueryComment(buf, "Get installed extension's contents");
       appendPQExpBuffer(
         buf,
         `SELECT pg_catalog.pg_describe_object(classid, objid, 0) AS "%s"
 FROM pg_catalog.pg_depend
 WHERE refclassid = 'pg_catalog.pg_extension'::pg_catalog.regclass AND refobjid = '%s' AND deptype = 'e'
 ORDER BY 1;`,
-        gettext_noop("Object description"),
+        /* gettext_noop */
+        "Object description",
         oid
       );
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
       initPQExpBuffer(title);
-      printfPQExpBuffer(title, _('Objects in extension "%s"'), extname);
+      printfPQExpBuffer(
+        title,
+        /* _ */
+        'Objects in extension "%s"',
+        extname
+      );
       myopt.title = title.data;
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
       return true;
     }
+    function validateSQLNamePattern(buf, pattern, have_where, force_escape, schemavar, namevar, altnamevar, visibilityrule, added_clause, maxparts) {
+      let dbbuf = {};
+      let dotcnt = {};
+      let added;
+      initPQExpBuffer(dbbuf);
+      added = processSQLNamePattern(
+        pset.db,
+        buf,
+        pattern,
+        have_where,
+        force_escape,
+        schemavar,
+        namevar,
+        altnamevar,
+        visibilityrule,
+        dbbuf,
+        dotcnt
+      );
+      if (added_clause != NULL)
+        added_clause.value = added;
+      if (dotcnt.value >= maxparts) {
+        pg_log_error(
+          "improper qualified name (too many dotted names): %s",
+          pattern
+        );
+        return false;
+      }
+      if (maxparts > 1 && dotcnt.value == maxparts - 1) {
+        if (PQdb(pset.db) == NULL) {
+          pg_log_error("You are currently not connected to a database.");
+          return false;
+        }
+        if (strcmp(PQdb(pset.db), dbbuf.data) != 0) {
+          pg_log_error(
+            "cross-database references are not implemented: %s",
+            pattern
+          );
+          return false;
+        }
+      }
+      return true;
+    }
     async function listPublications(pattern) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [false, false, false, false, false, false, false, false, false, false];
       if (pset.sversion < 1e5) {
-        let sverbuf;
+        let sverbuf = "";
         pg_log_error(
           "The server (version %s) does not support publications.",
           formatPGVersionNumber(
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
       }
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching publications"));
+      addQueryComment(buf, "Get matching publications");
       appendPQExpBuffer(
         buf,
         'SELECT pubname AS "%s",\n  pg_catalog.pg_get_userbyid(pubowner) AS "%s",\n  puballtables AS "%s"',
-        gettext_noop("Name"),
-        gettext_noop("Owner"),
-        gettext_noop("All tables")
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Owner",
+        /* gettext_noop */
+        "All tables"
       );
       if (pset.sversion >= 19e4)
         appendPQExpBuffer(
           buf,
           ',\n  puballsequences AS "%s"',
-          gettext_noop("All sequences")
+          /* gettext_noop */
+          "All sequences"
         );
       appendPQExpBuffer(
         buf,
         ',\n  pubinsert AS "%s",\n  pubupdate AS "%s",\n  pubdelete AS "%s"',
-        gettext_noop("Inserts"),
-        gettext_noop("Updates"),
-        gettext_noop("Deletes")
+        /* gettext_noop */
+        "Inserts",
+        /* gettext_noop */
+        "Updates",
+        /* gettext_noop */
+        "Deletes"
       );
       if (pset.sversion >= 11e4)
         appendPQExpBuffer(
           buf,
           ',\n  pubtruncate AS "%s"',
-          gettext_noop("Truncates")
+          /* gettext_noop */
+          "Truncates"
         );
       if (pset.sversion >= 18e4)
         appendPQExpBuffer(
@@ -6524,13 +6987,15 @@ ORDER BY 1;`,
    END) AS "%s"`,
           PUBLISH_GENCOLS_NONE,
           PUBLISH_GENCOLS_STORED,
-          gettext_noop("Generated columns")
+          /* gettext_noop */
+          "Generated columns"
         );
       if (pset.sversion >= 13e4)
         appendPQExpBuffer(
           buf,
           ',\n  pubviaroot AS "%s"',
-          gettext_noop("Via root")
+          /* gettext_noop */
+          "Via root"
         );
       appendPQExpBufferStr(
         buf,
@@ -6554,7 +7019,8 @@ ORDER BY 1;`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.title = _("List of publications");
+      myopt.title = /* _ */
+      "List of publications";
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
       myopt.n_translate_columns = lengthof(translate_columns);
@@ -6592,9 +7058,7 @@ ORDER BY 1;`,
       return true;
     }
     async function describePublications(pattern) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let i;
       let res;
       let has_pubtruncate;
@@ -6603,21 +7067,17 @@ ORDER BY 1;`,
       let has_pubsequence;
       let ncols = 6;
       let nrows = 1;
-      let title = {
-        /* struct */
-      };
-      let cont = {
-        /* struct */
-      };
+      let title = {};
+      let cont = {};
       if (pset.sversion < 1e5) {
-        let sverbuf;
+        let sverbuf = "";
         pg_log_error(
           "The server (version %s) does not support publications.",
           formatPGVersionNumber(
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
@@ -6627,7 +7087,7 @@ ORDER BY 1;`,
       has_pubgencols = pset.sversion >= 18e4;
       has_pubviaroot = pset.sversion >= 13e4;
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get details about matching publications"));
+      addQueryComment(buf, "Get details about matching publications");
       appendPQExpBufferStr(
         buf,
         "SELECT oid, pubname,\n  pg_catalog.pg_get_userbyid(pubowner) AS owner,\n  puballtables"
@@ -6666,7 +7126,8 @@ ORDER BY 1;`,
 `,
           PUBLISH_GENCOLS_NONE,
           PUBLISH_GENCOLS_STORED,
-          gettext_noop("Generated columns")
+          /* gettext_noop */
+          "Generated columns"
         );
       else
         appendPQExpBufferStr(
@@ -6712,7 +7173,7 @@ ORDER BY 1;`,
       }
       if (PQntuples(res) == 0) {
         if (!pset.quiet) {
-          if (pattern)
+          if (pattern != NULL)
             pg_log_error(
               'Did not find any publication named "%s".',
               pattern
@@ -6735,24 +7196,89 @@ ORDER BY 1;`,
         let pubid = PQgetvalue(res, i, 0);
         let pubname = PQgetvalue(res, i, 1);
         let puballtables = strcmp(PQgetvalue(res, i, 3), "t") == 0;
-        let myopt = pset.popt.topt;
+        let myopt = copy_printTableOpt(pset.popt.topt);
         initPQExpBuffer(title);
-        printfPQExpBuffer(title, _("Publication %s"), pubname);
+        printfPQExpBuffer(
+          title,
+          /* _ */
+          "Publication %s",
+          pubname
+        );
         printTableInit(cont, myopt, title.data, ncols, nrows);
-        printTableAddHeader(cont, gettext_noop("Owner"), true, align);
-        printTableAddHeader(cont, gettext_noop("All tables"), true, align);
+        printTableAddHeader(
+          cont,
+          /* gettext_noop */
+          "Owner",
+          true,
+          align
+        );
+        printTableAddHeader(
+          cont,
+          /* gettext_noop */
+          "All tables",
+          true,
+          align
+        );
         if (has_pubsequence)
-          printTableAddHeader(cont, gettext_noop("All sequences"), true, align);
-        printTableAddHeader(cont, gettext_noop("Inserts"), true, align);
-        printTableAddHeader(cont, gettext_noop("Updates"), true, align);
-        printTableAddHeader(cont, gettext_noop("Deletes"), true, align);
+          printTableAddHeader(
+            cont,
+            /* gettext_noop */
+            "All sequences",
+            true,
+            align
+          );
+        printTableAddHeader(
+          cont,
+          /* gettext_noop */
+          "Inserts",
+          true,
+          align
+        );
+        printTableAddHeader(
+          cont,
+          /* gettext_noop */
+          "Updates",
+          true,
+          align
+        );
+        printTableAddHeader(
+          cont,
+          /* gettext_noop */
+          "Deletes",
+          true,
+          align
+        );
         if (has_pubtruncate)
-          printTableAddHeader(cont, gettext_noop("Truncates"), true, align);
+          printTableAddHeader(
+            cont,
+            /* gettext_noop */
+            "Truncates",
+            true,
+            align
+          );
         if (has_pubgencols)
-          printTableAddHeader(cont, gettext_noop("Generated columns"), true, align);
+          printTableAddHeader(
+            cont,
+            /* gettext_noop */
+            "Generated columns",
+            true,
+            align
+          );
         if (has_pubviaroot)
-          printTableAddHeader(cont, gettext_noop("Via root"), true, align);
-        printTableAddHeader(cont, gettext_noop("Description"), true, align);
+          printTableAddHeader(
+            cont,
+            /* gettext_noop */
+            "Via root",
+            true,
+            align
+          );
+        printTableAddHeader(
+          cont,
+          /* gettext_noop */
+          "Description",
+          true,
+          align
+        );
         printTableAddCell(cont, PQgetvalue(res, i, 2), false, false);
         printTableAddCell(cont, PQgetvalue(res, i, 3), false, false);
         if (has_pubsequence)
@@ -6768,15 +7294,8 @@ ORDER BY 1;`,
           printTableAddCell(cont, PQgetvalue(res, i, 10), false, false);
         printTableAddCell(cont, PQgetvalue(res, i, 11), false, false);
         if (!puballtables) {
-          printfPQExpBuffer(
-            buf,
-            "/* %s */\n",
-            _("Get tables published by this publication")
-          );
-          appendPQExpBufferStr(
-            buf,
-            "SELECT n.nspname, c.relname"
-          );
+          addQueryComment(buf, "Get tables published by this publication");
+          appendPQExpBufferStr(buf, "SELECT n.nspname, c.relname");
           if (pset.sversion >= 15e4) {
             appendPQExpBufferStr(
               buf,
@@ -6799,14 +7318,16 @@ ORDER BY 1;`,
           if (pset.sversion >= 19e4)
             appendPQExpBufferStr(buf, "  AND NOT pr.prexcept\n");
           appendPQExpBufferStr(buf, "ORDER BY 1,2");
-          if (!await addFooterToPublicationDesc(buf, _("Tables:"), false, cont))
+          if (!await addFooterToPublicationDesc(
+            buf,
+            /* _ */
+            "Tables:",
+            false,
+            cont
+          ))
             return false;
           if (pset.sversion >= 15e4) {
-            printfPQExpBuffer(
-              buf,
-              "/* %s */\n",
-              _("Get schemas published by this publication")
-            );
+            addQueryComment(buf, "Get schemas published by this publication");
             appendPQExpBuffer(
               buf,
               "SELECT n.nspname\nFROM pg_catalog.pg_namespace n\n     JOIN pg_catalog.pg_publication_namespace pn ON n.oid = pn.pnnspid\nWHERE pn.pnpubid = '%s'\nORDER BY 1",
@@ -6814,7 +7335,8 @@ ORDER BY 1;`,
             );
             if (!await addFooterToPublicationDesc(
               buf,
-              _("Tables from schemas:"),
+              /* _ */
+              "Tables from schemas:",
               true,
               cont
             ))
@@ -6822,17 +7344,19 @@ ORDER BY 1;`,
           }
         } else {
           if (pset.sversion >= 19e4) {
-            printfPQExpBuffer(
-              buf,
-              "/* %s */\n",
-              _("Get tables excluded by this publication")
-            );
+            addQueryComment(buf, "Get tables excluded by this publication");
             appendPQExpBuffer(
               buf,
               "SELECT n.nspname || '.' || c.relname\nFROM pg_catalog.pg_class c\n     JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace\n     JOIN pg_catalog.pg_publication_rel pr ON c.oid = pr.prrelid\nWHERE pr.prpubid = '%s' AND pr.prexcept\nORDER BY 1",
               pubid
             );
-            if (!await addFooterToPublicationDesc(buf, _("Except tables:"), true, cont))
+            if (!await addFooterToPublicationDesc(
+              buf,
+              /* _ */
+              "Except tables:",
+              true,
+              cont
+            ))
               return false;
           }
         }
@@ -6841,11 +7365,9 @@ ORDER BY 1;`,
       return true;
     }
     async function describeSubscriptions(pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       let translate_columns = [
         false,
         false,
@@ -6870,34 +7392,39 @@ ORDER BY 1;`,
         false
       ];
       if (pset.sversion < 1e5) {
-        let sverbuf;
+        let sverbuf = "";
         pg_log_error(
           "The server (version %s) does not support subscriptions.",
           formatPGVersionNumber(
             pset.sversion,
             false,
             sverbuf,
-            sizeof(sverbuf)
+            32
           )
         );
         return true;
       }
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching subscriptions"));
+      addQueryComment(buf, "Get matching subscriptions");
       appendPQExpBuffer(
         buf,
         'SELECT subname AS "%s"\n,  pg_catalog.pg_get_userbyid(subowner) AS "%s"\n,  subenabled AS "%s"\n,  subpublications AS "%s"\n',
-        gettext_noop("Name"),
-        gettext_noop("Owner"),
-        gettext_noop("Enabled"),
-        gettext_noop("Publication")
+        /* gettext_noop */
+        "Name",
+        /* gettext_noop */
+        "Owner",
+        /* gettext_noop */
+        "Enabled",
+        /* gettext_noop */
+        "Publication"
       );
       if (verbose) {
         if (pset.sversion >= 14e4) {
           appendPQExpBuffer(
             buf,
             ', subbinary AS "%s"\n',
-            gettext_noop("Binary")
+            /* gettext_noop */
+            "Binary"
           );
           if (pset.sversion >= 16e4)
             appendPQExpBuffer(
@@ -6908,81 +7435,98 @@ ORDER BY 1;`,
     WHEN 'p' THEN 'parallel'
    END) AS "%s"
 `,
-              gettext_noop("Streaming")
+              /* gettext_noop */
+              "Streaming"
             );
           else
             appendPQExpBuffer(
               buf,
               ', substream AS "%s"\n',
-              gettext_noop("Streaming")
+              /* gettext_noop */
+              "Streaming"
             );
         }
         if (pset.sversion >= 15e4)
           appendPQExpBuffer(
             buf,
             ', subtwophasestate AS "%s"\n, subdisableonerr AS "%s"\n',
-            gettext_noop("Two-phase commit"),
-            gettext_noop("Disable on error")
+            /* gettext_noop */
+            "Two-phase commit",
+            /* gettext_noop */
+            "Disable on error"
           );
         if (pset.sversion >= 16e4)
           appendPQExpBuffer(
             buf,
             ', suborigin AS "%s"\n, subpasswordrequired AS "%s"\n, subrunasowner AS "%s"\n',
-            gettext_noop("Origin"),
-            gettext_noop("Password required"),
-            gettext_noop("Run as owner?")
+            /* gettext_noop */
+            "Origin",
+            /* gettext_noop */
+            "Password required",
+            /* gettext_noop */
+            "Run as owner?"
           );
         if (pset.sversion >= 17e4)
           appendPQExpBuffer(
             buf,
             ', subfailover AS "%s"\n',
-            gettext_noop("Failover")
+            /* gettext_noop */
+            "Failover"
           );
         if (pset.sversion >= 19e4) {
           appendPQExpBuffer(
             buf,
             ', (select srvname from pg_catalog.pg_foreign_server where oid=subserver) AS "%s"\n',
-            gettext_noop("Server")
+            /* gettext_noop */
+            "Server"
           );
           appendPQExpBuffer(
             buf,
             ', subretaindeadtuples AS "%s"\n',
-            gettext_noop("Retain dead tuples")
+            /* gettext_noop */
+            "Retain dead tuples"
           );
           appendPQExpBuffer(
             buf,
             ', submaxretention AS "%s"\n',
-            gettext_noop("Max retention duration")
+            /* gettext_noop */
+            "Max retention duration"
           );
           appendPQExpBuffer(
             buf,
             ', subretentionactive AS "%s"\n',
-            gettext_noop("Retention active")
+            /* gettext_noop */
+            "Retention active"
           );
         }
         appendPQExpBuffer(
           buf,
           ',  subsynccommit AS "%s"\n,  subconninfo AS "%s"\n',
-          gettext_noop("Synchronous commit"),
-          gettext_noop("Conninfo")
+          /* gettext_noop */
+          "Synchronous commit",
+          /* gettext_noop */
+          "Conninfo"
         );
         if (pset.sversion >= 19e4)
           appendPQExpBuffer(
             buf,
             ', subwalrcvtimeout AS "%s"\n',
-            gettext_noop("Receiver timeout")
+            /* gettext_noop */
+            "Receiver timeout"
           );
         if (pset.sversion >= 15e4)
           appendPQExpBuffer(
             buf,
             ', subskiplsn AS "%s"\n',
-            gettext_noop("Skip LSN")
+            /* gettext_noop */
+            "Skip LSN"
           );
         appendPQExpBuffer(
           buf,
           `,  pg_catalog.obj_description(oid, 'pg_subscription') AS "%s"
 `,
-          gettext_noop("Description")
+          /* gettext_noop */
+          "Description"
         );
       }
       appendPQExpBufferStr(
@@ -7007,8 +7551,8 @@ ORDER BY 1;`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of subscriptions");
+      myopt.title = /* _ */
+      "List of subscriptions";
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
       myopt.n_translate_columns = lengthof(translate_columns);
@@ -7020,21 +7564,21 @@ ORDER BY 1;`,
         buf,
         `CASE WHEN pg_catalog.array_length(%s, 1) = 0 THEN '%s' ELSE pg_catalog.array_to_string(%s, E'\\n') END AS "%s"`,
         colname,
-        gettext_noop("(none)"),
+        /* gettext_noop */
+        "(none)",
         colname,
-        gettext_noop("Access privileges")
+        /* gettext_noop */
+        "Access privileges"
       );
     }
     async function listOperatorClasses(access_method_pattern, type_pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
-      let have_where = false;
+      let myopt = copy_printQueryOpt(pset.popt);
+      let have_where = { value: false };
       let translate_columns = [false, false, false, false, false, false, false];
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching operator classes"));
+      addQueryComment(buf, "Get matching operator classes");
       appendPQExpBuffer(
         buf,
         `SELECT
@@ -7054,13 +7598,20 @@ ORDER BY 1;`,
     THEN '%s'
     ELSE '%s'
   END) AS "%s"`,
-        gettext_noop("AM"),
-        gettext_noop("Input type"),
-        gettext_noop("Storage type"),
-        gettext_noop("Operator class"),
-        gettext_noop("yes"),
-        gettext_noop("no"),
-        gettext_noop("Default?")
+        /* gettext_noop */
+        "AM",
+        /* gettext_noop */
+        "Input type",
+        /* gettext_noop */
+        "Storage type",
+        /* gettext_noop */
+        "Operator class",
+        /* gettext_noop */
+        "yes",
+        /* gettext_noop */
+        "no",
+        /* gettext_noop */
+        "Default?"
       );
       if (verbose)
         appendPQExpBuffer(
@@ -7073,8 +7624,10 @@ ORDER BY 1;`,
   END AS "%s",
  pg_catalog.pg_get_userbyid(c.opcowner) AS "%s"
 `,
-          gettext_noop("Operator family"),
-          gettext_noop("Owner")
+          /* gettext_noop */
+          "Operator family",
+          /* gettext_noop */
+          "Owner"
         );
       appendPQExpBufferStr(
         buf,
@@ -7085,8 +7638,7 @@ ORDER BY 1;`,
           buf,
           "  LEFT JOIN pg_catalog.pg_opfamily of ON of.oid = c.opcfamily\n  LEFT JOIN pg_catalog.pg_namespace ofn ON ofn.oid = of.opfnamespace\n"
         );
-      if (access_method_pattern) {
-        have_where = { value: have_where };
+      if (access_method_pattern != NULL) {
         if (!validateSQLNamePattern(
           buf,
           access_method_pattern,
@@ -7100,13 +7652,12 @@ ORDER BY 1;`,
           1
         ))
           return false;
-        have_where = have_where.value;
       }
-      if (type_pattern) {
+      if (type_pattern != NULL) {
         if (!validateSQLNamePattern(
           buf,
           type_pattern,
-          have_where,
+          have_where.value,
           false,
           "tn.nspname",
           "t.typname",
@@ -7121,8 +7672,8 @@ ORDER BY 1;`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of operator classes");
+      myopt.title = /* _ */
+      "List of operator classes";
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
       myopt.n_translate_columns = lengthof(translate_columns);
@@ -7130,15 +7681,13 @@ ORDER BY 1;`,
       return true;
     }
     async function listOperatorFamilies(access_method_pattern, type_pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
-      let have_where = false;
+      let myopt = copy_printQueryOpt(pset.popt);
+      let have_where = { value: false };
       let translate_columns = [false, false, false, false];
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get matching operator families"));
+      addQueryComment(buf, "Get matching operator families");
       appendPQExpBuffer(
         buf,
         `SELECT
@@ -7152,22 +7701,25 @@ ORDER BY 1;`,
      pg_catalog.string_agg(pg_catalog.format_type(oc.opcintype, NULL), ', ')
    FROM pg_catalog.pg_opclass oc
    WHERE oc.opcfamily = f.oid) "%s"`,
-        gettext_noop("AM"),
-        gettext_noop("Operator family"),
-        gettext_noop("Applicable types")
+        /* gettext_noop */
+        "AM",
+        /* gettext_noop */
+        "Operator family",
+        /* gettext_noop */
+        "Applicable types"
       );
       if (verbose)
         appendPQExpBuffer(
           buf,
           ',\n  pg_catalog.pg_get_userbyid(f.opfowner) AS "%s"\n',
-          gettext_noop("Owner")
+          /* gettext_noop */
+          "Owner"
         );
       appendPQExpBufferStr(
         buf,
         "\nFROM pg_catalog.pg_opfamily f\n  LEFT JOIN pg_catalog.pg_am am on am.oid = f.opfmethod\n  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = f.opfnamespace\n"
       );
-      if (access_method_pattern) {
-        have_where = { value: have_where };
+      if (access_method_pattern != NULL) {
         if (!validateSQLNamePattern(
           buf,
           access_method_pattern,
@@ -7181,13 +7733,12 @@ ORDER BY 1;`,
           1
         ))
           return false;
-        have_where = have_where.value;
       }
-      if (type_pattern) {
+      if (type_pattern != NULL) {
         appendPQExpBuffer(
           buf,
           "  %s EXISTS (\n    SELECT 1\n    FROM pg_catalog.pg_type t\n    JOIN pg_catalog.pg_opclass oc ON oc.opcintype = t.oid\n    LEFT JOIN pg_catalog.pg_namespace tn ON tn.oid = t.typnamespace\n    WHERE oc.opcfamily = f.oid\n",
-          have_where ? "AND" : "WHERE"
+          have_where.value ? "AND" : "WHERE"
         );
         if (!validateSQLNamePattern(
           buf,
@@ -7208,8 +7759,8 @@ ORDER BY 1;`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of operator families");
+      myopt.title = /* _ */
+      "List of operator families";
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
       myopt.n_translate_columns = lengthof(translate_columns);
@@ -7217,15 +7768,13 @@ ORDER BY 1;`,
       return true;
     }
     async function listOpFamilyOperators(access_method_pattern, family_pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
-      let have_where = false;
+      let myopt = copy_printQueryOpt(pset.popt);
+      let have_where = { value: false };
       let translate_columns = [false, false, false, false, false, false, true];
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get operators of matching operator families"));
+      addQueryComment(buf, "Get operators of matching operator families");
       appendPQExpBuffer(
         buf,
         `SELECT
@@ -7242,13 +7791,20 @@ ORDER BY 1;`,
     WHEN 's' THEN '%s'
   END AS "%s"
 `,
-        gettext_noop("AM"),
-        gettext_noop("Operator family"),
-        gettext_noop("Operator"),
-        gettext_noop("Strategy"),
-        gettext_noop("ordering"),
-        gettext_noop("search"),
-        gettext_noop("Purpose")
+        /* gettext_noop */
+        "AM",
+        /* gettext_noop */
+        "Operator family",
+        /* gettext_noop */
+        "Operator",
+        /* gettext_noop */
+        "Strategy",
+        /* gettext_noop */
+        "ordering",
+        /* gettext_noop */
+        "search",
+        /* gettext_noop */
+        "Purpose"
       );
       if (verbose)
         appendPQExpBuffer(
@@ -7259,10 +7815,14 @@ ORDER BY 1;`,
     ELSE '%s'
   END AS "%s"
 `,
-          gettext_noop("Sort opfamily"),
-          gettext_noop("yes"),
-          gettext_noop("no"),
-          gettext_noop("Leakproof?")
+          /* gettext_noop */
+          "Sort opfamily",
+          /* gettext_noop */
+          "yes",
+          /* gettext_noop */
+          "no",
+          /* gettext_noop */
+          "Leakproof?"
         );
       appendPQExpBufferStr(
         buf,
@@ -7273,8 +7833,7 @@ ORDER BY 1;`,
           buf,
           "  LEFT JOIN pg_catalog.pg_opfamily ofs ON ofs.oid = o.amopsortfamily\n  LEFT JOIN pg_catalog.pg_operator op ON op.oid = o.amopopr\n  LEFT JOIN pg_catalog.pg_proc p ON p.oid = op.oprcode\n"
         );
-      if (access_method_pattern) {
-        have_where = { value: have_where };
+      if (access_method_pattern != NULL) {
         if (!validateSQLNamePattern(
           buf,
           access_method_pattern,
@@ -7288,13 +7847,12 @@ ORDER BY 1;`,
           1
         ))
           return false;
-        have_where = have_where.value;
       }
-      if (family_pattern) {
+      if (family_pattern != NULL) {
         if (!validateSQLNamePattern(
           buf,
           family_pattern,
-          have_where,
+          have_where.value,
           false,
           "nsf.nspname",
           "of.opfname",
@@ -7309,8 +7867,8 @@ ORDER BY 1;`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of operators of operator families");
+      myopt.title = /* _ */
+      "List of operators of operator families";
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
       myopt.n_translate_columns = lengthof(translate_columns);
@@ -7318,19 +7876,13 @@ ORDER BY 1;`,
       return true;
     }
     async function listOpFamilyFunctions(access_method_pattern, family_pattern, verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
-      let have_where = false;
+      let myopt = copy_printQueryOpt(pset.popt);
+      let have_where = { value: false };
       let translate_columns = [false, false, false, false, false, false];
       initPQExpBuffer(buf);
-      printfPQExpBuffer(
-        buf,
-        "/* %s */\n",
-        _("Get support functions of matching operator families")
-      );
+      addQueryComment(buf, "Get support functions of matching operator families");
       appendPQExpBuffer(
         buf,
         `SELECT
@@ -7344,30 +7896,36 @@ ORDER BY 1;`,
   pg_catalog.format_type(ap.amprocrighttype, NULL) AS "%s",
   ap.amprocnum AS "%s"
 `,
-        gettext_noop("AM"),
-        gettext_noop("Operator family"),
-        gettext_noop("Registered left type"),
-        gettext_noop("Registered right type"),
-        gettext_noop("Number")
+        /* gettext_noop */
+        "AM",
+        /* gettext_noop */
+        "Operator family",
+        /* gettext_noop */
+        "Registered left type",
+        /* gettext_noop */
+        "Registered right type",
+        /* gettext_noop */
+        "Number"
       );
       if (!verbose)
         appendPQExpBuffer(
           buf,
           ', p.proname AS "%s"\n',
-          gettext_noop("Function")
+          /* gettext_noop */
+          "Function"
         );
       else
         appendPQExpBuffer(
           buf,
           ', ap.amproc::pg_catalog.regprocedure AS "%s"\n',
-          gettext_noop("Function")
+          /* gettext_noop */
+          "Function"
         );
       appendPQExpBufferStr(
         buf,
         "FROM pg_catalog.pg_amproc ap\n  LEFT JOIN pg_catalog.pg_opfamily of ON of.oid = ap.amprocfamily\n  LEFT JOIN pg_catalog.pg_am am ON am.oid = of.opfmethod\n  LEFT JOIN pg_catalog.pg_namespace ns ON of.opfnamespace = ns.oid\n  LEFT JOIN pg_catalog.pg_proc p ON ap.amproc = p.oid\n"
       );
-      if (access_method_pattern) {
-        have_where = { value: have_where };
+      if (access_method_pattern != NULL) {
         if (!validateSQLNamePattern(
           buf,
           access_method_pattern,
@@ -7381,13 +7939,12 @@ ORDER BY 1;`,
           1
         ))
           return false;
-        have_where = have_where.value;
       }
-      if (family_pattern) {
+      if (family_pattern != NULL) {
         if (!validateSQLNamePattern(
           buf,
           family_pattern,
-          have_where,
+          have_where.value,
           false,
           "ns.nspname",
           "of.opfname",
@@ -7402,8 +7959,8 @@ ORDER BY 1;`,
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("List of support functions of operator families");
+      myopt.title = /* _ */
+      "List of support functions of operator families";
       myopt.translate_header = true;
       myopt.translate_columns = translate_columns;
       myopt.n_translate_columns = lengthof(translate_columns);
@@ -7411,18 +7968,18 @@ ORDER BY 1;`,
       return true;
     }
     async function listLargeObjects(verbose) {
-      let buf = {
-        /* struct */
-      };
+      let buf = {};
       let res;
-      let myopt = pset.popt;
+      let myopt = copy_printQueryOpt(pset.popt);
       initPQExpBuffer(buf);
-      printfPQExpBuffer(buf, "/* %s */\n", _("Get large objects"));
+      addQueryComment(buf, "Get large objects");
       appendPQExpBuffer(
         buf,
         'SELECT oid as "%s",\n  pg_catalog.pg_get_userbyid(lomowner) as "%s",\n  ',
-        gettext_noop("ID"),
-        gettext_noop("Owner")
+        /* gettext_noop */
+        "ID",
+        /* gettext_noop */
+        "Owner"
       );
       if (verbose) {
         printACLColumn(buf, "lomacl");
@@ -7433,19 +7990,1555 @@ ORDER BY 1;`,
         `pg_catalog.obj_description(oid, 'pg_largeobject') as "%s"
 FROM pg_catalog.pg_largeobject_metadata
 ORDER BY oid`,
-        gettext_noop("Description")
+        /* gettext_noop */
+        "Description"
       );
       res = await PSQLexec(buf.data);
       if (!res)
         return false;
-      myopt.nullPrint = NULL;
-      myopt.title = _("Large objects");
+      myopt.title = /* _ */
+      "Large objects";
       myopt.translate_header = true;
       printQuery(res, myopt, pset.queryFout, false, pset.logfile);
+      return true;
     }
-    return true;
+    let quote_all_identifiers = 0;
+    function formatPGVersionNumber(version_number, include_minor, buf, buflen) {
+      if (version_number >= 1e5) {
+        if (include_minor)
+          buf = sprintf(
+            "%d.%d",
+            Math.trunc(version_number / 1e4),
+            version_number % 1e4
+          );
+        else
+          buf = sprintf("%d", Math.trunc(version_number / 1e4));
+      } else {
+        if (include_minor)
+          buf = sprintf(
+            "%d.%d.%d",
+            Math.trunc(version_number / 1e4),
+            Math.trunc(version_number / 100) % 100,
+            version_number % 100
+          );
+        else
+          buf = sprintf(
+            "%d.%d",
+            Math.trunc(version_number / 1e4),
+            Math.trunc(version_number / 100) % 100
+          );
+      }
+      return buf;
+    }
+    function appendReloptionsArray(buffer, reloptions, prefix, encoding, std_strings) {
+      let options2 = {};
+      let noptions = {};
+      let i;
+      if (!parsePGArray(reloptions, options2, noptions)) {
+        return false;
+      }
+      for (i = 0; i < noptions.value; i++) {
+        let option = options2.value[i];
+        let name;
+        let separator;
+        let value;
+        name = option;
+        separator = strchr(option, "=");
+        if (separator != NULL) {
+          option = option.slice(0, option.length - separator.length), name = option;
+          value = separator.slice(1);
+        } else
+          value = "";
+        if (i > 0)
+          appendPQExpBufferStr(buffer, ", ");
+        appendPQExpBuffer(buffer, "%s%s=", prefix, fmtId(name));
+        if (strcmp(fmtId(value), value) == 0)
+          appendPQExpBufferStr(buffer, value);
+        else
+          appendStringLiteral(buffer, value, encoding, std_strings);
+      }
+      return true;
+    }
+    function processSQLNamePattern(conn, buf, pattern, have_where, force_escape, schemavar, namevar, altnamevar, visibilityrule, dbnamebuf, dotcnt) {
+      let schemabuf = {};
+      let namebuf = {};
+      let added_clause = false;
+      let dcnt = {};
+      if (dotcnt == NULL)
+        dotcnt = dcnt;
+      dotcnt.value = 0;
+      if (pattern == NULL) {
+        if (visibilityrule != NULL) {
+          appendPQExpBufferStr(buf, have_where ? "  AND " : "WHERE "), have_where = true, added_clause = true;
+          appendPQExpBuffer(buf, "%s\n", visibilityrule);
+        }
+        return added_clause;
+      }
+      initPQExpBuffer(schemabuf);
+      initPQExpBuffer(namebuf);
+      patternToSQLRegex(
+        PQclientEncoding(conn),
+        schemavar != NULL ? dbnamebuf : NULL,
+        schemavar != NULL ? schemabuf : NULL,
+        namebuf,
+        pattern,
+        force_escape,
+        true,
+        dotcnt
+      );
+      if (namevar != NULL && namebuf.len > 2) {
+        if (strcmp(namebuf.data, "^(.*)$") != 0) {
+          appendPQExpBufferStr(buf, have_where ? "  AND " : "WHERE "), have_where = true, added_clause = true;
+          if (altnamevar != NULL) {
+            appendPQExpBuffer(
+              buf,
+              "(%s OPERATOR(pg_catalog.~) ",
+              namevar
+            );
+            appendStringLiteralConn(buf, namebuf.data, conn);
+            if (PQserverVersion(conn) >= 12e4)
+              appendPQExpBufferStr(buf, " COLLATE pg_catalog.default");
+            appendPQExpBuffer(
+              buf,
+              "\n        OR %s OPERATOR(pg_catalog.~) ",
+              altnamevar
+            );
+            appendStringLiteralConn(buf, namebuf.data, conn);
+            if (PQserverVersion(conn) >= 12e4)
+              appendPQExpBufferStr(buf, " COLLATE pg_catalog.default");
+            appendPQExpBufferStr(buf, ")\n");
+          } else {
+            appendPQExpBuffer(buf, "%s OPERATOR(pg_catalog.~) ", namevar);
+            appendStringLiteralConn(buf, namebuf.data, conn);
+            if (PQserverVersion(conn) >= 12e4)
+              appendPQExpBufferStr(buf, " COLLATE pg_catalog.default");
+            appendPQExpBufferChar(buf, "\n");
+          }
+        }
+      }
+      if (schemavar != NULL && schemabuf.len > 2) {
+        if (strcmp(schemabuf.data, "^(.*)$") != 0 && schemavar != NULL) {
+          appendPQExpBufferStr(buf, have_where ? "  AND " : "WHERE "), have_where = true, added_clause = true;
+          appendPQExpBuffer(buf, "%s OPERATOR(pg_catalog.~) ", schemavar);
+          appendStringLiteralConn(buf, schemabuf.data, conn);
+          if (PQserverVersion(conn) >= 12e4)
+            appendPQExpBufferStr(buf, " COLLATE pg_catalog.default");
+          appendPQExpBufferChar(buf, "\n");
+        }
+      } else {
+        if (visibilityrule != NULL) {
+          appendPQExpBufferStr(buf, have_where ? "  AND " : "WHERE "), have_where = true, added_clause = true;
+          appendPQExpBuffer(buf, "%s\n", visibilityrule);
+        }
+      }
+      return added_clause;
+    }
+    function patternToSQLRegex(encoding, dbnamebuf, schemabuf, namebuf, pattern, force_escape, want_literal_dbname, dotcnt) {
+      let buf = [{}, {}, {}];
+      let left_literal = {};
+      let curbuf;
+      let maxbuf;
+      let i;
+      let inquotes;
+      let left;
+      let cp;
+      Assert(pattern != NULL);
+      Assert(namebuf != NULL);
+      Assert(dbnamebuf == NULL || schemabuf != NULL);
+      Assert(dotcnt != NULL);
+      dotcnt.value = 0;
+      inquotes = false;
+      cp = pattern;
+      if (dbnamebuf != NULL)
+        maxbuf = 2;
+      else if (schemabuf != NULL)
+        maxbuf = 1;
+      else
+        maxbuf = 0;
+      curbuf = 0;
+      if (want_literal_dbname) {
+        left = true;
+        initPQExpBuffer(left_literal);
+      } else
+        left = false;
+      initPQExpBuffer(buf[curbuf]);
+      appendPQExpBufferStr(buf[curbuf], "^(");
+      while (cp[0]) {
+        let ch = cp[0];
+        if (ch == '"') {
+          if (inquotes && cp[1] == '"') {
+            appendPQExpBufferChar(buf[curbuf], '"');
+            if (left)
+              appendPQExpBufferChar(left_literal, '"');
+            cp = cp.slice(1);
+          } else
+            inquotes = !inquotes;
+          cp = cp.slice(1);
+        } else if (!inquotes && isupper(ch)) {
+          appendPQExpBufferChar(
+            buf[curbuf],
+            pg_tolower(ch)
+          );
+          if (left)
+            appendPQExpBufferChar(
+              left_literal,
+              pg_tolower(ch)
+            );
+          cp = cp.slice(1);
+        } else if (!inquotes && ch == "*") {
+          appendPQExpBufferStr(buf[curbuf], ".*");
+          if (left)
+            appendPQExpBufferChar(left_literal, "*");
+          cp = cp.slice(1);
+        } else if (!inquotes && ch == "?") {
+          appendPQExpBufferChar(buf[curbuf], ".");
+          if (left)
+            appendPQExpBufferChar(left_literal, "?");
+          cp = cp.slice(1);
+        } else if (!inquotes && ch == ".") {
+          left = false;
+          if (dotcnt)
+            dotcnt.value++;
+          if (curbuf < maxbuf) {
+            appendPQExpBufferStr(buf[curbuf], ")$");
+            curbuf++;
+            initPQExpBuffer(buf[curbuf]);
+            appendPQExpBufferStr(buf[curbuf], "^(");
+            cp = cp.slice(1);
+          } else
+            appendPQExpBufferChar(buf[curbuf], cp[0]), cp = cp.slice(1);
+        } else if (ch == "$") {
+          appendPQExpBufferStr(buf[curbuf], "\\$");
+          if (left)
+            appendPQExpBufferChar(left_literal, "$");
+          cp = cp.slice(1);
+        } else {
+          if ((inquotes || force_escape) && strchr("|*+?()[]{}.^$\\", ch) != NULL)
+            appendPQExpBufferChar(buf[curbuf], "\\");
+          else if (ch == "[" && cp[1] == "]")
+            appendPQExpBufferChar(buf[curbuf], "\\");
+          i = PQmblenBounded(cp, encoding);
+          while (i--) {
+            if (left)
+              appendPQExpBufferChar(left_literal, cp[0]);
+            appendPQExpBufferChar(buf[curbuf], cp[0]), cp = cp.slice(1);
+          }
+        }
+      }
+      appendPQExpBufferStr(buf[curbuf], ")$");
+      if (namebuf) {
+        appendPQExpBufferStr(namebuf, buf[curbuf].data);
+        curbuf--;
+      }
+      if (schemabuf && curbuf >= 0) {
+        appendPQExpBufferStr(schemabuf, buf[curbuf].data);
+        curbuf--;
+      }
+      if (dbnamebuf && curbuf >= 0) {
+        if (want_literal_dbname)
+          appendPQExpBufferStr(dbnamebuf, left_literal.data);
+        else
+          appendPQExpBufferStr(dbnamebuf, buf[curbuf].data);
+      }
+    }
+    function addQueryComment(buf, label) {
+      printfPQExpBuffer(buf, "/* %s */\n", label);
+    }
+    function printQuery(result, opt, fout, is_pager, flog) {
+      let cont = {};
+      let i, r, c;
+      if (cancel_pressed)
+        return;
+      printTableInit(
+        cont,
+        opt.topt,
+        opt.title,
+        PQnfields(result),
+        PQntuples(result)
+      );
+      Assert(opt.translate_columns == NULL || opt.n_translate_columns >= cont.ncolumns);
+      for (i = 0; i < cont.ncolumns; i++) {
+        printTableAddHeader(
+          cont,
+          PQfname(result, i),
+          opt.translate_header,
+          column_type_alignment(PQftype(result, i))
+        );
+      }
+      for (r = 0; r < cont.nrows; r++) {
+        for (c = 0; c < cont.ncolumns; c++) {
+          let cell;
+          let mustfree = false;
+          let translate;
+          if (PQgetisnull(result, r, c))
+            cell = opt.nullPrint != NULL ? opt.nullPrint : "";
+          else if (PQftype(result, c) == 16)
+            cell = PQgetvalue(result, r, c)[0] == "t" ? opt.truePrint != NULL ? opt.truePrint : "t" : opt.falsePrint != NULL ? opt.falsePrint : "f";
+          else {
+            cell = PQgetvalue(result, r, c);
+            if (cont.aligns[c] == "r" && opt.topt.numericLocale) {
+              cell = format_numeric_locale(cell);
+              mustfree = true;
+            }
+          }
+          translate = opt.translate_columns && opt.translate_columns[c];
+          printTableAddCell(cont, cell, translate, mustfree);
+        }
+      }
+      if (opt.footers) {
+        let footer;
+        for (footer = 0; opt.footers[footer] != NULL; footer++)
+          printTableAddFooter(cont, opt.footers[footer]);
+      }
+      printTable(cont, fout, is_pager, flog);
+    }
+    function column_type_alignment(ftype) {
+      let align;
+      switch (ftype) {
+        case 21:
+        case 23:
+        case 20:
+        case 700:
+        case 701:
+        case 1700:
+        case 26:
+        case 6437:
+        case 28:
+        case 5069:
+        case 29:
+        case 790:
+          align = "r";
+          break;
+        default:
+          align = "l";
+          break;
+      }
+      return align;
+    }
+    let ScanKeywordNames = [
+      /*-------------------------------------------------------------------------
+       *
+       * kwlist.h
+       *
+       * The keyword lists are kept in their own source files for use by
+       * automatic tools.  The exact representation of a keyword is determined
+       * by the PG_KEYWORD macro, which is not defined in this file; it can
+       * be defined by the caller for special purposes.
+       *
+       * Portions Copyright (c) 1996-2026, PostgreSQL Global Development Group
+       * Portions Copyright (c) 1994, Regents of the University of California
+       *
+       * IDENTIFICATION
+       *	  src/include/parser/kwlist.h
+       *
+       *-------------------------------------------------------------------------
+       */
+      /* there is deliberately not an #ifndef KWLIST_H here */
+      /*
+       * List of keyword (name, token-value, category, bare-label-status) entries.
+       *
+       * Note: gen_keywordlist.pl requires the entries to appear in ASCII order.
+       */
+      /* name, value, category, is-bare-label */
+      "abort",
+      "absent",
+      "absolute",
+      "access",
+      "action",
+      "add",
+      "admin",
+      "after",
+      "aggregate",
+      "all",
+      "also",
+      "alter",
+      "always",
+      "analyse",
+      /* British spelling */
+      "analyze",
+      "and",
+      "any",
+      "array",
+      "as",
+      "asc",
+      "asensitive",
+      "assertion",
+      "assignment",
+      "asymmetric",
+      "at",
+      "atomic",
+      "attach",
+      "attribute",
+      "authorization",
+      "backward",
+      "before",
+      "begin",
+      "between",
+      "bigint",
+      "binary",
+      "bit",
+      "boolean",
+      "both",
+      "breadth",
+      "by",
+      "cache",
+      "call",
+      "called",
+      "cascade",
+      "cascaded",
+      "case",
+      "cast",
+      "catalog",
+      "chain",
+      "char",
+      "character",
+      "characteristics",
+      "check",
+      "checkpoint",
+      "class",
+      "close",
+      "cluster",
+      "coalesce",
+      "collate",
+      "collation",
+      "column",
+      "columns",
+      "comment",
+      "comments",
+      "commit",
+      "committed",
+      "compression",
+      "concurrently",
+      "conditional",
+      "configuration",
+      "conflict",
+      "connection",
+      "constraint",
+      "constraints",
+      "content",
+      "continue",
+      "conversion",
+      "copy",
+      "cost",
+      "create",
+      "cross",
+      "csv",
+      "cube",
+      "current",
+      "current_catalog",
+      "current_date",
+      "current_role",
+      "current_schema",
+      "current_time",
+      "current_timestamp",
+      "current_user",
+      "cursor",
+      "cycle",
+      "data",
+      "database",
+      "day",
+      "deallocate",
+      "dec",
+      "decimal",
+      "declare",
+      "default",
+      "defaults",
+      "deferrable",
+      "deferred",
+      "definer",
+      "delete",
+      "delimiter",
+      "delimiters",
+      "depends",
+      "depth",
+      "desc",
+      "detach",
+      "dictionary",
+      "disable",
+      "discard",
+      "distinct",
+      "do",
+      "document",
+      "domain",
+      "double",
+      "drop",
+      "each",
+      "else",
+      "empty",
+      "enable",
+      "encoding",
+      "encrypted",
+      "end",
+      "enforced",
+      "enum",
+      "error",
+      "escape",
+      "event",
+      "except",
+      "exclude",
+      "excluding",
+      "exclusive",
+      "execute",
+      "exists",
+      "explain",
+      "expression",
+      "extension",
+      "external",
+      "extract",
+      "false",
+      "family",
+      "fetch",
+      "filter",
+      "finalize",
+      "first",
+      "float",
+      "following",
+      "for",
+      "force",
+      "foreign",
+      "format",
+      "forward",
+      "freeze",
+      "from",
+      "full",
+      "function",
+      "functions",
+      "generated",
+      "global",
+      "grant",
+      "granted",
+      "greatest",
+      "group",
+      "grouping",
+      "groups",
+      "handler",
+      "having",
+      "header",
+      "hold",
+      "hour",
+      "identity",
+      "if",
+      "ignore",
+      "ilike",
+      "immediate",
+      "immutable",
+      "implicit",
+      "import",
+      "in",
+      "include",
+      "including",
+      "increment",
+      "indent",
+      "index",
+      "indexes",
+      "inherit",
+      "inherits",
+      "initially",
+      "inline",
+      "inner",
+      "inout",
+      "input",
+      "insensitive",
+      "insert",
+      "instead",
+      "int",
+      "integer",
+      "intersect",
+      "interval",
+      "into",
+      "invoker",
+      "is",
+      "isnull",
+      "isolation",
+      "join",
+      "json",
+      "json_array",
+      "json_arrayagg",
+      "json_exists",
+      "json_object",
+      "json_objectagg",
+      "json_query",
+      "json_scalar",
+      "json_serialize",
+      "json_table",
+      "json_value",
+      "keep",
+      "key",
+      "keys",
+      "label",
+      "language",
+      "large",
+      "last",
+      "lateral",
+      "leading",
+      "leakproof",
+      "least",
+      "left",
+      "level",
+      "like",
+      "limit",
+      "listen",
+      "load",
+      "local",
+      "localtime",
+      "localtimestamp",
+      "location",
+      "lock",
+      "locked",
+      "logged",
+      "lsn",
+      "mapping",
+      "match",
+      "matched",
+      "materialized",
+      "maxvalue",
+      "merge",
+      "merge_action",
+      "method",
+      "minute",
+      "minvalue",
+      "mode",
+      "month",
+      "move",
+      "name",
+      "names",
+      "national",
+      "natural",
+      "nchar",
+      "nested",
+      "new",
+      "next",
+      "nfc",
+      "nfd",
+      "nfkc",
+      "nfkd",
+      "no",
+      "none",
+      "normalize",
+      "normalized",
+      "not",
+      "nothing",
+      "notify",
+      "notnull",
+      "nowait",
+      "null",
+      "nullif",
+      "nulls",
+      "numeric",
+      "object",
+      "objects",
+      "of",
+      "off",
+      "offset",
+      "oids",
+      "old",
+      "omit",
+      "on",
+      "only",
+      "operator",
+      "option",
+      "options",
+      "or",
+      "order",
+      "ordinality",
+      "others",
+      "out",
+      "outer",
+      "over",
+      "overlaps",
+      "overlay",
+      "overriding",
+      "owned",
+      "owner",
+      "parallel",
+      "parameter",
+      "parser",
+      "partial",
+      "partition",
+      "passing",
+      "password",
+      "path",
+      "period",
+      "placing",
+      "plan",
+      "plans",
+      "policy",
+      "position",
+      "preceding",
+      "precision",
+      "prepare",
+      "prepared",
+      "preserve",
+      "primary",
+      "prior",
+      "privileges",
+      "procedural",
+      "procedure",
+      "procedures",
+      "program",
+      "publication",
+      "quote",
+      "quotes",
+      "range",
+      "read",
+      "real",
+      "reassign",
+      "recursive",
+      "ref",
+      "references",
+      "referencing",
+      "refresh",
+      "reindex",
+      "relative",
+      "release",
+      "rename",
+      "repack",
+      "repeatable",
+      "replace",
+      "replica",
+      "reset",
+      "respect",
+      "restart",
+      "restrict",
+      "return",
+      "returning",
+      "returns",
+      "revoke",
+      "right",
+      "role",
+      "rollback",
+      "rollup",
+      "routine",
+      "routines",
+      "row",
+      "rows",
+      "rule",
+      "savepoint",
+      "scalar",
+      "schema",
+      "schemas",
+      "scroll",
+      "search",
+      "second",
+      "security",
+      "select",
+      "sequence",
+      "sequences",
+      "serializable",
+      "server",
+      "session",
+      "session_user",
+      "set",
+      "setof",
+      "sets",
+      "share",
+      "show",
+      "similar",
+      "simple",
+      "skip",
+      "smallint",
+      "snapshot",
+      "some",
+      "source",
+      "sql",
+      "stable",
+      "standalone",
+      "start",
+      "statement",
+      "statistics",
+      "stdin",
+      "stdout",
+      "storage",
+      "stored",
+      "strict",
+      "string",
+      "strip",
+      "subscription",
+      "substring",
+      "support",
+      "symmetric",
+      "sysid",
+      "system",
+      "system_user",
+      "table",
+      "tables",
+      "tablesample",
+      "tablespace",
+      "target",
+      "temp",
+      "template",
+      "temporary",
+      "text",
+      "then",
+      "ties",
+      "time",
+      "timestamp",
+      "to",
+      "trailing",
+      "transaction",
+      "transform",
+      "treat",
+      "trigger",
+      "trim",
+      "true",
+      "truncate",
+      "trusted",
+      "type",
+      "types",
+      "uescape",
+      "unbounded",
+      "uncommitted",
+      "unconditional",
+      "unencrypted",
+      "union",
+      "unique",
+      "unknown",
+      "unlisten",
+      "unlogged",
+      "until",
+      "update",
+      "user",
+      "using",
+      "vacuum",
+      "valid",
+      "validate",
+      "validator",
+      "value",
+      "values",
+      "varchar",
+      "variadic",
+      "varying",
+      "verbose",
+      "version",
+      "view",
+      "views",
+      "virtual",
+      "volatile",
+      "wait",
+      "when",
+      "where",
+      "whitespace",
+      "window",
+      "with",
+      "within",
+      "without",
+      "work",
+      "wrapper",
+      "write",
+      "xml",
+      "xmlattributes",
+      "xmlconcat",
+      "xmlelement",
+      "xmlexists",
+      "xmlforest",
+      "xmlnamespaces",
+      "xmlparse",
+      "xmlpi",
+      "xmlroot",
+      "xmlserialize",
+      "xmltable",
+      "year",
+      "yes",
+      "zone"
+    ];
+    let ScanKeywordCategories = [
+      /*-------------------------------------------------------------------------
+       *
+       * kwlist.h
+       *
+       * The keyword lists are kept in their own source files for use by
+       * automatic tools.  The exact representation of a keyword is determined
+       * by the PG_KEYWORD macro, which is not defined in this file; it can
+       * be defined by the caller for special purposes.
+       *
+       * Portions Copyright (c) 1996-2026, PostgreSQL Global Development Group
+       * Portions Copyright (c) 1994, Regents of the University of California
+       *
+       * IDENTIFICATION
+       *	  src/include/parser/kwlist.h
+       *
+       *-------------------------------------------------------------------------
+       */
+      /* there is deliberately not an #ifndef KWLIST_H here */
+      /*
+       * List of keyword (name, token-value, category, bare-label-status) entries.
+       *
+       * Note: gen_keywordlist.pl requires the entries to appear in ASCII order.
+       */
+      /* name, value, category, is-bare-label */
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      /* British spelling */
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      RESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      RESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      RESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      RESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      TYPE_FUNC_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      RESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      COL_NAME_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD,
+      UNRESERVED_KEYWORD
+    ];
+    function copy_printQueryOpt(s) {
+      return { ...s, topt: copy_printTableOpt(s.topt) };
+    }
+    function copy_printTableOpt(s) {
+      return { ...s, fieldSep: { ...s.fieldSep }, recordSep: { ...s.recordSep } };
+    }
+    function printTableInit(content, opt, title, ncolumns, nrows) {
+      content.opt = opt;
+      content.title = title;
+      content.ncolumns = ncolumns;
+      content.nrows = nrows;
+      content.headers = [];
+      content.cells = [];
+      content.footers = NULL;
+      content.aligns = [];
+    }
+    function printTableAddHeader(content, header, translate, align) {
+      if (translate) header = _(header);
+      content.headers.push(header);
+      content.header = header;
+      content.aligns.push(align);
+      content.align = align;
+    }
+    function printTableAddCell(content, cell, translate, mustfree) {
+      if (translate) cell = _(cell);
+      content.cells.push(cell);
+      content.cell = cell;
+    }
+    function printTableAddFooter(content, footer) {
+      if (content.footers == NULL) content.footers = [];
+      content.footers.push(footer);
+      content.footer = { data: footer };
+    }
+    function printTableSetFooter(content, footer) {
+      if (content.footers) content.footers.pop();
+      printTableAddFooter(content, footer);
+    }
+    function printTable(cont, fout, is_pager, flog) {
+      output(structuredClone(cont));
+    }
+    function parsePGArray(atext, itemarray, nitems) {
+      let inputlen;
+      let strings;
+      let curitem;
+      inputlen = strlen(atext);
+      itemarray.value = NULL;
+      nitems.value = 0;
+      if (inputlen < 2 || atext[0] != "{" || atext[inputlen - 1] != "}")
+        return false;
+      const items = itemarray.value = [];
+      let at = 0;
+      at++;
+      curitem = 0;
+      while (atext[at] != "}") {
+        if (atext[at] == NULL)
+          return false;
+        strings = "";
+        while (atext[at] != "}" && atext[at] != ",") {
+          if (atext[at] == NULL)
+            return false;
+          if (atext[at] != '"')
+            strings += atext[at++];
+          else {
+            at++;
+            while (atext[at] != '"') {
+              if (atext[at] == NULL)
+                return false;
+              if (atext[at] == "\\") {
+                at++;
+                if (atext[at] == NULL)
+                  return false;
+              }
+              strings += atext[at++];
+            }
+            at++;
+          }
+        }
+        items[curitem] = strings;
+        if (atext[at] == ",")
+          at++;
+        curitem++;
+      }
+      if (atext[at + 1] && atext[at + 1] != NULL)
+        return false;
+      nitems.value = curitem;
+      return true;
+    }
+    function fmtId(rawid) {
+      let id_return = {
+        /* struct */
+      };
+      initPQExpBuffer(id_return);
+      let need_quotes = false;
+      if (quote_all_identifiers)
+        need_quotes = true;
+      else if (!(rawid[0] >= "a" && rawid[0] <= "z" || rawid[0] == "_"))
+        need_quotes = true;
+      else {
+        if (/[^a-z0-9_]/.test(rawid)) need_quotes = true;
+      }
+      if (!need_quotes) {
+        let kwnum = ScanKeywordNames.indexOf(rawid);
+        if (kwnum >= 0 && ScanKeywordCategories[kwnum] != UNRESERVED_KEYWORD)
+          need_quotes = true;
+      }
+      if (!need_quotes) {
+        appendPQExpBufferStr(id_return, rawid);
+      } else {
+        appendPQExpBufferChar(id_return, '"');
+        appendPQExpBufferChar(id_return, rawid.replace(/"/g, '""'));
+        appendPQExpBufferChar(id_return, '"');
+      }
+      return id_return.data;
+    }
+    let pset;
+    let success = true, commands = 0;
+    try {
+      pset = {
+        sversion: serverVersion,
+        cur_cmd_interactive: false,
+        queryFout: stdout,
+        logfile: NULL,
+        echo_hidden: echoHidden ? PSQL_ECHO_HIDDEN_ON : PSQL_ECHO_HIDDEN_OFF,
+        db: {
+          // PGconn struct
+          dbName,
+          sversion: serverVersion,
+          std_strings: standardConformingStrings,
+          status: CONNECTION_OK,
+          encoding: PG_UTF8
+        },
+        popt: {
+          // print options
+          topt: {
+            // table options
+            default_footer: true,
+            expanded: 0
+          },
+          nullPrint: ""
+        }
+      };
+      let rest = remainder;
+      for (; ; ) {
+        const newline = multipleCommands ? rest.indexOf("\n") : -1;
+        const after = newline === -1 ? "" : rest.slice(newline + 1);
+        const scan_state = [newline === -1 ? rest.slice(1) : rest.slice(1, newline), 0];
+        const [str] = scan_state;
+        for (; ; ) {
+          const isHelp = ["?", "h", "help"].includes(psql_scan_slash_command([...scan_state]));
+          if (!pset.sversion && !isHelp) {
+            const vres = await PSQLexec("SHOW server_version_num", true);
+            pset.sversion = pset.db.sversion = parseInt(vres.rows[0][0], 10);
+          }
+          commands++;
+          if (await HandleSlashCmds(scan_state, {}, createPQExpBuffer(), createPQExpBuffer()) === PSQL_CMD_ERROR) {
+            success = false;
+          }
+          while (/\s/.test(str[scan_state[1]] ?? "")) scan_state[1]++;
+          if (!multipleCommands || str[scan_state[1]] !== "\\") break;
+          scan_state[1]++;
+        }
+        const lineRest = str.slice(scan_state[1]);
+        if (lineRest !== "") return { success, remainder: newline === -1 ? lineRest : lineRest + "\n" + after, commands };
+        rest = after.trimStart();
+        if (rest[0] !== "\\") return { success, remainder: rest, commands };
+      }
+    } catch (err) {
+      output("ERROR:  " + (err instanceof Error ? err.message : String(err)));
+      return { success: false, remainder: "", commands };
+    }
   }
-  const promise = main();
+  const promise = Promise.race([main().finally(flushText), cancelled]);
   return { promise, cancel };
 }
 function pad(str, len, align, pre = "", post = "") {
@@ -7589,12 +9682,11 @@ function tableToHtml(td) {
 function Assert(cond) {
   if (!cond) throw new Error(`Assertion failed (value: ${cond})`);
 }
-var gettext_noop = noop;
-var pg_strdup = noop;
+var ngettext = (singular, plural, n) => n === 1 ? singular : plural;
 var _ = noop;
 function strstr(str1, str2) {
   const index = str1.indexOf(str2);
-  return index === -1 ? NULL : index;
+  return index === -1 ? NULL : str1.slice(index);
 }
 var strchr = strstr;
 function strlen(str) {
@@ -7620,12 +9712,6 @@ function atoi(str) {
 function atooid(str) {
   return parseInt(str, 10);
 }
-function isWhitespace(chr) {
-  return chr === " " || chr === "	" || chr === "\n" || chr === "\r";
-}
-function isQuote(chr) {
-  return chr === '"' || chr === "'";
-}
 function isupper(chr) {
   const ch = chr.charCodeAt(0);
   return ch >= 65 && ch <= 90;
@@ -7639,12 +9725,20 @@ function pg_tolower(ch) {
 function pg_strcasecmp(s1, s2) {
   return strcmp(s1.toLowerCase(), s2.toLowerCase());
 }
-function sizeof(x) {
-  return 0;
+function format_numeric_locale(my_str) {
+  return my_str;
+}
+function PQmblenBounded(s, encoding) {
+  return 1;
 }
 function initPQExpBuffer(buf) {
   buf.data = "";
   buf.len = 0;
+}
+function createPQExpBuffer() {
+  const buf = {};
+  initPQExpBuffer(buf);
+  return buf;
 }
 var resetPQExpBuffer = initPQExpBuffer;
 function appendPQExpBufferStr(buf, str) {
@@ -7661,9 +9755,7 @@ function printfPQExpBuffer(buf, template, ...values) {
   appendPQExpBuffer(buf, template, ...values);
 }
 function appendStringLiteral(buf, str, encoding, std_strings) {
-  const escaped = str.replace(std_strings ? /[']/g : /['\\]/g, "\\$&");
-  const quoted = "'" + escaped + "'";
-  appendPQExpBufferStr(buf, quoted);
+  appendPQExpBufferStr(buf, "'" + str.replace(std_strings ? /'/g : /['\\]/g, "$&$&") + "'");
 }
 function appendStringLiteralConn(buf, str, conn) {
   if (strchr(str, "\\") != NULL && PQserverVersion(conn) < 19e4) {
@@ -7676,39 +9768,41 @@ function appendStringLiteralConn(buf, str, conn) {
   appendStringLiteral(buf, str, conn.encoding, conn.std_strings);
 }
 function sprintf(template, ...values) {
-  let result = "";
-  let valuesIndex = 0;
-  let chrIndex = 0;
-  let nextChrIndex;
-  while ((nextChrIndex = template.indexOf("%", chrIndex)) !== -1) {
-    let padTo = 0;
-    let padLeft = false;
-    result += template.slice(chrIndex, nextChrIndex);
-    chrIndex = nextChrIndex + 1;
-    let pcChr = template[chrIndex++];
-    if (pcChr === "%") result += "%";
-    if (pcChr === "*") {
-      padTo = parseInt(values[valuesIndex++], 10);
-      pcChr = template[chrIndex++];
+  let i = 0;
+  return template.replace(
+    /%([-+ #0']*)(\*|\d+)?(?:\.(\*|\d*))?(?:hh?|ll?|[zjtLq])?([%csdiuoxXfFeEgGaAp])/g,
+    (_2, flags, width, precision, conversion) => {
+      if (conversion === "%") return "%";
+      width = Number(width === "*" ? values[i++] : width ?? 0);
+      precision = precision === "*" ? values[i++] : precision;
+      precision = precision === void 0 || precision < 0 ? void 0 : Number(precision);
+      const value = values[i++], n = Number(value), kind = conversion.toLowerCase();
+      const exponent = (str) => str.replace(/e([+-])(\d)$/, "e$10$2");
+      let s;
+      if (kind === "s") s = precision === void 0 ? String(value) : String(value).slice(0, precision);
+      else if (kind === "c") s = typeof value === "number" ? String.fromCharCode(value) : String(value);
+      else if ("fge".includes(kind) && !isFinite(n)) s = isNaN(n) ? "nan" : n < 0 ? "-inf" : "inf";
+      else if (kind === "f") s = n.toFixed(precision ?? 6);
+      else if (kind === "e") s = exponent(n.toExponential(precision ?? 6));
+      else if (kind === "g") {
+        const p = precision === 0 ? 1 : precision ?? 6, x = Number(n.toExponential(p - 1).split("e")[1]);
+        s = p > x && x >= -4 ? n.toFixed(p - 1 - x) : exponent(n.toExponential(p - 1));
+        if (!flags.includes("#")) s = s.replace(/(\.\d*?)0+(?=e|$)/, "$1").replace(/\.(?=e|$)/, "");
+      } else if ("diuox".includes(kind)) {
+        const digits = Math.abs(Math.trunc(n)).toString({ o: 8, x: 16 }[kind] ?? 10).padStart(precision ?? 0, "0");
+        s = (n < 0 ? "-" : "") + (flags.includes("#") && n !== 0 ? { o: "0", x: "0x" }[kind] ?? "" : "") + digits;
+      } else s = String(value);
+      if (conversion !== kind) s = s.toUpperCase();
+      if ("difeg".includes(kind) && s[0] !== "-") s = (flags.includes("+") ? "+" : flags.includes(" ") ? " " : "") + s;
+      const pad2 = Math.abs(width);
+      if (flags.includes("-") || width < 0) return s.padEnd(pad2);
+      if (flags.includes("0") && "diuoxfeg".includes(kind) && !("diuox".includes(kind) && precision !== void 0)) {
+        const [, sign, rest] = s.match(/^([-+ ]?(?:0[xX])?)(.*)$/);
+        return sign + rest.padStart(pad2 - sign.length, "0");
+      }
+      return s.padStart(pad2);
     }
-    if (pcChr === "-") {
-      padLeft = true;
-      pcChr = template[chrIndex++];
-    }
-    if (pcChr >= "0" && pcChr <= "9") {
-      padTo = parseInt(pcChr, 10);
-      pcChr = template[chrIndex++];
-    }
-    if (pcChr === "s" || pcChr === "c" || pcChr === "d" || pcChr === "u") {
-      const ins = String(values[valuesIndex++]);
-      const padBy = padTo - ins.length;
-      if (padLeft === false && padBy > 0) result += " ".repeat(padBy);
-      result += ins;
-      if (padLeft === true && padBy > 0) result += " ".repeat(padBy);
-    }
-  }
-  result += template.slice(chrIndex);
-  return result;
+  );
 }
 var psprintf = sprintf;
 function PQdb(conn) {
@@ -7778,132 +9872,17 @@ function PQfnumber(res, field_name) {
   }
   return -1;
 }
-function formatPGVersionNumber(version_number, include_minor, buf, buflen) {
-  if (version_number >= 1e5) {
-    if (include_minor)
-      buf = sprintf(
-        "%d.%d",
-        Math.floor(version_number / 1e4),
-        version_number % 1e4
-      );
-    else
-      buf = sprintf("%d", version_number / 1e4);
-  } else {
-    if (include_minor)
-      buf = sprintf(
-        "%d.%d.%d",
-        Math.floor(version_number / 1e4),
-        Math.floor(version_number / 100) % 100,
-        version_number % 100
-      );
-    else
-      buf = sprintf(
-        "%d.%d",
-        Math.floor(version_number / 1e4),
-        Math.floor(version_number / 100) % 100
-      );
-  }
-  return buf;
+function psql_scan_slash_command(scan_state) {
+  const [name] = scan_state[0].slice(scan_state[1]).match(/^[^\s\\]*/);
+  scan_state[1] += name.length;
+  return name;
 }
-function psql_scan_slash_option(scan_state, type, quote, semicolon) {
-  if (type !== OT_NORMAL && type !== OT_WHOLE_LINE) throw new Error(`scan type ${type} not implemented`);
-  if (quote !== NULL) throw new Error("cannot return quote type");
-  const quoteStack = [];
-  const resultRe = semicolon ? /^(.*);*$/ : /^(.*)$/;
-  let chr;
-  for (; ; ) {
-    chr = scan_state[0][scan_state[1]];
-    if (chr == NULL) return NULL;
-    if (!isWhitespace(chr)) break;
-    scan_state[1]++;
-  }
-  if (type === OT_WHOLE_LINE) {
-    return scan_state[0].slice(scan_state[1], scan_state[1] = scan_state[0].length);
-  }
-  let result = "";
-  for (; ; ) {
-    chr = scan_state[0][scan_state[1]++];
-    if (chr == NULL) {
-      if (quoteStack.length > 0) return NULL;
-      return result.match(resultRe)[1];
-    }
-    if (isQuote(chr)) {
-      if (chr === quoteStack[quoteStack.length - 1]) quoteStack.pop();
-      else quoteStack.push(chr);
-      if (chr === '"') result += chr;
-    } else {
-      if (quoteStack.length === 0 && isWhitespace(chr)) {
-        return result.match(resultRe)[1];
-      }
-      result += chr;
-    }
-  }
+function psql_scan_slash_command_end(scan_state) {
+  if (scan_state[0].startsWith("\\\\", scan_state[1])) scan_state[1] += 2;
 }
 function noop(x) {
   return x;
 }
-var helpText = `Help
-  \\? [commands]          show help on backslash commands
-  \\h [NAME]              help on syntax of SQL commands, * for all commands
-
-Informational
-  (options: S = show system objects, x = expanded mode, + = additional detail)
-  \\d[Sx+]                list tables, views, and sequences
-  \\d[S+]   NAME          describe table, view, sequence, or index
-  \\da[Sx]  [PATTERN]     list aggregates
-  \\dA[x+]  [PATTERN]     list access methods
-  \\dAc[x+] [AMPTRN [TYPEPTRN]]  list operator classes
-  \\dAf[x+] [AMPTRN [TYPEPTRN]]  list operator families
-  \\dAo[x+] [AMPTRN [OPFPTRN]]   list operators of operator families
-  \\dAp[x+] [AMPTRN [OPFPTRN]]   list support functions of operator families
-  \\db[x+]  [PATTERN]     list tablespaces
-  \\dc[Sx+] [PATTERN]     list conversions
-  \\dconfig[x+] [PATTERN] list configuration parameters
-  \\dC[x+]  [PATTERN]     list casts
-  \\dd[Sx]  [PATTERN]     show object descriptions not displayed elsewhere
-  \\dD[Sx+] [PATTERN]     list domains
-  \\ddp[x]  [PATTERN]     list default privileges
-  \\dE[Sx+] [PATTERN]     list foreign tables
-  \\des[x+] [PATTERN]     list foreign servers
-  \\det[x+] [PATTERN]     list foreign tables
-  \\deu[x+] [PATTERN]     list user mappings
-  \\dew[x+] [PATTERN]     list foreign-data wrappers
-  \\df[anptw][Sx+] [FUNCPTRN [TYPEPTRN ...]]
-                         list [only agg/normal/procedure/trigger/window] functions
-  \\dF[x+]  [PATTERN]     list text search configurations
-  \\dFd[x+] [PATTERN]     list text search dictionaries
-  \\dFp[x+] [PATTERN]     list text search parsers
-  \\dFt[x+] [PATTERN]     list text search templates
-  \\dg[Sx+] [PATTERN]     list roles
-  \\di[Sx+] [PATTERN]     list indexes
-  \\dl[x+]                list large objects, same as \\lo_list
-  \\dL[Sx+] [PATTERN]     list procedural languages
-  \\dm[Sx+] [PATTERN]     list materialized views
-  \\dn[Sx+] [PATTERN]     list schemas
-  \\do[Sx+] [OPPTRN [TYPEPTRN [TYPEPTRN]]]
-                         list operators
-  \\dO[Sx+] [PATTERN]     list collations
-  \\dp[Sx]  [PATTERN]     list table, view, and sequence access privileges
-  \\dP[itnx+] [PATTERN]   list [only index/table] partitioned relations [n=nested]
-  \\drds[x] [ROLEPTRN [DBPTRN]] 
-                         list per-database role settings
-  \\drg[Sx] [PATTERN]     list role grants
-  \\dRp[x+] [PATTERN]     list replication publications
-  \\dRs[x+] [PATTERN]     list replication subscriptions
-  \\ds[Sx+] [PATTERN]     list sequences
-  \\dt[Sx+] [PATTERN]     list tables
-  \\dT[Sx+] [PATTERN]     list data types
-  \\du[Sx+] [PATTERN]     list roles
-  \\dv[Sx+] [PATTERN]     list views
-  \\dx[x+]  [PATTERN]     list extensions
-  \\dX[x+]  [PATTERN]     list extended statistics
-  \\dy[x+]  [PATTERN]     list event triggers
-  \\l[x+]   [PATTERN]     list databases
-  \\lo_list[x+]           list large objects
-  \\sf[+]   FUNCNAME      show a function's definition
-  \\sv[+]   VIEWNAME      show a view's definition
-  \\z[Sx]   [PATTERN]     same as \\dp
-`;
 
 // demo-src/demo.js
 function parse(url, parseQueryString) {
@@ -7965,7 +9944,7 @@ async function go() {
       outputEl.innerHTML += (firstOutput ? "" : "\n\n") + htmlEscape(describeDataToString(x));
       firstOutput = false;
     };
-    const { promise, cancel } = describe(cmd, dbName, queryFn, outputFn, echoHidden);
+    const { promise, cancel } = describe(cmd, dbName, queryFn, outputFn, { echoHidden });
     cancelFn = cancel;
     const status = await promise;
     if (status !== null) end();
